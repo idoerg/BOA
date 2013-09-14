@@ -1,9 +1,9 @@
-import sys
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
-import os
 
+import sys
+import os
 import site
 import argparse
 import string
@@ -15,20 +15,33 @@ parser.add_argument(\
     '--genbank-path', type=str, required=True,
     help='The path of the genbank file')
 parser.add_argument(\
-    '--intergene-length', type=int, default=1,required=False,
-    help='The path of the genbank file')
+    '--intergenes', type=str, required=True,
+    help='The path of the fasta file containing the intergenes')
 parser.add_argument(\
-    '--output-dir', type=str, default='.',required=False,
-    help='The output directory of the fasta files')
+    '--genes', type=str, required=False, nargs='+',
+    help='The genes whose neighbors will be considered by BLAST')
+parser.add_argument(\
+    '--radius', type=str, required=False, default=10000,
+    help='The search radius around every specified gene')
+
 args = parser.parse_args()
 
-def findGene(genbank_path,gname):
-    seq_record = SeqIO.parse(open(genbank_path), "genbank").next()
-    for feature in seq_record.features:
-        if feature.type == 'CDS' and feature.gene==gname:
-            return feature
-    return None
+import genbank
+
+#May want to consider multiple genes eventually
+def getIntergenes(inGeneFile,gene,radius):
+    records = []
+    for interGene in SeqIO.parse(inGeneFile,"fasta"):
+        toks = interGene.id.split(" ")
+        start,end = toks[3].split('-')
+    pass
+
+def buildDatabase(genes,radius):
+    pass
+
 
 if __name__=="__main__":
-    sagB_gene = find(args.genbank_path,"sagB")
+    geneDict = genbank.GenBank(args.genbank_path)
+    sagB_gene = geneDict.findGene("sagB")
+    print sagB_gene
 
