@@ -31,21 +31,15 @@ def parseHTML(fname):
     tree = BeautifulSoup(''.join(lines))
     tags = tree('a',href=re.compile(r"^[a-zA-Z0-9_]+"))
     links = [str(tag['href']).lstrip() for tag in tags]
-    print links[0]
     return links
 
 """
 Retrieves file from html site
 """
-def wgetRetrieve(url,outdir):
-    fname = url.split("/")[-1]
-    print "fname",fname
-    cmd = "wget %s; mv %s %s"%(url,fname,outdir)
+def wgetRetrieve(url,fname,outdir):
+    cmd = "wget %s -O %s%s; "%(url,outdir,fname)
     down_proc = subprocess.Popen(cmd,shell=True)
     down_proc.wait()
-    if fname=="":
-        return None
-    return fname
 
 def isDir(string):
     return string[-1]=="/"
@@ -53,15 +47,10 @@ def isDir(string):
 """
 Recurses through online directory
 """
-def recursiveWget(url,outfolder):
-    fname = wgetRetrieve(url,outfolder)
-    if os.path.exists("index.html"):        
-        indexFile="%sindex.html"%(outfolder)
-        os.remove("index.html")
-    else:
-        indexFile="%s%s"%(outfolder,fname)
+def recursiveWget(url,fname,outfolder):
+    wgetRetrieve(url,fname,outfolder)
+    indexFile="%s%s"%(outfolder,fname)
 
-    print "index file",indexFile
     links = parseHTML(indexFile)
     
     for link in links:
@@ -71,12 +60,13 @@ def recursiveWget(url,outfolder):
             if isDir(link):
                 print link,out,outfolder,newURL
                 os.mkdir(out)
-                recursiveWget(newURL,out)
+                recursiveWget(newURL,"index.html",out)
             else:
-                wgetRetrieve(newURL,out)
+                wgetRetrieve(newURL,link,out)
         except OSError:
             continue
             
         
 if __name__=="__main__":
-    recursiveWget(args.URL,args.outfolder)
+    fname = args.URL.split('/')[-2]
+    recursiveWget(args.URL,fname,args.outfolder)
