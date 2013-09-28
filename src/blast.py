@@ -28,9 +28,6 @@ def addArgs(parser):
         '--keep-tmp', action='store_const', const=True, default=False,
         help='Keeps temporary files such as blast database and blast output xml')
     parser.add_argument(\
-        '--radius', type=str, required=False, default=10000,
-        help='The search radius around every specified gene')
-    parser.add_argument(\
         '--num-threads', type=int, required=False, default=1,
         help='The number of threads to be run on blast')
 

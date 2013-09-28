@@ -17,19 +17,22 @@ import subprocess
 parser = argparse.ArgumentParser(description=\
     'Finds intergenic regions from genback file')
 parser.add_argument(\
-    '--genes', type=str,required=True,default=""
+    '--genes', type=str,required=True,default="",
     help='A FASTA file containing all of the genes of interest')
 parser.add_argument(\
-    '--genbank-path', type=str, required=False,default=""
+    '--genbank-path', type=str, required=False,default="",
     help='The path of the genbank file containing annotated genes')
 parser.add_argument(\
-    '--genomes', type=str,nargs="+",required=False,default=""
+    '--genomes', type=str,nargs="+",required=False,default="",
     help='The bacterial genomes')
 parser.add_argument(\
     '--intergenes', type=str, required=True,
     help='The path of the fasta file containing the intergenes')
 parser.add_argument(\
-    '--radius', type=str, required=False, default=10000,
+    '--bacteriocins', type=str, required=True,
+    help='The bacteriocin proteins that are to be blasted')
+parser.add_argument(\
+    '--radius', type=int, required=False, default=10000,
     help='The search radius around every specified gene')
 parser.add_argument(\
     '--test', action='store_const', const=True, default=False,
@@ -57,9 +60,13 @@ def getIntergenes(inGeneFile,gene,radius):
     return records
 
 def go():
-    geneDict = genbank.GenBank(args.genbank_path)
-    sagB_gene = geneDict.findGene("sagB")
-    intergenes = getIntergenes(args.intergenes,sagB_gene,args.radius)
+    intergenes = []
+    for input_gene in SeqIO.parse(args.genes,"fasta"):
+        gene_name = input_gene.id
+        geneDict = genbank.GenBank(args.genbank_path)
+        sagB_gene = geneDict.findGene(gene_name)
+        intergenes += getIntergenes(args.intergenes,sagB_gene,args.radius)
+
     blast_obj = blast.BLAST(args.bacteriocins,intergenes)
     blast_obj.buildDatabase()
     blast_obj.run(args.num_threads)

@@ -1,3 +1,10 @@
+Installation
+
+Make sure that you have the following installed
+1) biopython 
+2) Beautiful Soup (only if you want to do online retrieval from the NCBI ftp site)
+
+
 To start using this software, first do the following
 
 1) Place your bacteriocin proteins in FASTA format in the bacteriocins folder

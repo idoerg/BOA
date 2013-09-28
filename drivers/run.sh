@@ -1,11 +1,15 @@
 SRC=../src
-GENOME=../example/Streptococcus_pyogenes
+GENOME=/home/jamie/Documents/Bacfinder/example/Streptococcus_pyogenes
 BACTERIOCINS=../bacteriocins
-python $SRC/intergene.py --genbank-path=$GENOME/sequence.gb --output-dir=$GENOME
+GENBANK=$GENOME/NC_011375.gbk
+INTERGENES=$GENOME/`basename $GENBANK .gbk`_ign.fasta
+
+python $SRC/intergene.py --genbank-path=$GENBANK --output-dir=$GENOME 
 python $SRC/bacteriocin.py \
-    --genbank-path=$GENOME/sequence.gb \
-    --intergenes=$GENOME/sequence_ign.fasta \
+    --genes=$BACTERIOCINS/genes.fa \
+    --genbank-path=$GENOME/NC_011375.gbk \
+    --intergenes=$INTERGENES \
     --bacteriocins=$BACTERIOCINS/bacteriocins.fa \
-    --output-file=blast_results.txt \
+    --output-file=blast_results.txt 
     
 
