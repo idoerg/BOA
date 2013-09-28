@@ -37,7 +37,8 @@ def parseHTML(fname):
 Retrieves file from html site
 """
 def wgetRetrieve(url,fname,outdir):
-    cmd = "wget %s -O %s%s; "%(url,outdir,fname)
+    print >> sys.stderr,"Out dir",outdir,"fname",fname
+    cmd = "wget %s -O %s/%s; "%(url,outdir,fname)
     down_proc = subprocess.Popen(cmd,shell=True)
     down_proc.wait()
 
@@ -49,19 +50,19 @@ Recurses through online directory
 """
 def recursiveWget(url,fname,outfolder):
     wgetRetrieve(url,fname,outfolder)
-    indexFile="%s%s"%(outfolder,fname)
+    indexFile="%s/%s"%(outfolder,fname)
 
     links = parseHTML(indexFile)
     
     for link in links:
         newURL="%s%s"%(url,link)
-        out = "%s%s"%(outfolder,link)
+        out = "%s/%s"%(outfolder,link)
         try:
             if isDir(link):
-                print link,out,outfolder,newURL
                 os.mkdir(out)
                 recursiveWget(newURL,"index.html",out)
             else:
+                out = os.path.dirname(out)
                 wgetRetrieve(newURL,link,out)
         except OSError:
             continue
@@ -69,4 +70,5 @@ def recursiveWget(url,fname,outfolder):
         
 if __name__=="__main__":
     fname = args.URL.split('/')[-2]
+    
     recursiveWget(args.URL,fname,args.outfolder)
