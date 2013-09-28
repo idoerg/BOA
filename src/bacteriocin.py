@@ -20,10 +20,10 @@ parser.add_argument(\
     '--genes', type=str,required=True,default="",
     help='A FASTA file containing all of the genes of interest')
 parser.add_argument(\
-    '--genbank-path', type=str, required=False,default="",
-    help='The path of the genbank file containing annotated genes')
+    '--genbank-files', type=str, nargs="+", required=False,
+    help='The genbank files containing annotated genes')
 parser.add_argument(\
-    '--genomes', type=str,nargs="+",required=False,default="",
+    '--genomes', type=str,nargs="+",required=False,
     help='The bacterial genomes')
 parser.add_argument(\
     '--intergenes', type=str, required=True,
@@ -59,13 +59,31 @@ def getIntergenes(inGeneFile,gene,radius):
             records.append(interGene)
     return records
 
+"""
+Use the Genbank files to look up genes
+"""
+def handleAnnotatedGenes(genbank_files,intergene_file,input_genes):
+    intergenes = []
+    for gbk_file in genbank_files:
+        geneDict = genbank.GenBank(gbk_file)
+        for gene in input_genes:
+            gene_name = gene.id
+            gene_record = geneDict.findGene(gene_name)
+            intergenes += getIntergenes(intergene_file,gene_record,args.radius)
+    return intergenes
+
+"""
+Use BLAST to look up genes in genomes
+
+Right now, only consider the first hit
+"""
+def handleUnannotatedGenes():
+    pass
+
 def go():
     intergenes = []
-    for input_gene in SeqIO.parse(args.genes,"fasta"):
-        gene_name = input_gene.id
-        geneDict = genbank.GenBank(args.genbank_path)
-        sagB_gene = geneDict.findGene(gene_name)
-        intergenes += getIntergenes(args.intergenes,sagB_gene,args.radius)
+    input_genes = [x for x in SeqIO.parse(args.genes,"fasta")]
+    intergenes = handleAnnotatedGenes(args.genbank_files,args.intergenes,input_genes)
 
     blast_obj = blast.BLAST(args.bacteriocins,intergenes)
     blast_obj.buildDatabase()
@@ -77,7 +95,7 @@ def go():
     if not args.keep_tmp: blast_obj.cleanup()
 
 if __name__=="__main__":
-    if args.genbank_path=="" and args.genomes=="":
+    if len(args.genbank_files)==0 and len(args.genomes)==0:
         print sys.stderr,"Neither a genbank files or bacterial genomes have been specified"
         sys.close(0)
     go()
