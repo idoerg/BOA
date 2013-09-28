@@ -1,0 +1,43 @@
+LOCUS       NC_011375            1815785 bp    DNA     circular CON 10-JUN-2013
+DEFINITION  Streptococcus pyogenes NZ131 chromosome, complete genome.
+ACCESSION   NC_011375
+VERSION     NC_011375.1  GI:209558587
+DBLINK      Project: 59035
+            BioProject: PRJNA59035
+KEYWORDS    .
+SOURCE      Streptococcus pyogenes NZ131
+  ORGANISM  Streptococcus pyogenes NZ131
+            Bacteria; Firmicutes; Bacilli; Lactobacillales; Streptococcaceae;
+            Streptococcus.
+REFERENCE   1  (bases 1 to 1815785)
+  AUTHORS   McShan,W.M., ferretti,J.J., Karasawa,T., Suvorov,A.N., Lin,S.,
+            Qin,B., Jia,H., Kenton,S., Najar,F., Wu,H., Scott,J., Roe,B.A. and
+            Savic,D.J.
+  TITLE     Genome sequence of a nephritogenic and highly transformable M49
+            strain of streptococcus pyogenes
+  JOURNAL   J. Bacteriol. 190 (23), 7773-7785 (2008)
+   PUBMED   18820018
+REFERENCE   2  (bases 1 to 1815785)
+  CONSRTM   NCBI Genome Project
+  TITLE     Direct Submission
+  JOURNAL   Submitted (16-OCT-2008) National Center for Biotechnology
+            Information, NIH, Bethesda, MD 20894, USA
+REFERENCE   3  (bases 1 to 1815785)
+  AUTHORS   McShan,W.M.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (13-SEP-2007) Pharmaceutical Sciences, University of
+            Oklahoma Health Sciences Center, P.O. Box 26901, Oklahoma City, OK
+            73190, USA
+COMMENT     PROVISIONAL REFSEQ: This record has not yet been subject to final
+            NCBI review. The reference sequence was derived from CP000829.
+            COMPLETENESS: full length.
+FEATURES             Location/Qualifiers
+     source          1..1815785
+                     /organism="Streptococcus pyogenes NZ131"
+                     /mol_type="genomic DNA"
+                     /strain="NZ131; ATCC BAA-1633"
+                     /serotype="M49"
+                     /culture_collection="ATCC:BAA-1633"
+                     /db_xref="taxon:471876"
+CONTIG      join(CP000829.1:1..1815785)
+//
