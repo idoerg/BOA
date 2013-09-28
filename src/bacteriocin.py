@@ -29,6 +29,9 @@ parser.add_argument(\
     '--intergenes', type=str, required=True,
     help='The path of the fasta file containing the intergenes')
 parser.add_argument(\
+    '--radius', type=str, required=False, default=10000,
+    help='The search radius around every specified gene')
+parser.add_argument(\
     '--test', action='store_const', const=True, default=False,
     help='Run unittests')
 
