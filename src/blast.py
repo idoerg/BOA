@@ -20,33 +20,20 @@ import numpy
 import re
 import subprocess
 
-parser = argparse.ArgumentParser(description=\
-    'Finds intergenic regions from genback file')
-parser.add_argument(\
-    '--genbank-path', type=str, required=True,
-    help='The path of the genbank file')
-parser.add_argument(\
-    '--intergenes', type=str, required=True,
-    help='The path of the fasta file containing the intergenes')
-parser.add_argument(\
-    '--bacteriocins', type=str, required=False,
-    help='FASTA file containing candidate bacteriocin proteins to blast against')
-parser.add_argument(\
-    '--output-file', type=str, required=True,
-    help='The output file containing the BLAST output')
-parser.add_argument(\
-    '--keep-tmp', action='store_const', const=True, default=False,
-    help='Keeps temporary files such as blast database and blast output xml')
-parser.add_argument(\
-    '--radius', type=str, required=False, default=10000,
-    help='The search radius around every specified gene')
-parser.add_argument(\
-    '--num-threads', type=int, required=False, default=1,
-    help='The number of threads to be run on blast')
+def addArgs(parser):
+    parser.add_argument(\
+        '--output-file', type=str, required=True,
+        help='The output file containing the BLAST output')
+    parser.add_argument(\
+        '--keep-tmp', action='store_const', const=True, default=False,
+        help='Keeps temporary files such as blast database and blast output xml')
+    parser.add_argument(\
+        '--radius', type=str, required=False, default=10000,
+        help='The search radius around every specified gene')
+    parser.add_argument(\
+        '--num-threads', type=int, required=False, default=1,
+        help='The number of threads to be run on blast')
 
-args = parser.parse_args()
-
-import genbank
 
 
 class Record():
@@ -84,21 +71,6 @@ class Record():
           +'Query:\t%s\t%s\t%s\n'%(self.query_start,self.query,self.query_end) \
           +'Sbjct:\t%s\t%s\t%s\n'%(self.sbjct_start,self.sbjct,self.sbjct_end)
         return string
-
-loc_reg = re.compile("(\d+):(\d+)")
-#May want to consider multiple genes eventually
-def getIntergenes(inGeneFile,gene,radius):
-    records = []
-    geneSt, geneEnd = loc_reg.findall(str(gene.location))[0]
-    geneSt, geneEnd = int(geneSt), int(geneEnd)
-    for interGene in SeqIO.parse(inGeneFile,"fasta"):
-        toks = interGene.description.split(" ")
-        start,end = toks[2].split('-')
-        start,end = int(start),int(end)
-        if (start>geneSt-radius and start<geneSt+radius and
-            end>geneSt-radius and end<geneSt+radius):
-            records.append(interGene)
-    return records
 
 
 class BLAST(object):
@@ -156,15 +128,3 @@ class BLAST(object):
                         hits.append(record)
         return hits
 
-if __name__=="__main__":
-    geneDict = genbank.GenBank(args.genbank_path)
-    sagB_gene = geneDict.findGene("sagB")
-    intergenes = getIntergenes(args.intergenes,sagB_gene,args.radius)
-    blast_obj = BLAST(args.bacteriocins,intergenes)
-    blast_obj.buildDatabase()
-    blast_obj.run(args.num_threads)
-    hits = blast_obj.parseBLAST()
-    outHandle = open(args.output_file,'w')
-
-    outHandle.write("\n".join( map( str, hits)))
-    if not args.keep_tmp: blast_obj.cleanup()
