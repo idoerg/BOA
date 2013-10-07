@@ -19,10 +19,10 @@ def parser_code():
     parser = argparse.ArgumentParser(description="Parse the results of a BLAST search and organize the results by specific operons. The program will save the results in a folder designated by the user or the default './blast_parse/'.")
 
     parser.add_argument("-i", "--infolder", dest="infolder", default='./blast_result/', metavar="FOLDER",
-                help="A file that contains the path to every organism database that you are interested in.")
+                help="A folder that contains all BLAST results in tabular form that you are interested in.")
                  
     parser.add_argument("-o", "--outfolder", dest="outfolder", metavar="FOLDER", default='./blast_parse/',
-                help="Folder where the BLAST results will be stored. Default is the folder './blast_result/'.")
+                help="Folder where the parsed BLAST results will be stored. Default is the folder './blast_parse/'.")
     
     parser.add_argument("-f", "--filter", dest="filter", metavar="FILE", default='',
                 help="File restrictiong which accession numbers this script will process. If no file is provided, filtering is not performed.")
@@ -51,19 +51,12 @@ def check_options(parsed_args):
     outfolder = parsed_args.outfolder
     
     # Check the filter file
-    if parsed_args.filter == '' or os.path.exists(parsed_args.query):
-        query_file = parsed_args.query
+    if parsed_args.filter == '' or os.path.exists(parsed_args.filter):
+        filter_file = parsed_args.filter
     else:
-        print "The file %s does not exist." % parsed_args.query
+        print "The file %s does not exist." % parsed_args.filter
         sys.exit()
-
-    # Check the filter file
-    if parsed_args.filter == '' or os.path.exists(parsed_args.query):
-        query_file = parsed_args.query
-    else:
-        print "The file %s does not exist." % parsed_args.query
-        sys.exit()
-        
+    
     # section of code that deals determining the number of CPU cores that will be used by the program
     if parsed_args.num_proc > os.sysconf("SC_NPROCESSORS_CONF"):
         num_proc = os.sysconf("SC_NPROCESSORS_CONF")
@@ -71,9 +64,15 @@ def check_options(parsed_args):
         num_proc = 1
     else:
         num_proc = parsed_args.num_proc
+            
+    # Check the operon file
+    if parsed_args.operon_file == '' or os.path.exists(parsed_args.operon_file):
+        operon_file = parsed_args.operon_file
+    else:
+        print "The file %s does not exist." % parsed_args.operon_file
+        sys.exit()
         
-
-    return infolder, outfolder, operon_query, filter_file, num_proc
+    return infolder, outfolder, operon_file, filter_file, num_proc
 
 
 #this function will return all of the files that are in a directory. os.walk is recursive traversal.
@@ -267,7 +266,7 @@ def main():
     
     parsed_args = parser_code()
     
-    infolder, outfolder, operon_query, filter_file, num_proc = check_options(parsed_args)
+    infolder, outfolder, operon_file, filter_file, num_proc = check_options(parsed_args)
 
     parallel_raw_parse(outfolder, infolder, num_proc)
     
