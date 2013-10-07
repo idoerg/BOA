@@ -10,23 +10,11 @@ import argparse
 import string
 import numpy
 
-parser = argparse.ArgumentParser(description=\
-    'Finds intergenic regions from genback file')
-parser.add_argument(\
-    '--genbank-path', type=str, required=True,
-    help='The path of the genbank file')
-parser.add_argument(\
-    '--intergene-length', type=int, default=1,required=False,
-    help='The path of the genbank file')
-parser.add_argument(\
-    '--output-dir', type=str, default='.',required=False,
-    help='The output directory of the fasta files')
-args = parser.parse_args()
 
 # Copyright(C) 2009 Iddo Friedberg & Ian MC Fleming
 # Released under Biopython license. http://www.biopython.org/DIST/LICENSE
 # Do not remove this comment
-def get_interregions(genbank_path,intergene_length=1):
+def get_interregions(genbank_path,output_file,intergene_length=1):
     seq_record = SeqIO.parse(open(genbank_path), "genbank").next()
     cds_list_plus = []
     cds_list_minus = []
@@ -68,9 +56,21 @@ def get_interregions(genbank_path,intergene_length=1):
                   SeqRecord(intergene_seq,id="%s-ign-%d" % (seq_record.name,i),
                   description="%s %d-%d %s" % (seq_record.name, last_end+1,
                                                         this_start,strand_string)))
-    outpath = os.path.splitext(os.path.basename(genbank_path))[0] + "_ign.fasta"
-    SeqIO.write(intergenic_records, open(args.output_dir+"/"+outpath,"w"), "fasta")
+    SeqIO.write(intergenic_records, open(output_file,'w'), "fasta")
 
 if __name__ == '__main__':
-    get_interregions(args.genbank_path,args.intergene_length)
+    parser = argparse.ArgumentParser(description=\
+                                         'Finds intergenic regions from genback file')
+    parser.add_argument(\
+        '--genbank-path', type=str, required=False,
+        help='The path of the genbank file')
+    parser.add_argument(\
+        '--intergene-length', type=int, default=1,required=False,
+        help='The path of the genbank file')
+    parser.add_argument(\
+        '--output', type=str, default='.',required=False,
+        help='The fasta file containing the intergenic regions')
+    args = parser.parse_args()
+
+    get_interregions(args.genbank_path,args.output_file,args.intergene_length)
 
