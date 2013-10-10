@@ -76,7 +76,8 @@ class BLAST(object):
         self.genomic_query = "genomicQuery.%d.fa"%self.pid
         self.blastxml = "%d.xml"%self.pid
         SeqIO.write(intergenes,self.genomic_query,"fasta")
-
+    def getFile(self):
+        return self.blastxml
     """
     Build database using intergenic regions
     """
@@ -107,10 +108,10 @@ class BLAST(object):
         input_file = self.blastxml
         hits = []
         handle = open(input_file,'r')
-        blast_hits = NCBIXML.parse(handle)
-        blast_records = list(blast_hits)
-        i = 0
         try:
+            blast_hits = NCBIXML.parse(handle)
+            blast_records = list(blast_hits)
+            i = 0
             for record in blast_records:
                 for alignment in record.alignments:
                     for hsp in alignment.hsps:

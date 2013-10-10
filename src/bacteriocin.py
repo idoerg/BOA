@@ -1,5 +1,6 @@
 import Bio
 from Bio import SeqIO, SeqFeature
+from Bio import SearchIO
 from Bio.SeqRecord import SeqRecord
 
 from Bio.Blast import NCBIXML
@@ -73,19 +74,30 @@ def handleAnnotatedIntergenes(genbank_file,intergene_file,input_genes):
     return intergenes
 
 """
-Use BLAST to look up genes in genomes
+1) BLAST sagB against all proteins
+2) Use protein ID to find the location of the protein in the genbank file
+3) Return intergenic regions
 
-Right now, only consider the first hit
+Right it only considers the first hit
 """
-def handleUnannotatedIntergenes(genome_file,intergene_file,input_genes):
-    blast_obj = blast.BLAST(genome_file,input_genes)
-    blast_obj.buildDatabase()
-    blast_obj.run(args.num_threads)
-    hits = blast_obj.parseBLAST()
-    if len(hits)>0:
-        geneSt,geneEnd = hits[0].query_start, hits[0].query_end
+
+def handleUnannotatedIntergenes(genbank_file,protein_file,intergene_file,input_genes):
+    proteinDict =  genbank.GenBank(genbank_file,"protein")
+    blast_obj = blast.BLAST(protein_file,input_genes)
+    blast_obj.buildDatabase("protein")
+    blast_obj.run(blast_cmd="blastp",num_threads=args.num_threads)
+    blast_file = blast_obj.getFile()
+    blast_qresults = SearchIO.read(blast_file,'blast-xml')
+
+    for qresult in blast_qresults:
+        query_id = qresult.id
+        toks = query_id.split('|')
+        protein_id = toks[3]
+        protein_record = proteinDict.findProtein(protein_id)
+        geneSt, geneEnd = loc_reg.findall(str(protein_record.location))[0]
+        geneSt,geneEnd = int(geneSt), int(geneEnd)
         return filterIntergenes(intergene_file,geneSt,geneEnd,args.radius)
-    return []
+
 
 """
 Finds all intergenic regions
@@ -94,19 +106,16 @@ def getAllIntergenicRegions(genbank_files,input_genes,intermediate):
     intergenic_regions = []
     for gbk in genbank_files:
         base = os.path.splitext(os.path.basename(gbk))[0]
+        path = os.path.dirname(os.path.abspath(gbk))
         intergene_file = "%s/%s.fasta"%(intermediate,base)
-    
-        genome_file = os.path.basename(gbk)
+        protein_file = "%s/%s.faa"%(path,base)
         sequences = SeqIO.parse(gbk, "genbank")
-        SeqIO.write(sequences, genome_file, "fasta")
-        
+
         intergene.get_interregions(gbk,intergene_file)
-        intergenic_regions+=handleAnnotatedIntergenes(gbk,intergene_file,input_genes)
-        intergenic_regions+=handleUnannotatedIntergenes(genome_file,intergene_file,input_genes)
+        intergenic_regions+=handleUnannotatedIntergenes(gbk,protein_file,intergene_file,input_genes)
 
         if not args.keep_tmp:
             os.remove(intergene_file)
-            os.remove(genome_file)
 
     return intergenic_regions
 
@@ -116,8 +125,8 @@ def go():
     intergenes = getAllIntergenicRegions(args.genbank_files,input_genes,args.intermediate)
 
     blast_obj = blast.BLAST(args.bacteriocins,intergenes)
-    blast_obj.buildDatabase()
-    blast_obj.run(args.num_threads)
+    blast_obj.buildDatabase("protein")
+    blast_obj.run(blast_cmd="blastx",num_threads=args.num_threads)
     hits = blast_obj.parseBLAST()
     outHandle = open(args.output_file,'w')
 
