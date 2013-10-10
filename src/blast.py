@@ -70,11 +70,12 @@ class Record():
 
 
 class BLAST(object):
-    def __init__(self,bacteriocins_file,intergene_file):
+    def __init__(self,bacteriocins_file,intergene_file,intermediate):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.protein_db = bacteriocins_file
-        self.blastxml = "%d.xml"%self.pid
+        self.blastxml = "%s/%d.xml"%(intermediate,self.pid)
         self.genomic_query = intergene_file
+        self.intermediate = intermediate
     def getFile(self):
         return self.blastxml
     """

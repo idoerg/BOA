@@ -51,7 +51,9 @@ class BacteriocinHandler:
         self.genbank_files = genbank_files
         self.genomic_query = "%s/genomicQuery.%d.fa"%(intermediate,self.pid)
         self.intergene_file = "%s/intergenes.%d.fasta"%(intermediate,self.pid)
-        self.target_genes = input_genes
+        self.target_genes = "%s/target_genes.%d.fasta"%(intermediate,self.pid)
+        SeqIO.write(input_genes,self.target_genes,"fasta")
+
         self.intermediate = intermediate
 
     def cleanup(self):
@@ -86,11 +88,11 @@ class BacteriocinHandler:
 
     def getUnannotatedIntergenes(self,genbank_file,protein_file):
         proteinDict =  genbank.GenBank(genbank_file,"protein")
-        blast_obj = blast.BLAST(protein_file,self.target_genes)
+
+        blast_obj = blast.BLAST(protein_file,self.target_genes,self.intermediate)
         blast_obj.buildDatabase("protein")
         blast_obj.run(blast_cmd="blastp",num_threads=args.num_threads)
         blast_file = blast_obj.getFile()
-        print blast_file
         blast_qresults = SearchIO.read(blast_file,'blast-xml')
 
         for qresult in blast_qresults:
@@ -100,7 +102,7 @@ class BacteriocinHandler:
             protein_record = proteinDict.findProtein(protein_id)
             geneSt, geneEnd = loc_reg.findall(str(protein_record.location))[0]
             geneSt,geneEnd = int(geneSt), int(geneEnd)
-            return filterIntergenes(self.intergene_file,geneSt,geneEnd,args.radius)
+            return self.filterIntergenes(self.intergene_file,geneSt,geneEnd,args.radius)
         # if not args.keep_tmp:
         #     blast_obj.cleanup()
 
@@ -110,7 +112,7 @@ class BacteriocinHandler:
     """
     def buildIntergenicDatabase(self):
         intergenic_regions = []
-        intergene_handle = open(self.genomic_query,'w')
+        intergene_handle = open(self.genomic_query,'a')
 
         for gbk in self.genbank_files:
             base = os.path.splitext(os.path.basename(gbk))[0]
@@ -131,8 +133,8 @@ def go():
     bac_obj = BacteriocinHandler(args.genbank_files,input_genes,args.intermediate)
     bac_obj.buildIntergenicDatabase()
     intergeneFile = bac_obj.getIntergeneFile()
-
-    blast_obj = blast.BLAST(args.bacteriocins,intergeneFile)
+    print args.bacteriocins,intergeneFile
+    blast_obj = blast.BLAST(args.bacteriocins,intergeneFile,args.intermediate)
     blast_obj.buildDatabase("protein")
     blast_obj.run(blast_cmd="blastx",num_threads=args.num_threads)
     hits = blast_obj.parseBLAST()
