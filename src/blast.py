@@ -7,7 +7,8 @@ Word of caution: blastx is not thread safe :(
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
-
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
 from Bio.Blast import NCBIXML
 from Bio.Blast import NCBIStandalone
 
@@ -31,23 +32,21 @@ def addArgs(parser):
         '--num-threads', type=int, required=False, default=1,
         help='The number of threads to be run on blast')
 
-
-
 class Record():
     """
     Records information for each blast entry that is important for multiple alignment
     """
     def __init__(self,
-                 record_number,     
-                 description,       
-                 expected_value,    
-                 score,             
+                 record_number,
+                 description,
+                 expected_value,
+                 score,
                  query,             #Sequence from database
-                 query_start,       
-                 query_end,         
+                 query_start,
+                 query_end,
                  sbjct,             #Sequence that was blasted
-                 sbjct_start,       
-                 sbjct_end):        
+                 sbjct_start,
+                 sbjct_end):
         self.record_number = record_number
         self.description = description
         self.score = score
@@ -81,18 +80,22 @@ class BLAST(object):
     """
     Build database using intergenic regions
     """
-    def buildDatabase(self):
-        cmd="formatdb -i %s -p T -o T"%(self.protein_db)
+    def buildDatabase(self,base="nucleotide"):
+        #cmd="formatdb -i %s -p T -o T"%(self.protein_db)
+        char = "F" if base=="nucleotide" else "T"
+        cmd="formatdb -i %s -p %s -o T"%(self.protein_db,char)
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
 
-    """    Blast sequences    """
-    def run(self,num_threads):
+    """
+    Blast sequences
+    cmd: any blastall command (e.g. blastn, tblastn, blastx, blastp)
+    """
+    def run(self,blast_cmd="blastn",num_threads=1):
         outHandle = open(self.blastxml,'w')
-        cmd="blastall -p blastx -d %s -i %s -m 7 -o %s -a %d"%(self.protein_db,self.genomic_query, self.blastxml, num_threads)
+        cmd="blastall -p %s -d %s -i %s -m 7 -o %s -a %d"%(blast_cmd,self.protein_db,self.genomic_query, self.blastxml, num_threads)
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
-
 
     def cleanup(self):
 
@@ -107,35 +110,86 @@ class BLAST(object):
         blast_hits = NCBIXML.parse(handle)
         blast_records = list(blast_hits)
         i = 0
-        for record in blast_records:
-            for alignment in record.alignments:
-                for hsp in alignment.hsps:
-                    if hsp.expect<0.04:
-                        record=Record(record_number = i,
-                                      description = alignment.title,
-                                      expected_value = hsp.expect,
-                                      score = hsp.score,
-                                      query = hsp.query,
-                                      query_start = hsp.query_start,
-                                      query_end = hsp.query_end,
-                                      sbjct = hsp.sbjct,
-                                      sbjct_start = hsp.sbjct_start,
-                                      sbjct_end = hsp.sbjct_end)
-                        print record
-                        hits.append(record)
+        try:
+            for record in blast_records:
+                for alignment in record.alignments:
+                    for hsp in alignment.hsps:
+                        if hsp.expect<0.04:
+                            record=Record(record_number = i,
+                                          description = alignment.title,
+                                          expected_value = hsp.expect,
+                                          score = hsp.score,
+                                          query = hsp.query,
+                                          query_start = hsp.query_start,
+                                          query_end = hsp.query_end,
+                                          sbjct = hsp.sbjct,
+                                          sbjct_start = hsp.sbjct_start,
+                                          sbjct_end = hsp.sbjct_end)
+                            hits.append(record)
+        except:
+            print>>sys.stderr,"No blast hits"
         return hits
 
 if __name__=="__main__":
     import unittest
-    base_path = os.path.abspath(__file__))
-    site.addsitedir(os.path.join(base_path, "test"))
     import test
-    class TestBlast():
-        def setup(self):
-            pass
+    class TestNuc2NucBlast(unittest.TestCase):
+        def setUp(self):
+            self.refseq = "AGCTGGCGGCGCGAGGAAGAGGAACGTAGCTGGCGGCGCGAGGAAGAGGAACGT"
+            self.fasta,self.fastaidx = "test.fa","test.fa.fai"
+            self.refid = "test"
+            test.createFasta(self.fasta,self.refid,self.refseq)
         def tearDown(self):
-            pass
+            os.remove(self.fasta)
+
         def test1(self):
-            pass
+            seq_obj = Seq(self.refseq)
+            record = SeqRecord(seq_obj,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
+
+            blast_obj = BLAST(self.fasta,[record])
+            blast_obj.buildDatabase("nucleotide")
+            blast_obj.run(blast_cmd="blastn",num_threads=1)
+            records = blast_obj.parseBLAST()
+            self.assertEquals( len(records),1 )
+            blast_obj.cleanup()
+
+    class TestNuc2ProBlast(unittest.TestCase):
+        def setUp(self):
+            self.refseq = "MAIVMGR*KGAR*"
+            self.fasta,self.fastaidx = "test.fa","test.fa.fai"
+            self.refid = "test"
+            test.createFasta(self.fasta,self.refid,self.refseq)
+        def tearDown(self):
+            os.remove(self.fasta)
+
+        def test1(self):
+            seq = Seq("ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG")
+            record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
+            blast_obj = BLAST(self.fasta,record)
+            blast_obj.buildDatabase("protein")
+            blast_obj.run(blast_cmd="blastx",num_threads=1)
+            records = blast_obj.parseBLAST()
+            self.assertEquals( len(records),1 )
+            blast_obj.cleanup()
+
+    class TestPro2ProBlast(unittest.TestCase):
+        def setUp(self):
+            self.refseq = "MAIVMGR*KGAR*"
+            self.fasta,self.fastaidx = "test.fa","test.fa.fai"
+            self.refid = "test"
+            test.createFasta(self.fasta,self.refid,self.refseq)
+        def tearDown(self):
+            os.remove(self.fasta)
+
+        def test1(self):
+            seq = Seq("MAIVMGR*KGAR*")
+            record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
+            blast_obj = BLAST(self.fasta,record)
+            blast_obj.buildDatabase("protein")
+            blast_obj.run(blast_cmd="blastp",num_threads=1)
+            records = blast_obj.parseBLAST()
+            self.assertEquals( len(records),1 )
+            blast_obj.cleanup()
+
 
     unittest.main()
