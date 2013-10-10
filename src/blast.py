@@ -38,16 +38,16 @@ class Record():
     Records information for each blast entry that is important for multiple alignment
     """
     def __init__(self,
-                 record_number,     #Record number
-                 description,       #Description of the sequence
-                 expected_value,    #Expected value of the alignment
-                 score,             #Score of the alignment
-                 query,             #Portion of the adapter sequence
-                 query_start,       #Beginning of the adapter alignment
-                 query_end,         #End of the adapter alignment
-                 sbjct,             #Portion of the subject sequence
-                 sbjct_start,       #Beginning of the subject alignment
-                 sbjct_end):        #End of the subject alignment
+                 record_number,     
+                 description,       
+                 expected_value,    
+                 score,             
+                 query,             #Sequence from database
+                 query_start,       
+                 query_end,         
+                 sbjct,             #Sequence that was blasted
+                 sbjct_start,       
+                 sbjct_end):        
         self.record_number = record_number
         self.description = description
         self.score = score
@@ -125,3 +125,17 @@ class BLAST(object):
                         hits.append(record)
         return hits
 
+if __name__=="__main__":
+    import unittest
+    base_path = os.path.abspath(__file__))
+    site.addsitedir(os.path.join(base_path, "test"))
+    import test
+    class TestBlast():
+        def setup(self):
+            pass
+        def tearDown(self):
+            pass
+        def test1(self):
+            pass
+
+    unittest.main()
