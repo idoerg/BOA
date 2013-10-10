@@ -70,12 +70,11 @@ class Record():
 
 
 class BLAST(object):
-    def __init__(self,bacteriocins_file,intergenes):
+    def __init__(self,bacteriocins_file,intergene_file):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.protein_db = bacteriocins_file
-        self.genomic_query = "genomicQuery.%d.fa"%self.pid
         self.blastxml = "%d.xml"%self.pid
-        SeqIO.write(intergenes,self.genomic_query,"fasta")
+        self.genomic_query = intergene_file
     def getFile(self):
         return self.blastxml
     """
@@ -101,7 +100,6 @@ class BLAST(object):
     def cleanup(self):
 
         os.system("rm %s.*"%self.protein_db)
-        os.remove(self.genomic_query)
         os.remove(self.blastxml)
 
     def parseBLAST(self):
@@ -137,17 +135,20 @@ if __name__=="__main__":
     class TestNuc2NucBlast(unittest.TestCase):
         def setUp(self):
             self.refseq = "AGCTGGCGGCGCGAGGAAGAGGAACGTAGCTGGCGGCGCGAGGAAGAGGAACGT"
-            self.fasta,self.fastaidx = "test.fa","test.fa.fai"
+            self.fasta = "test.fa"
             self.refid = "test"
             test.createFasta(self.fasta,self.refid,self.refseq)
         def tearDown(self):
-            os.remove(self.fasta)
+            try:
+                os.remove(self.fasta)
+            except:
+                print "Nothing to remove"
 
         def test1(self):
             seq_obj = Seq(self.refseq)
             record = SeqRecord(seq_obj,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
 
-            blast_obj = BLAST(self.fasta,[record])
+            blast_obj = BLAST(self.fasta,self.fasta)
             blast_obj.buildDatabase("nucleotide")
             blast_obj.run(blast_cmd="blastn",num_threads=1)
             records = blast_obj.parseBLAST()
@@ -156,17 +157,23 @@ if __name__=="__main__":
 
     class TestNuc2ProBlast(unittest.TestCase):
         def setUp(self):
-            self.refseq = "MAIVMGR*KGAR*"
-            self.fasta,self.fastaidx = "test.fa","test.fa.fai"
+            self.proseq = "MAIVMGR*KGAR*"
+            self.nucseq = "ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG"
+            self.nucfasta = "nuctest.fa"
+            self.profasta = "protest.fa"
             self.refid = "test"
-            test.createFasta(self.fasta,self.refid,self.refseq)
+            test.createFasta(self.nucfasta,self.refid,self.nucseq)
+            test.createFasta(self.profasta,self.refid,self.proseq)
         def tearDown(self):
-            os.remove(self.fasta)
-
+            try:
+                os.remove(self.profasta)
+                os.remove(self.nucfasta)
+            except:
+                print "Nothing to remove"
         def test1(self):
             seq = Seq("ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG")
             record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
-            blast_obj = BLAST(self.fasta,record)
+            blast_obj = BLAST(self.profasta,self.nucfasta)
             blast_obj.buildDatabase("protein")
             blast_obj.run(blast_cmd="blastx",num_threads=1)
             records = blast_obj.parseBLAST()
@@ -176,16 +183,19 @@ if __name__=="__main__":
     class TestPro2ProBlast(unittest.TestCase):
         def setUp(self):
             self.refseq = "MAIVMGR*KGAR*"
-            self.fasta,self.fastaidx = "test.fa","test.fa.fai"
+            self.fasta = "test.fa"
             self.refid = "test"
             test.createFasta(self.fasta,self.refid,self.refseq)
         def tearDown(self):
-            os.remove(self.fasta)
+            try:
+                os.remove(self.fasta)
+            except:
+                print "Nothing to remove"
 
         def test1(self):
-            seq = Seq("MAIVMGR*KGAR*")
-            record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
-            blast_obj = BLAST(self.fasta,record)
+            # seq = Seq("MAIVMGR*KGAR*")
+            # record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
+            blast_obj = BLAST(self.fasta,self.fasta)
             blast_obj.buildDatabase("protein")
             blast_obj.run(blast_cmd="blastp",num_threads=1)
             records = blast_obj.parseBLAST()
