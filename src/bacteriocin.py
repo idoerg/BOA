@@ -30,6 +30,9 @@ parser.add_argument(\
     '--radius', type=int, required=False, default=10000,
     help='The search radius around every specified gene')
 parser.add_argument(\
+    '--evalue', type=float, required=False, default=0.00001,
+    help='The search radius around every specified gene')
+parser.add_argument(\
     '--intermediate', type=str, required=True,
     help='Directory for storing intermediate files')
 parser.add_argument(\
@@ -89,7 +92,7 @@ class BacteriocinHandler:
     def getUnannotatedIntergenes(self,genbank_file,protein_file):
         proteinDict =  genbank.GenBank(genbank_file,"protein")
 
-        blast_obj = blast.BLAST(protein_file,self.target_genes,self.intermediate)
+        blast_obj = blast.BLAST(protein_file,self.target_genes,self.intermediate,args.evalue)
         blast_obj.buildDatabase("protein")
         blast_obj.run(blast_cmd="blastp",num_threads=args.num_threads)
         blast_file = blast_obj.getFile()
@@ -133,8 +136,7 @@ def go():
     bac_obj = BacteriocinHandler(args.genbank_files,input_genes,args.intermediate)
     bac_obj.buildIntergenicDatabase()
     intergeneFile = bac_obj.getIntergeneFile()
-    print args.bacteriocins,intergeneFile
-    blast_obj = blast.BLAST(args.bacteriocins,intergeneFile,args.intermediate)
+    blast_obj = blast.BLAST(args.bacteriocins,intergeneFile,args.intermediate,args.evalue)
     blast_obj.buildDatabase("protein")
     blast_obj.run(blast_cmd="blastx",num_threads=args.num_threads)
     hits = blast_obj.parseBLAST()

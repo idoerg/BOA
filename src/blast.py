@@ -70,12 +70,13 @@ class Record():
 
 
 class BLAST(object):
-    def __init__(self,bacteriocins_file,intergene_file,intermediate):
+    def __init__(self,bacteriocins_file,intergene_file,intermediate,evalue):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.protein_db = bacteriocins_file
         self.blastxml = "%s/%d.xml"%(intermediate,self.pid)
         self.genomic_query = intergene_file
         self.intermediate = intermediate
+        self.evalue = evalue
     def getFile(self):
         return self.blastxml
     """
@@ -114,7 +115,7 @@ class BLAST(object):
             for record in blast_records:
                 for alignment in record.alignments:
                     for hsp in alignment.hsps:
-                        if hsp.expect<0.04:
+                        if hsp.expect<self.evalue:
                             record=Record(record_number = i,
                                           description = alignment.title,
                                           expected_value = hsp.expect,

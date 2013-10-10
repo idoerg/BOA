@@ -1,7 +1,7 @@
 Installation
 
 Make sure that you have the following installed
-1) biopython 
+1) biopython version 1.62
 2) Beautiful Soup (only if you want to do online retrieval from the NCBI ftp site)
 
 
