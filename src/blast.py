@@ -59,6 +59,7 @@ class Record():
         self.sbjct_end = sbjct_end
 
     def __str__(self):
+        
         string = '****Alignment****\n' \
           +'Record%d\n  '%self.record_number \
           +'sequence%s\n: '+self.description \
@@ -67,7 +68,6 @@ class Record():
           +'Query:\t%s\t%s\t%s\n'%(self.query_start,self.query,self.query_end) \
           +'Sbjct:\t%s\t%s\t%s\n'%(self.sbjct_start,self.sbjct,self.sbjct_end)
         return string
-
 
 class BLAST(object):
     def __init__(self,bacteriocins_file,intergene_file,intermediate,evalue):
@@ -116,6 +116,7 @@ class BLAST(object):
                 for alignment in record.alignments:
                     for hsp in alignment.hsps:
                         if hsp.expect<self.evalue:
+                            print alignment.title
                             record=Record(record_number = i,
                                           description = alignment.title,
                                           expected_value = hsp.expect,
