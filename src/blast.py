@@ -59,7 +59,7 @@ class Record():
         self.sbjct_end = sbjct_end
 
     def __str__(self):
-        
+
         string = '****Alignment****\n' \
           +'Record%d\n  '%self.record_number \
           +'sequence%s\n: '+self.description \

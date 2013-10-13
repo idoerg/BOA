@@ -1,3 +1,8 @@
+"""
+Todo
+1) Fix the redundant intergene problem: sometimes the intergene id is not unique
+"""
+
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio import SearchIO
@@ -63,12 +68,12 @@ class BacteriocinHandler:
         os.remove(self.genomic_query)
         os.remove(self.intergene_file)
 
-    def getIntergeneFile(self):
-        return self.intergene_file
+    """Contains the filtered intergenic regions"""
+    def getGenomicQuery(self):
+        return self.genomic_query
 
     """
     Narrows down search area for intergenes
-    Also modifies the descriptions to include organism name and id
     """
     def filterIntergenes(self,intergenic_file,geneSt,geneEnd,radius):
         records = []
@@ -91,8 +96,8 @@ class BacteriocinHandler:
     """
 
     def getUnannotatedIntergenes(self,genbank_file,protein_file):
-        proteinDict =  genbank.GenBank(genbank_file,"protein")
         intergenes = []
+        proteinDict =  genbank.GenBank(genbank_file,"protein")
         blast_obj = blast.BLAST(protein_file,self.target_genes,self.intermediate,args.evalue)
         blast_obj.buildDatabase("protein")
         blast_obj.run(blast_cmd="blastp",num_threads=args.num_threads)
@@ -109,7 +114,6 @@ class BacteriocinHandler:
             geneSt, geneEnd = loc_reg.findall(str(protein_record.location))[0]
             geneSt,geneEnd = int(geneSt), int(geneEnd)
             intergenes += self.filterIntergenes(self.intergene_file,geneSt,geneEnd,args.radius)
-
         if not args.keep_tmp:
             blast_obj.cleanup()
         return intergenes
@@ -139,7 +143,11 @@ def go():
     input_genes = [x for x in SeqIO.parse(args.genes,"fasta")]
     bac_obj = BacteriocinHandler(args.genbank_files,input_genes,args.intermediate)
     bac_obj.buildIntergenicDatabase()
-    intergeneFile = bac_obj.getIntergeneFile()
+    intergeneFile = bac_obj.getGenomicQuery()
+    # blast_obj = blast.BLAST(intergeneFile,args.bacteriocins,args.intermediate,args.evalue)
+    # blast_obj.buildDatabase("nucleotide")
+    # blast_obj.run(blast_cmd="tblastn",num_threads=args.num_threads)
+
     blast_obj = blast.BLAST(intergeneFile,args.bacteriocins,args.intermediate,args.evalue)
     blast_obj.buildDatabase("nucleotide")
     blast_obj.run(blast_cmd="tblastn",num_threads=args.num_threads)
