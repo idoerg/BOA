@@ -1,6 +1,5 @@
 """
-Todo
-1) Fix the redundant intergene problem: sometimes the intergene id is not unique
+Finds bacteriocins
 """
 
 import Bio
@@ -68,9 +67,13 @@ class BacteriocinHandler:
         os.remove(self.genomic_query)
         os.remove(self.intergene_file)
 
-    """Contains the filtered intergenic regions"""
+    """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
         return self.genomic_query
+
+    """Gets all of the intergenic regions"""
+    def getIntergenicFile(self):
+        return self.intergene_file
 
     """
     Narrows down search area for intergenes
@@ -144,9 +147,6 @@ def go():
     bac_obj = BacteriocinHandler(args.genbank_files,input_genes,args.intermediate)
     bac_obj.buildIntergenicDatabase()
     intergeneFile = bac_obj.getGenomicQuery()
-    # blast_obj = blast.BLAST(intergeneFile,args.bacteriocins,args.intermediate,args.evalue)
-    # blast_obj.buildDatabase("nucleotide")
-    # blast_obj.run(blast_cmd="tblastn",num_threads=args.num_threads)
 
     blast_obj = blast.BLAST(intergeneFile,args.bacteriocins,args.intermediate,args.evalue)
     blast_obj.buildDatabase("nucleotide")
