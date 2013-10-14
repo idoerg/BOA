@@ -42,7 +42,7 @@ def get_interregions(genbank_path,output_file,intergene_length=1):
             intergene_seq = seq_record.seq[last_end:this_start]
             strand_string = "+"
             intergenic_records.append(
-                  SeqRecord(intergene_seq,id="%s-ign-%d" % (seq_record.name,i),
+                  SeqRecord(intergene_seq,id="%s-ign-%d:%d-%d%s" % (seq_record.name,i,last_end+1,this_start,strand_string),
                   description="%s %d-%d %s" % (seq_record.name, last_end+1,
                                                         this_start,strand_string)))
     for i,pospair in enumerate(cds_list_minus[1:]):
@@ -53,7 +53,7 @@ def get_interregions(genbank_path,output_file,intergene_length=1):
             intergene_seq = seq_record.seq[last_end:this_start]
             strand_string = "-"
             intergenic_records.append(
-                  SeqRecord(intergene_seq,id="%s-ign-%d:%d-%d" % (seq_record.name,i,last_end+1,this_start),
+                  SeqRecord(intergene_seq,id="%s-ign-%d:%d-%d%s" % (seq_record.name,i,last_end+1,this_start,strand_string),
                   description="%s %d-%d %s" % (seq_record.name, last_end+1,
                                                         this_start,strand_string)))
     SeqIO.write(intergenic_records, open(output_file,'w'), "fasta")

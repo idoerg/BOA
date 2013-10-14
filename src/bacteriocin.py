@@ -40,6 +40,9 @@ parser.add_argument(\
     '--intermediate', type=str, required=True,
     help='Directory for storing intermediate files')
 parser.add_argument(\
+    '--verbose', action='store_const', const=True, default=False,
+    help='Messages for debugging')
+parser.add_argument(\
     '--test', action='store_const', const=True, default=False,
     help='Run unittests')
 
@@ -52,7 +55,7 @@ args = parser.parse_args()
 
 loc_reg = re.compile("(\d+):(\d+)")
 
-class BacteriocinHandler:
+class IntergeneHandler:
     def __init__(self,genbank_files,input_genes,intermediate):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.genbank_files = genbank_files
@@ -97,13 +100,14 @@ class BacteriocinHandler:
 
     Right it only considers the first hit
     """
-
     def getUnannotatedIntergenes(self,genbank_file,protein_file):
         intergenes = []
         proteinDict =  genbank.GenBank(genbank_file,"protein")
         blast_obj = blast.BLAST(protein_file,self.target_genes,self.intermediate,args.evalue)
         blast_obj.buildDatabase("protein")
-        blast_obj.run(blast_cmd="blastp",num_threads=args.num_threads)
+        blast_obj.run(blast_cmd="blastp",mode="xml",num_threads=args.num_threads)
+        if args.verbose: print >> sys.stderr,blast_obj.formatDBCommand("protein")
+        if args.verbose: print >> sys.stderr,blast_obj.BLASTCommand("blastp",num_threads=args.num_threads)
         blast_file = blast_obj.getFile()
         blast_qresults = SearchIO.read(blast_file,'blast-xml')
         organism = os.path.dirname(genbank_file)
@@ -144,20 +148,20 @@ class BacteriocinHandler:
 def go():
     intergenes = []
     input_genes = [x for x in SeqIO.parse(args.genes,"fasta")]
-    bac_obj = BacteriocinHandler(args.genbank_files,input_genes,args.intermediate)
-    bac_obj.buildIntergenicDatabase()
-    intergeneFile = bac_obj.getGenomicQuery()
-
+    intergene_obj = IntergeneHandler(args.genbank_files,input_genes,args.intermediate)
+    intergene_obj.buildIntergenicDatabase()
+    intergeneFile = intergene_obj.getGenomicQuery()
     blast_obj = blast.BLAST(intergeneFile,args.bacteriocins,args.intermediate,args.evalue)
     blast_obj.buildDatabase("nucleotide")
-    blast_obj.run(blast_cmd="tblastn",num_threads=args.num_threads)
-    hits = blast_obj.parseBLAST()
+    blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=args.num_threads)
+    if args.verbose: print >> sys.stderr,blast_obj.formatDBCommand("nucleotide")
+    if args.verbose: print >> sys.stderr,blast_obj.BLASTCommand("tblastn",num_threads=args.num_threads)
+    hits = blast_obj.parseBLAST("tab")
     outHandle = open(args.output_file,'w')
-
     outHandle.write("\n".join( map( str, hits)))
     if not args.keep_tmp:
         blast_obj.cleanup()
-        bac_obj.cleanup()
+        intergene_obj.cleanup()
 
 if __name__=="__main__":
     go()
