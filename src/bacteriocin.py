@@ -1,5 +1,9 @@
 """
 Finds bacteriocins
+
+Todo
+1) Fix the unittests
+2) Deprecate the BLAST XML parser
 """
 
 import Bio
@@ -127,7 +131,7 @@ class IntergeneHandler:
                 print>> sys.stderr,".faa folder must be in the same folder as the genbank file"
         intergene_handle.close()
 
-def go(genbank_files,bacteriocins,genes,output_file,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
     intergenes = []
     input_genes = [x for x in SeqIO.parse(genes,"fasta")]
     intergene_obj = IntergeneHandler(genbank_files,input_genes,
@@ -142,7 +146,6 @@ def go(genbank_files,bacteriocins,genes,output_file,intermediate,evalue,num_thre
     if verbose: print >> sys.stderr,blast_obj.formatDBCommand("nucleotide")
     if verbose: print >> sys.stderr,blast_obj.BLASTCommand("tblastn",num_threads=num_threads)
     hits = blast_obj.parseBLAST("tab")
-    outHandle = open(output_file,'w')
     outHandle.write("\n".join( map( str, hits)))
     if not keep_tmp:
         blast_obj.cleanup()
@@ -152,11 +155,11 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Finds intergenic regions from genback file')
     parser.add_argument(\
-        '--genes', type=str,required=True,default="",
-        help='A FASTA file containing all of the genes of interest')
-    parser.add_argument(\
         '--genbank-files', type=str, nargs="+", required=False,
         help='The genbank files containing annotated genes')
+    parser.add_argument(\
+        '--genes', type=str,required=True,default="",
+        help='A FASTA file containing all of the target genes of interest')
     parser.add_argument(\
         '--bacteriocins', type=str, required=True,
         help='The bacteriocin proteins that are to be blasted')
@@ -178,14 +181,15 @@ if __name__=="__main__":
 
     blast.addArgs(parser)
     args = parser.parse_args()
+    outHandle = open(args.output_file,'w')
 
-    go(args.genbank_files,
-       args.bacteriocins,
-       args.genes,
-       args.output_file,
-       args.intermediate,
-       args.evalue,
-       args.num_threads,
-       args.radius,
-       args.verbose,
-       args.keep_tmp)
+    main(args.genbank_files,
+         args.bacteriocins,
+         args.genes,
+         outHandle,
+         args.intermediate,
+         args.evalue,
+         args.num_threads,
+         args.radius,
+         args.verbose,
+         args.keep_tmp)

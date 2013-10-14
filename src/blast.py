@@ -156,7 +156,6 @@ class BLAST(object):
     """
     def run(self,blast_cmd="blastn",mode="xml",num_threads=1):
         outHandle = open(self.blastfile,'w')
-        print "Mode",mode
         m = 7 if mode=='xml' else 9
         cmd="blastall -p %s -d %s -i %s -m %d -o %s -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, num_threads)
         proc = subprocess.Popen(cmd,shell=True)
