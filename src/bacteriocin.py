@@ -8,7 +8,6 @@ Todo
 
 import Bio
 from Bio import SeqIO, SeqFeature
-from Bio import SearchIO
 from Bio.SeqRecord import SeqRecord
 
 from Bio.Blast import NCBIXML
@@ -90,12 +89,10 @@ class IntergeneHandler:
         if verbose: print >> sys.stderr,blast_obj.formatDBCommand("protein")
         if verbose: print >> sys.stderr,blast_obj.BLASTCommand("blastp",num_threads=num_threads)
         blast_file = blast_obj.getFile()
-        blast_qresults = SearchIO.read(blast_file,'blast-xml')
-        organism = os.path.dirname(genbank_file)
-        organism_id = os.path.splitext(os.path.basename(genbank_file))[0]
 
-        for qresult in blast_qresults:
-            query_id = qresult.id
+        hits = blast_obj.parseBLAST("xml")
+        for qresult in hits:
+            query_id = qresult.description
             toks = query_id.split('|')
             protein_id = toks[3]
             protein_record = proteinDict.findProtein(protein_id)

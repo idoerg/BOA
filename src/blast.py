@@ -63,8 +63,8 @@ class XMLRecord():
     def __str__(self):
 
         string = '****Alignment****\n' \
-          +'Record%d\n  '%self.record_number \
-          +'sequence%s\n: '%self.description \
+          +'Record:%d\n'%self.record_number \
+          +'%s:\n'%self.description \
           +'e value:%lf\n'%self.expected_value \
           +'Score:%lf\n'%self.score \
           +'Query:\t%s\t%s\t%s\n'%(self.query_start,self.query,self.query_end) \

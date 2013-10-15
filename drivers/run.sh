@@ -8,6 +8,7 @@ python $SRC/bacteriocin.py \
     --genbank-files=$GENOME/NC_011375.gbk \
     --bacteriocins=$BACTERIOCINS/bacteriocins.fa \
     --intermediate=$INTERMEDIATE \
+    --radius=50000 \
     --output-file=blast_results.txt 
 
     
