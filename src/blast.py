@@ -20,6 +20,7 @@ import string
 import numpy
 import re
 import subprocess
+import shutil
 
 def addArgs(parser):
     parser.add_argument(\
@@ -128,7 +129,7 @@ class BLAST(object):
 
     def formatDBCommand(self,base):
         char = "F" if base=="nucleotide" else "T"
-        return "formatdb -i %s -p %s -o T"%(self.protein_db,char)
+        return "formatdb -i %s -p %s"%(self.protein_db,char)
 
     def BLASTCommand(self,blast_cmd="blastn",mode="xml",num_threads=1):
         m = 7 if mode=="xml" else 9
@@ -146,7 +147,7 @@ class BLAST(object):
     def buildDatabase(self,base="nucleotide"):
         #cmd="formatdb -i %s -p T -o T"%(self.protein_db)
         char = "F" if base=="nucleotide" else "T"
-        cmd="formatdb -i %s -p %s -o T"%(self.protein_db,char)
+        cmd="formatdb -i %s -p %s"%(self.protein_db,char)
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
 
@@ -160,7 +161,7 @@ class BLAST(object):
         cmd="blastall -p %s -d %s -i %s -m %d -o %s -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, num_threads)
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
-
+        subprocess.check_call(cmd,shell=True)
     def cleanup(self):
         os.system("rm %s.*"%self.protein_db)
         os.remove(self.blastfile)
@@ -179,6 +180,7 @@ class BLAST(object):
                     ln = ln.rstrip()
                     if ln[0]=="#":
                         continue
+                    print >>sys.stderr,ln
                     toks = ln.split('\t')
                     Query_id, Subject_id, percent_identity, alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end, e_value, bit_score = toks
                     percent_identity, e_value, bit_score = map( float, [percent_identity, e_value, bit_score])
@@ -199,7 +201,7 @@ class BLAST(object):
         except Exception as e:
             print>>sys.stderr,e
             print>>sys.stderr,"No blast hits"
-
+            raise 
     def parseXML(self):
         input_file = self.blastfile
         hits = []
@@ -237,9 +239,13 @@ if __name__=="__main__":
             self.fasta = "test.fa"
             self.refid = "test"
             test.createFasta(self.fasta,self.refid,self.refseq)
+            self.intermediate = "intermediate"
+            os.mkdir(self.intermediate)
+            self.evalue = 1
         def tearDown(self):
             try:
                 os.remove(self.fasta)
+                shutil.rmtree(self.intermediate)
             except:
                 print "Nothing to remove"
 
@@ -247,10 +253,10 @@ if __name__=="__main__":
             seq_obj = Seq(self.refseq)
             record = SeqRecord(seq_obj,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
 
-            blast_obj = BLAST(self.fasta,self.fasta)
+            blast_obj = BLAST(self.fasta,self.fasta,self.intermediate,self.evalue)
             blast_obj.buildDatabase("nucleotide")
             blast_obj.run(blast_cmd="blastn",num_threads=1)
-            records = blast_obj.parseBLAST()
+            records = blast_obj.parseBLAST('xml')
             self.assertEquals( len(records),1 )
             blast_obj.cleanup()
 
@@ -263,19 +269,23 @@ if __name__=="__main__":
             self.refid = "test"
             test.createFasta(self.nucfasta,self.refid,self.nucseq)
             test.createFasta(self.profasta,self.refid,self.proseq)
+            self.intermediate = "intermediate"
+            os.mkdir(self.intermediate)
+            self.evalue = 1
         def tearDown(self):
             try:
                 os.remove(self.profasta)
                 os.remove(self.nucfasta)
+                shutil.rmtree(self.intermediate)
             except:
                 print "Nothing to remove"
         def test1(self):
             seq = Seq("ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG")
             record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
-            blast_obj = BLAST(self.profasta,self.nucfasta)
+            blast_obj = BLAST(self.profasta,self.nucfasta,self.intermediate,self.evalue)
             blast_obj.buildDatabase("protein")
             blast_obj.run(blast_cmd="blastx",num_threads=1)
-            records = blast_obj.parseBLAST()
+            records = blast_obj.parseBLAST('xml')
             self.assertEquals( len(records),1 )
             blast_obj.cleanup()
 
@@ -285,19 +295,23 @@ if __name__=="__main__":
             self.fasta = "test.fa"
             self.refid = "test"
             test.createFasta(self.fasta,self.refid,self.refseq)
+            self.intermediate = "intermediate"
+            os.mkdir(self.intermediate)
+            self.evalue = 1
         def tearDown(self):
             try:
                 os.remove(self.fasta)
+                shutil.rmtree(self.intermediate)
             except:
                 print "Nothing to remove"
 
         def test1(self):
             # seq = Seq("MAIVMGR*KGAR*")
             # record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
-            blast_obj = BLAST(self.fasta,self.fasta)
+            blast_obj = BLAST(self.fasta,self.fasta,self.intermediate,self.evalue)
             blast_obj.buildDatabase("protein")
             blast_obj.run(blast_cmd="blastp",num_threads=1)
-            records = blast_obj.parseBLAST()
+            records = blast_obj.parseBLAST('xml')
             self.assertEquals( len(records),1 )
             blast_obj.cleanup()
 

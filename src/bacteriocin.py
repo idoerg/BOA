@@ -43,7 +43,7 @@ class IntergeneHandler:
         self.verbose = verbose
         self.keep_tmp = keep_tmp
         SeqIO.write(input_genes,self.target_genes,"fasta")
-
+        self.noHits = True
         self.intermediate = intermediate
 
     def cleanup(self):
@@ -84,15 +84,18 @@ class IntergeneHandler:
         intergenes = []
         proteinDict =  genbank.GenBank(genbank_file,"protein")
         blast_obj = blast.BLAST(protein_file,self.target_genes,self.intermediate,evalue)
-        blast_obj.buildDatabase("protein")
+        blast_obj.buildDatabase(base="protein")
         blast_obj.run(blast_cmd="blastp",mode="xml",num_threads=num_threads)
         if verbose: print >> sys.stderr,blast_obj.formatDBCommand("protein")
-        if verbose: print >> sys.stderr,blast_obj.BLASTCommand("blastp",num_threads=num_threads)
+        if verbose: print >> sys.stderr,blast_obj.BLASTCommand("blastp",mode="xml",num_threads=num_threads)
         blast_file = blast_obj.getFile()
 
         hits = blast_obj.parseBLAST("xml")
+        if len(hits)>0: self.noHits=False
+            
         for qresult in hits:
-            query_id = qresult.description
+            description = qresult.description
+            query_id = description.split(' ')[1]
             toks = query_id.split('|')
             protein_id = toks[3]
             protein_record = proteinDict.findProtein(protein_id)
@@ -108,7 +111,7 @@ class IntergeneHandler:
     """
     def buildIntergenicDatabase(self):
         intergenic_regions = []
-        intergene_handle = open(self.genomic_query,'a')
+        intergene_handle = open(self.genomic_query,'w')
 
         for gbk in self.genbank_files:
             base = os.path.splitext(os.path.basename(gbk))[0]
@@ -123,10 +126,14 @@ class IntergeneHandler:
                                                                  self.radius,
                                                                  self.verbose,
                                                                  self.keep_tmp)
-                SeqIO.write(intergenic_regions,intergene_handle,"fasta")
+                if len(intergenic_regions)==0:
+                    if self.verbose: print >>sys.stderr,"No target genes detected"
+                else:
+                    SeqIO.write(intergenic_regions,intergene_handle,"fasta")
             except IOError:
                 print>> sys.stderr,".faa folder must be in the same folder as the genbank file"
         intergene_handle.close()
+
 
 def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
     intergenes = []
@@ -137,16 +144,16 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_thre
                                      verbose,keep_tmp)
     intergene_obj.buildIntergenicDatabase()
     intergeneFile = intergene_obj.getGenomicQuery()
-    blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,evalue)
-    blast_obj.buildDatabase("nucleotide")
-    blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=num_threads)
-    if verbose: print >> sys.stderr,blast_obj.formatDBCommand("nucleotide")
-    if verbose: print >> sys.stderr,blast_obj.BLASTCommand("tblastn",num_threads=num_threads)
-    hits = blast_obj.parseBLAST("tab")
-    outHandle.write("\n".join( map( str, hits)))
-    if not keep_tmp:
-        blast_obj.cleanup()
-        intergene_obj.cleanup()
+    if intergene_obj.noHits==False:
+        blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,evalue)
+        blast_obj.buildDatabase("nucleotide")
+        blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=num_threads)
+        if verbose: print >> sys.stderr,blast_obj.formatDBCommand("nucleotide")
+        if verbose: print >> sys.stderr,blast_obj.BLASTCommand("tblastn",mode="tab",num_threads=num_threads)
+        hits = blast_obj.parseBLAST("tab")
+        outHandle.write("\n".join( map( str, hits)))
+        if not keep_tmp: blast_obj.cleanup()
+    if not keep_tmp: intergene_obj.cleanup()
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
