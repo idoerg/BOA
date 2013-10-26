@@ -32,7 +32,7 @@ def addArgs(parser):
     parser.add_argument(\
         '--num-threads', type=int, required=False, default=1,
         help='The number of threads to be run on blast')
-
+    
 loc_reg = re.compile("\d+:(\d+)-(\d+)")
 
 class XMLRecord():
@@ -104,8 +104,6 @@ class TabRecord():
         self.bit_score        =bit_score
         self.genomeSt,self.genomeEnd = loc_reg.findall(self.Subject_id)[0]
         self.genomeSt,self.genomeEnd = int(self.genomeSt), int(self.genomeEnd)
-        self.q_start          +=self.genomeSt
-        self.q_end            +=self.genomeSt
         self.s_start          +=self.genomeSt
         self.s_end            +=self.genomeSt
         self.strand = self.Subject_id[-1]
@@ -116,8 +114,6 @@ class TabRecord():
         intergeneCoord   = "%d-%d%s"%(self.s_start,self.s_end,self.strand)
         return "%s\t%s\t%s\t%s"%(self.organism,intergeneCoord,bacteriocinCoord,self.Query_id)
 
-
-
 class BLAST(object):
     def __init__(self,bacteriocins_file,intergene_file,intermediate,evalue):
         self.pid = os.getpid() #Use current pid to name temporary files
@@ -126,18 +122,14 @@ class BLAST(object):
         self.genomic_query = intergene_file
         self.intermediate = intermediate
         self.evalue = evalue
+        self.blastcmd = ''
+        self.formatdbcmd = ''
+        
+    def formatDBCommand(self):
+        return self.formatdbcmd
 
-    def formatDBCommand(self,base):
-        char = "F" if base=="nucleotide" else "T"
-        return "formatdb -i %s -p %s"%(self.protein_db,char)
-
-    def BLASTCommand(self,blast_cmd="blastn",mode="xml",num_threads=1):
-        m = 7 if mode=="xml" else 9
-        return "blastall -p %s -d %s -i %s -m %d -o %s -a %d"%(blast_cmd,
-                                                              self.protein_db,
-                                                              self.genomic_query,m,
-                                                              self.blastfile,
-                                                              num_threads)
+    def BLASTCommand(self):
+        return self.blastcmd
 
     def getFile(self):
         return self.blastfile
@@ -148,6 +140,7 @@ class BLAST(object):
         #cmd="formatdb -i %s -p T -o T"%(self.protein_db)
         char = "F" if base=="nucleotide" else "T"
         cmd="formatdb -i %s -p %s"%(self.protein_db,char)
+        self.formatdbcmd = cmd
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
 
@@ -158,7 +151,8 @@ class BLAST(object):
     def run(self,blast_cmd="blastn",mode="xml",num_threads=1):
         outHandle = open(self.blastfile,'w')
         m = 7 if mode=='xml' else 9
-        cmd="blastall -p %s -d %s -i %s -m %d -o %s -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, num_threads)
+        cmd="blastall -p %s -d %s -i %s -m %d -o %s -e %f -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
+        self.blastcmd = cmd
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
         subprocess.check_call(cmd,shell=True)
@@ -180,28 +174,28 @@ class BLAST(object):
                     ln = ln.rstrip()
                     if ln[0]=="#":
                         continue
-                    print >>sys.stderr,ln
                     toks = ln.split('\t')
                     Query_id, Subject_id, percent_identity, alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end, e_value, bit_score = toks
                     percent_identity, e_value, bit_score = map( float, [percent_identity, e_value, bit_score])
                     alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end = map( int, [alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end])
-                    hits.append(TabRecord(Query_id,
-                                          Subject_id,
-                                          percent_identity,
-                                          alignment_length,
-                                          mismatches,
-                                          gap_openings,
-                                          q_start,
-                                          q_end,
-                                          s_start,
-                                          s_end,
-                                          e_value,
-                                          bit_score))
+                    if e_value < self.evalue:
+                        hits.append(TabRecord(Query_id,
+                                              Subject_id,
+                                              percent_identity,
+                                              alignment_length,
+                                              mismatches,
+                                              gap_openings,
+                                              q_start,
+                                              q_end,
+                                              s_start,
+                                              s_end,
+                                              e_value,
+                                              bit_score))
             return hits
         except Exception as e:
             print>>sys.stderr,e
             print>>sys.stderr,"No blast hits"
-            raise 
+            raise
     def parseXML(self):
         input_file = self.blastfile
         hits = []
