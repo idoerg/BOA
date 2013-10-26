@@ -136,24 +136,29 @@ class IntergeneHandler:
 
 
 def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
-    intergenes = []
-    input_genes = [x for x in SeqIO.parse(genes,"fasta")]
-    intergene_obj = IntergeneHandler(genbank_files,input_genes,
-                                     intermediate,evalue,
-                                     num_threads,radius,
-                                     verbose,keep_tmp)
-    intergene_obj.buildIntergenicDatabase()
-    intergeneFile = intergene_obj.getGenomicQuery()
-    if intergene_obj.noHits==False:
-        blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,evalue)
-        blast_obj.buildDatabase("nucleotide")
-        blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=num_threads)
-        if verbose: print >> sys.stderr,blast_obj.formatDBCommand("nucleotide")
-        if verbose: print >> sys.stderr,blast_obj.BLASTCommand("tblastn",mode="tab",num_threads=num_threads)
-        hits = blast_obj.parseBLAST("tab")
-        outHandle.write("\n".join( map( str, hits)))
-        if not keep_tmp: blast_obj.cleanup()
-    if not keep_tmp: intergene_obj.cleanup()
+    try:
+        intergenes = []
+        input_genes = [x for x in SeqIO.parse(genes,"fasta")]
+        intergene_obj = IntergeneHandler(genbank_files,input_genes,
+                                         intermediate,evalue,
+                                         num_threads,radius,
+                                         verbose,keep_tmp)
+        intergene_obj.buildIntergenicDatabase()
+        intergeneFile = intergene_obj.getGenomicQuery()
+        if intergene_obj.noHits==False:
+            blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,evalue)
+            blast_obj.buildDatabase("nucleotide")
+            blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=num_threads)
+            if verbose: print >> sys.stderr,blast_obj.formatDBCommand("nucleotide")
+            if verbose: print >> sys.stderr,blast_obj.BLASTCommand("tblastn",mode="tab",num_threads=num_threads)
+            hits = blast_obj.parseBLAST("tab")
+            outHandle.write("\n".join( map( str, hits))+"\n")
+            if not keep_tmp: blast_obj.cleanup()
+        if not keep_tmp: intergene_obj.cleanup()
+    except Exception as e:
+        print "Error",e
+    
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\

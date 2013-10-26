@@ -49,17 +49,24 @@ def go():
     outHandle = open(args.output_file,'w')
 
     for root, subFolders, files in os.walk(args.root_dir):
-        genbank_files = []
         for fname in files:
+            genbank_files = []
             ext = os.path.splitext(os.path.basename(fname))[1]
             if ext==".gbk":
                 absfile=os.path.join(root,fname)
                 genbank_files.append(absfile)
-        bacteriocin.main(genbank_files,args.bacteriocins,
-                         args.genes,outHandle,
-                         args.intermediate,args.evalue,
-                         args.num_threads,args.radius,
-                         args.verbose,args.keep_tmp)
+                
+            if len(genbank_files)>0:
+                print "genbank_files",genbank_files
+                print "bacteriocins",args.bacteriocins
+                print "genes",args.genes
+                print "intermediate",args.intermediate
+
+                bacteriocin.main(genbank_files,args.bacteriocins,
+                                 args.genes,outHandle,
+                                 args.intermediate,args.evalue,
+                                 args.num_threads,args.radius,
+                                 args.verbose,args.keep_tmp)
 
 
 if __name__=="__main__":
