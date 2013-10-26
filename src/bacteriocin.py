@@ -28,7 +28,7 @@ import blast
 import intergene
 
 
-loc_reg = re.compile("(\d+):(\d+)")
+loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 
 class IntergeneHandler:
     def __init__(self,genbank_files,input_genes,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
@@ -61,7 +61,7 @@ class IntergeneHandler:
     """
     Narrows down search area for intergenes
     """
-    def filterIntergenes(self,intergenic_file,geneSt,geneEnd,radius):
+    def filterIntergenes(self,intergenic_file,geneSt,geneEnd,geneStrand,radius):
         records = []
         for interGene in SeqIO.parse(intergenic_file,"fasta"):
             toks = interGene.description.split(" ")
@@ -69,9 +69,9 @@ class IntergeneHandler:
             start,end = int(start),int(end)
             if (start>geneSt-radius and start<geneSt+radius and
                 end>geneSt-radius and end<geneSt+radius):
+                interGene.id+="|locus:%d-%d%s"%(geneSt,geneEnd,geneStrand)
                 records.append(interGene)
         return records
-
 
     """
     1) BLAST sagB against all proteins
@@ -92,16 +92,16 @@ class IntergeneHandler:
 
         hits = blast_obj.parseBLAST("xml")
         if len(hits)>0: self.noHits=False
-            
+
         for qresult in hits:
             description = qresult.description
             query_id = description.split(' ')[1]
             toks = query_id.split('|')
             protein_id = toks[3]
             protein_record = proteinDict.findProtein(protein_id)
-            geneSt, geneEnd = loc_reg.findall(str(protein_record.location))[0]
+            geneSt, geneEnd, geneStrand = loc_reg.findall(str(protein_record.location))[0]
             geneSt,geneEnd = int(geneSt), int(geneEnd)
-            intergenes += self.filterIntergenes(self.intergene_file,geneSt,geneEnd,radius)
+            intergenes += self.filterIntergenes(self.intergene_file,geneSt,geneEnd,geneStrand,radius)
         if not keep_tmp:
             blast_obj.cleanup()
         return intergenes
@@ -112,7 +112,6 @@ class IntergeneHandler:
     def buildIntergenicDatabase(self):
         intergenic_regions = []
         intergene_handle = open(self.genomic_query,'w')
-
         for gbk in self.genbank_files:
             base = os.path.splitext(os.path.basename(gbk))[0]
             path = os.path.dirname(os.path.abspath(gbk))
@@ -152,13 +151,13 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_thre
             if verbose: print >> sys.stderr,blast_obj.formatDBCommand()
             if verbose: print >> sys.stderr,blast_obj.BLASTCommand()
             hits = blast_obj.parseBLAST("tab")
+            outHandle.write("organism\tlocus\t\thit\t\tbacteriocin\n")
             outHandle.write("\n".join( map( str, hits))+"\n")
             if not keep_tmp: blast_obj.cleanup()
         if not keep_tmp: intergene_obj.cleanup()
     except Exception as e:
         print "Error",e
-    
-
+        raise e
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\

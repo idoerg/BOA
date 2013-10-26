@@ -32,8 +32,9 @@ def addArgs(parser):
     parser.add_argument(\
         '--num-threads', type=int, required=False, default=1,
         help='The number of threads to be run on blast')
-    
-loc_reg = re.compile("\d+:(\d+)-(\d+)")
+
+location_reg = re.compile("\d+:(\d+)-(\d+)")
+locus_reg = re.compile("locus:(\d+)-(\d+)(\S)")
 
 class XMLRecord():
     """
@@ -89,7 +90,6 @@ class TabRecord():
                  s_end,
                  e_value,
                  bit_score):
-
         self.Query_id         =Query_id
         self.Subject_id       =Subject_id
         self.percent_identity =percent_identity
@@ -102,17 +102,19 @@ class TabRecord():
         self.s_end            =s_end
         self.e_value          =e_value
         self.bit_score        =bit_score
-        self.genomeSt,self.genomeEnd = loc_reg.findall(self.Subject_id)[0]
+        self.genomeSt,self.genomeEnd = location_reg.findall(self.Subject_id)[0]
         self.genomeSt,self.genomeEnd = int(self.genomeSt), int(self.genomeEnd)
-        self.s_start          +=self.genomeSt
-        self.s_end            +=self.genomeSt
+        self.q_start          +=self.genomeSt
+        self.q_end            +=self.genomeSt
         self.strand = self.Subject_id[-1]
         self.organism = self.Subject_id.split('-')[0]
-
+        locus = Subject_id.split('|')[1]
+        self.geneSt,self.geneEnd,self.geneStrand = locus_reg.findall(locus)[0]
+        self.geneSt,self.geneEnd = int(self.geneSt), int(self.geneEnd)
     def __str__(self):
         bacteriocinCoord = "%d-%d%s"%(self.q_start,self.q_end,self.strand)
-        intergeneCoord   = "%d-%d%s"%(self.s_start,self.s_end,self.strand)
-        return "%s\t%s\t%s\t%s"%(self.organism,intergeneCoord,bacteriocinCoord,self.Query_id)
+        geneCoord   = "%d-%d%s"%(self.geneSt,self.geneEnd,self.geneStrand)
+        return "%s\t%s\t%s\t%s"%(self.organism,geneCoord,bacteriocinCoord,self.Query_id)
 
 class BLAST(object):
     def __init__(self,bacteriocins_file,intergene_file,intermediate,evalue):
@@ -124,7 +126,7 @@ class BLAST(object):
         self.evalue = evalue
         self.blastcmd = ''
         self.formatdbcmd = ''
-        
+
     def formatDBCommand(self):
         return self.formatdbcmd
 
@@ -133,6 +135,7 @@ class BLAST(object):
 
     def getFile(self):
         return self.blastfile
+
     """
     Build database using intergenic regions
     """
@@ -156,6 +159,7 @@ class BLAST(object):
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
         subprocess.check_call(cmd,shell=True)
+
     def cleanup(self):
         os.system("rm %s.*"%self.protein_db)
         os.remove(self.blastfile)
@@ -165,6 +169,7 @@ class BLAST(object):
             return self.parseXML()
         else:
             return self.parseTab()
+
     def parseTab(self):
         input_file = self.blastfile
         hits = []
@@ -179,6 +184,7 @@ class BLAST(object):
                     percent_identity, e_value, bit_score = map( float, [percent_identity, e_value, bit_score])
                     alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end = map( int, [alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end])
                     if e_value < self.evalue:
+
                         hits.append(TabRecord(Query_id,
                                               Subject_id,
                                               percent_identity,
