@@ -134,18 +134,18 @@ class IntergeneHandler:
         intergene_handle.close()
 
 
-def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
     try:
         intergenes = []
         input_genes = [x for x in SeqIO.parse(genes,"fasta")]
         intergene_obj = IntergeneHandler(genbank_files,input_genes,
-                                         intermediate,evalue,
+                                         intermediate,gene_evalue,
                                          num_threads,radius,
                                          verbose,keep_tmp)
         intergene_obj.buildIntergenicDatabase()
         intergeneFile = intergene_obj.getGenomicQuery()
         if intergene_obj.noHits==False:
-            blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,evalue)
+            blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,bac_evalue)
             blast_obj.buildDatabase("nucleotide")
             blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=num_threads)
             if verbose: print >> sys.stderr,blast_obj.formatDBCommand()
@@ -157,7 +157,6 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,evalue,num_thre
         if not keep_tmp: intergene_obj.cleanup()
     except Exception as e:
         print "Error",e
-        raise e
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -175,8 +174,11 @@ if __name__=="__main__":
         '--radius', type=int, required=False, default=10000,
         help='The search radius around every specified gene')
     parser.add_argument(\
-        '--evalue', type=float, required=False, default=0.00001,
-        help='The search radius around every specified gene')
+        '--gene-evalue', type=float, required=False, default=0.00001,
+        help='The evalue for gene hits')
+    parser.add_argument(\
+        '--bac-evalue', type=float, required=False, default=0.000000001,
+        help='The evalue for bacteriocin hits')
     parser.add_argument(\
         '--intermediate', type=str, required=True,
         help='Directory for storing intermediate files')
@@ -196,7 +198,8 @@ if __name__=="__main__":
          args.genes,
          outHandle,
          args.intermediate,
-         args.evalue,
+         args.gene_evalue,
+         args.bac_evalue,
          args.num_threads,
          args.radius,
          args.verbose,

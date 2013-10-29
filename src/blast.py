@@ -214,7 +214,6 @@ class BLAST(object):
                 for alignment in record.alignments:
                     for hsp in alignment.hsps:
                         if hsp.expect<self.evalue:
-                            print alignment.title
                             record=XMLRecord(record_number = i,
                                              description = alignment.title,
                                              expected_value = hsp.expect,

@@ -1,15 +1,9 @@
-1. In blast.py line 161: SagB gene may not be annotated.
-   Keep two options:
-   a. Use annotated SagB
-   b. Use homology to find SagB (finding sequences similar to SagB via BLAST) 
-      Take only the first hit
-2. Make input for findGene not case sensitive
-
-3. Allow the user to look at more than one genbank file at a time
-
-4. In the case that there are multiple SagBs per genome, look at all of them.
-   Take all bacteria genomes in Genbank and find all genomes with multiple SagB genes via BLAST
-
-5. Construct a sample set to show user how to play with data
-
-6. Use ftp to download from ncbi
+1. Adjust evalues 
+   a. Rigorous evalue for bacteriocins (10^-10)
+   b. sagB (10^-5)
+2. Look for longest ORF inside of blast hit
+   a. 3-frame translation
+   b. Find stop codon contained in blast hit (if not present, return entire blast hit)
+      i. Use 3 frames (or 6 frames) (look at biopython)
+      ii. return the frame with only one or less stop codons
+   c. Later, find start codon (possibly outside of blast hit)
