@@ -98,7 +98,7 @@ class CoordXMLRecord(XMLRecord):
                                             sbjct_start,
                                             sbjct_end)
         try:
-            reference,locus = location_reg.findall(self.sbjct_id)
+            reference,locus = location_reg.findall(self.sbjct_id)[:2]
             self.genomeSt,self.genomeEnd,self.strand =  int(reference[0]), int(reference[1]), reference[2]
             self.geneSt,self.geneEnd,self.geneStrand = int(locus[0]), int(locus[1]),locus[2]
             self.query_start          +=self.genomeSt

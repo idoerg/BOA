@@ -147,10 +147,10 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
         if intergene_obj.noHits==False:
             blast_obj = blast.BLAST(intergeneFile,bacteriocins,intermediate,bac_evalue)
             blast_obj.buildDatabase("nucleotide")
-            blast_obj.run(blast_cmd="tblastn",mode="tab",num_threads=num_threads)
+            blast_obj.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
             if verbose: print >> sys.stderr,blast_obj.formatDBCommand()
             if verbose: print >> sys.stderr,blast_obj.BLASTCommand()
-            hits = blast_obj.parseBLAST("tab")
+            hits = blast_obj.parseBLAST("coord")
             outHandle.write("organism\tlocus\t\thit\t\tbacteriocin\n")
             outHandle.write("\n".join( map( str, hits))+"\n")
             if not keep_tmp: blast_obj.cleanup()
