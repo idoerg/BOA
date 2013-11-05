@@ -111,7 +111,7 @@ class CoordXMLRecord(XMLRecord):
     def __str__(self):
         bacteriocinCoord = "%d-%d%s"%(self.query_start,self.query_end,self.strand)
         geneCoord   = "%d-%d%s"%(self.geneSt,self.geneEnd,self.geneStrand)
-        return "%s\t%s\t%s\t%s\t%s"%(self.organism,geneCoord,bacteriocinCoord,self.query_id,self.query)
+        return "%s\t%s\t%s\t%s\t%s"%(self.organism,geneCoord,bacteriocinCoord,self.query_id,self.sbjct)
 
 class TabRecord():
     """    Records information for each blast entry that is important for multiple alignment    """
