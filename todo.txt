@@ -1,7 +1,10 @@
-1. Adjust evalues 
-   a. Rigorous evalue for bacteriocins (10^-10)
+1. Relax constraints for e-values 
+   a. Rigorous evalue for bacteriocins (10^-7)
    b. sagB (10^-5)
-2. Look for longest ORF inside of blast hit
+   c. Use a search radius of 30kb
+2. Reverse translate bacteriocins and map them back into the genome using Bowtie   
+   a. Use emboss for backtranseq
+3. Look for longest ORF inside of blast hit
    a. 3-frame translation
    b. Find stop codon contained in blast hit (if not present, return entire blast hit)
       i. Use 3 frames (or 6 frames) (look at biopython)
