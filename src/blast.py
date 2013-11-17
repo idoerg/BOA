@@ -65,7 +65,11 @@ class  XMLRecord(object):
         self.sbjct_start = sbjct_start
         self.sbjct_end = sbjct_end
         
+    def __str__(self):
+        geneCoord = "%d-%d"%(self.sbjct_start,self.sbjct_end)
+        return "%s\t%s"%(geneCoord,self.query)
 
+    
 class CoordXMLRecord(XMLRecord):
     """
     Records information for each blast entry that is important for multiple alignment

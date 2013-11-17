@@ -18,11 +18,10 @@ import subprocess
 import genbank
 import blast
 import intergene
-import genome
-import intervals
+
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
-class BacteriocinHandler:
+class GenomeHandler:
     def __init__(self,genbank,input_genes,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.genbank = genbank
@@ -48,72 +47,24 @@ class BacteriocinHandler:
         return self.genomic_query
 
     def getGenomeFile(self):
-        return self.genome_file    
-
-    def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads):
+        return self.genome_file
+    
+    def getAlignedGenes(self,genes,gene_evalue,num_threads):
         genome=SeqIO.read(self.genbank,'genbank')
         SeqIO.write(genome,self.genome_file,"fasta")
-        bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
-
-        bacBlast.buildDatabase("nucleotide")
-        bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
-        hits = bacBlast.parseBLAST("xml")
+        geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
+        geneBlast.buildDatabase("nucleotide")
+        geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
+        hits = geneBlast.parseBLAST("xml")
         return hits
-
-#Filters out bacteriocins not contained in a gene neighborhood
-def filterBacteriocins(bacteriocins,genes,radius):
-    ints = intervals.Intervals()
-    for gene in genes:
-        start,end,refid = gene.sbjct_start,gene.sbjct_end,gene.query_id
-        ints.append((start-radius,end+radius,refid))
-    filtered = []
-    geneNeighborhoods = []
-    for bact in bacteriocins:
-        start,end = bact.sbjct_start,bact.sbjct_end
-        nearestGene = ints.search( (start,end) )
-        if nearestGene!=None:
-            filtered.append( bact )
-            geneNeighborhoods.append(nearestGene)
-    return filtered,geneNeighborhoods
+        
 
 def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
     for gbk in genbank_files:
-        genomehr = genome.GenomeHandler(gbk,
-                                        genes,
-                                        intermediate,
-                                        gene_evalue,
-                                        num_threads,
-                                        radius,
-                                        verbose,
-                                        keep_tmp)
-        genes = genomehr.getAlignedGenes(genes,gene_evalue,num_threads)
-        bacthr = BacteriocinHandler(gbk,
-                                    genes,
-                                    intermediate,
-                                    bac_evalue,
-                                    num_threads,
-                                    radius,
-                                    verbose,
-                                    keep_tmp)
-        bacteriocins = bacthr.getAlignedBacteriocins(bacteriocins,
-                                                     bac_evalue,
-                                                     num_threads)
-        bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,
-                                                            genes,
-                                                            radius)
-        records = zip(bacteriocins,geneNeighborhoods)
-        for record in records:
-            bacteriocin,gene = record
-            bac_loc = "%s-%s"%(bacteriocin.sbjct_start,
-                               bacteriocin.sbjct_end)
-            geneStart,geneEnd,geneName = gene[0],gene[1],gene[2]
-            gene_loc = "%s-%s"%(geneStart,geneEnd)
-            outHandle.write("%s\t%s\t%s\t%s\t%s\n"%(bacteriocin.query_id,
-                                                      bac_loc,
-                                                      geneName,
-                                                      gene_loc,
-                                                      bacteriocin.sbjct))
-
+        ghr = GenomeHandler(gbk,genes,intermediate,gene_evalue,num_threads,radius,verbose,keep_tmp)
+        hits = ghr.getAlignedGenes(genes,gene_evalue,num_threads)
+        outHandle.write("\n".join( map( str, hits))+"\n")
+        
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Finds intergenic regions from genback file')
@@ -133,7 +84,7 @@ if __name__=="__main__":
         '--gene-evalue', type=float, required=False, default=0.00001,
         help='The evalue for gene hits')
     parser.add_argument(\
-        '--bac-evalue', type=float, required=False, default=0.000001,
+        '--bac-evalue', type=float, required=False, default=0.000000001,
         help='The evalue for bacteriocin hits')
     parser.add_argument(\
         '--intermediate', type=str, required=True,
@@ -148,8 +99,7 @@ if __name__=="__main__":
     blast.addArgs(parser)
     args = parser.parse_args()
     outHandle = open(args.output_file,'w')
-    outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
-   
+
     main(args.genbank_files,
          args.bacteriocins,
          args.genes,
