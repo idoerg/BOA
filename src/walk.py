@@ -50,7 +50,7 @@ parser.add_argument(\
 args = parser.parse_args()
 def go():
     outHandle = open(args.output_file,'w')
-    outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
+    outHandle.write("bacteriocin\torganism\torganismSt\torganismEnd\tgene\tgeneSt\tbacterciocin_sequence\n")
     for root, subFolders, files in os.walk(args.root_dir):
         for fname in files:
             genbank_files = []

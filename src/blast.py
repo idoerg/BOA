@@ -67,7 +67,7 @@ class  XMLRecord(object):
         
     def __str__(self):
         geneCoord = "%d-%d"%(self.sbjct_start,self.sbjct_end)
-        return "%s\t%s"%(geneCoord,self.query)
+        return "%s\t%s"%(geneCoord,self.sbjct)
 
     
 class CoordXMLRecord(XMLRecord):
@@ -293,6 +293,7 @@ class BLAST(object):
 if __name__=="__main__":
     import unittest
     import test
+    
     class TestNuc2NucBlast(unittest.TestCase):
         def setUp(self):
             self.refseq = "AGCTGGCGGCGCGAGGAAGAGGAACGTAGCTGGCGGCGCGAGGAAGAGGAACGT"
@@ -375,6 +376,35 @@ if __name__=="__main__":
             self.assertEquals( len(records),1 )
             blast_obj.cleanup()
 
+    class TestPro2NucBlast(unittest.TestCase):
+        def setUp(self):
+            self.proseq = "MAIVMGR*KGAR*"
+            self.nucseq = "ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG"
+            self.nucfasta = "nuctest.fa"
+            self.profasta = "protest.fa"
+            self.refid = "test"
+            test.createFasta(self.nucfasta,self.refid,self.nucseq)
+            test.createFasta(self.profasta,self.refid,self.proseq)
+            self.intermediate = "intermediate"
+            os.mkdir(self.intermediate)
+            self.evalue = 1
+        def tearDown(self):
+            try:
+                os.remove(self.profasta)
+                os.remove(self.nucfasta)
+                shutil.rmtree(self.intermediate)
+            except:
+                print "Nothing to remove"
+        def test1(self):
+            for i in range(0,50):
+                seq = Seq("ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG")
+                record = SeqRecord(seq,id="YP_025292.1", name="HokC",description="toxic membrane protein, small")
+                blast_obj = BLAST(self.nucfasta,self.profasta,self.intermediate,self.evalue)
+                blast_obj.buildDatabase("nucleotide")
+                blast_obj.run(blast_cmd="tblastn",num_threads=4)
+                records = blast_obj.parseBLAST('xml')
+                self.assertEquals( len(records),1 )
+                blast_obj.cleanup()
 
     class TestBlastXML(unittest.TestCase):
         def setUp(self):

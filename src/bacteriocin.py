@@ -14,7 +14,6 @@ import numpy
 import re
 import subprocess
 
-
 import genbank
 import blast
 import intergene
@@ -23,19 +22,17 @@ import intervals
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class BacteriocinHandler:
-    def __init__(self,genbank,input_genes,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+    def __init__(self,genbank,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.genbank = genbank
-        # self.genomic_query = "%s/genomicQuery.%d.fa"%(intermediate,self.pid)
-        self.genome_file = "%s/genome.%d.fasta"%(intermediate,self.pid)
-        # self.target_genes = "%s/target_genes.%d.fasta"%(intermediate,self.pid)
+        self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
+
+        #self.genome_file = "%s/genome.%d.fasta"%(intermediate,self.pid)
         self.evalue = evalue
         self.num_threads = num_threads
         self.radius = radius
         self.verbose = verbose
         self.keep_tmp = keep_tmp
-
-        # SeqIO.write(input_genes,self.target_genes,"fasta")
         self.noHits = True
         self.intermediate = intermediate
 
@@ -51,14 +48,15 @@ class BacteriocinHandler:
         return self.genome_file    
 
     def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads):
-        genome=SeqIO.read(self.genbank,'genbank')
-        SeqIO.write(genome,self.genome_file,"fasta")
-        bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
-
-        bacBlast.buildDatabase("nucleotide")
-        bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
-        hits = bacBlast.parseBLAST("xml")
-        return hits
+        try:
+            bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
+            bacBlast.buildDatabase("nucleotide")
+            bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
+            hits = bacBlast.parseBLAST("xml")
+            return hits
+        except Exception as ew:
+            print ew
+            return None
 
 #Filters out bacteriocins not contained in a gene neighborhood
 def filterBacteriocins(bacteriocins,genes,radius):
@@ -79,7 +77,6 @@ def filterBacteriocins(bacteriocins,genes,radius):
 def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
     for gbk in genbank_files:
         genomehr = genome.GenomeHandler(gbk,
-                                        genes,
                                         intermediate,
                                         gene_evalue,
                                         num_threads,
@@ -88,7 +85,6 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
                                         keep_tmp)
         genes = genomehr.getAlignedGenes(genes,gene_evalue,num_threads)
         bacthr = BacteriocinHandler(gbk,
-                                    genes,
                                     intermediate,
                                     bac_evalue,
                                     num_threads,
@@ -98,6 +94,11 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
         bacteriocins = bacthr.getAlignedBacteriocins(bacteriocins,
                                                      bac_evalue,
                                                      num_threads)
+        if verbose and genes == None: print "No genes found"
+        if verbose and bacteriocins == None: print "No bacteriocins found"
+        if genes == None or bacteriocins == None: continue
+        if verbose: print "Genes found\n","\n".join(map(str,genes))
+        if verbose: print "Bacteriocins found\n","\n".join(map(str,bacteriocins))
         bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,
                                                             genes,
                                                             radius)
@@ -108,11 +109,29 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
                                bacteriocin.sbjct_end)
             geneStart,geneEnd,geneName = gene[0],gene[1],gene[2]
             gene_loc = "%s-%s"%(geneStart,geneEnd)
-            outHandle.write("%s\t%s\t%s\t%s\t%s\n"%(bacteriocin.query_id,
-                                                      bac_loc,
-                                                      geneName,
-                                                      gene_loc,
-                                                      bacteriocin.sbjct))
+            bacID = bacteriocin.query_id.split(' ')[0]
+            organism = os.path.basename(os.path.splitext(gbk)[0])
+            mid = (geneStart+geneEnd)/2
+            if verbose:
+                print "%s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
+                                                          organism,
+                                                          bacteriocin.sbjct_start,
+                                                          bacteriocin.sbjct_end,
+                                                          geneName,
+                                                          mid,
+                                                            bacteriocin.sbjct)
+            outHandle.write("%s\t %s\t %s\t %s\t %s\t %s\t %s\n"%(bacID,
+                                                                  organism,
+                                                                  bacteriocin.sbjct_start,
+                                                                  bacteriocin.sbjct_end,
+                                                                  geneName,
+                                                                  mid,
+                                                                  bacteriocin.sbjct))
+            # outHandle.write("%s\t%s\t%s\t%s\t%s\n"%(bacteriocin.query_id,
+            #                                         bac_loc,
+            #                                         geneName,
+            #                                         gene_loc,
+            #                                         bacteriocin.sbjct))
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
