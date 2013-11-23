@@ -43,18 +43,16 @@ class GenomeHandler:
     def cleanup(self):
         os.remove(self.genomic_query)
         os.remove(self.genome_file)
-        
+
     """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
         return self.genomic_query
 
     def getGenomeFile(self):
         return self.genome_file
-    
+
     def getAlignedGenes(self,genes,gene_evalue,num_threads):
         try:
-            #genome=SeqIO.read(self.genbank,'genbank')
-            #SeqIO.write(genome,self.genome_file,"fasta")
             geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
             geneBlast.buildDatabase("nucleotide")
             geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
@@ -68,7 +66,7 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
         ghr = GenomeHandler(gbk,intermediate,gene_evalue,num_threads,radius,verbose,keep_tmp)
         hits = ghr.getAlignedGenes(genes,gene_evalue,num_threads)
         outHandle.write("\n".join( map( str, hits))+"\n")
-        
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Finds intergenic regions from genback file')

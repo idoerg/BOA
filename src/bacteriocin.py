@@ -39,13 +39,13 @@ class BacteriocinHandler:
     def cleanup(self):
         os.remove(self.genomic_query)
         os.remove(self.genome_file)
-        
+
     """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
         return self.genomic_query
 
     def getGenomeFile(self):
-        return self.genome_file    
+        return self.genome_file
 
     def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads):
         try:
@@ -63,7 +63,7 @@ def filterBacteriocins(bacteriocins,genes,radius):
     ints = intervals.Intervals()
     for gene in genes:
         start,end,refid = gene.sbjct_start,gene.sbjct_end,gene.query_id
-        ints.append((start-radius,end+radius,refid))
+        ints.append((start-radius,end+radius,refid,gene))
     filtered = []
     geneNeighborhoods = []
     for bact in bacteriocins:
@@ -73,6 +73,7 @@ def filterBacteriocins(bacteriocins,genes,radius):
             filtered.append( bact )
             geneNeighborhoods.append(nearestGene)
     return filtered,geneNeighborhoods
+
 
 def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
     for gbk in genbank_files:
@@ -107,31 +108,29 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
             bacteriocin,gene = record
             bac_loc = "%s-%s"%(bacteriocin.sbjct_start,
                                bacteriocin.sbjct_end)
-            geneStart,geneEnd,geneName = gene[0],gene[1],gene[2]
+            geneStart,geneEnd,geneName,geneRecord = gene[0],gene[1],gene[2],gene[3]
             gene_loc = "%s-%s"%(geneStart,geneEnd)
             bacID = bacteriocin.query_id.split(' ')[0]
             organism = os.path.basename(os.path.splitext(gbk)[0])
             mid = (geneStart+geneEnd)/2
-            if verbose:
-                print "%s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
-                                                          organism,
-                                                          bacteriocin.sbjct_start,
-                                                          bacteriocin.sbjct_end,
-                                                          geneName,
-                                                          mid,
-                                                            bacteriocin.sbjct)
-            outHandle.write("%s\t %s\t %s\t %s\t %s\t %s\t %s\n"%(bacID,
-                                                                  organism,
-                                                                  bacteriocin.sbjct_start,
-                                                                  bacteriocin.sbjct_end,
-                                                                  geneName,
-                                                                  mid,
-                                                                  bacteriocin.sbjct))
-            # outHandle.write("%s\t%s\t%s\t%s\t%s\n"%(bacteriocin.query_id,
-            #                                         bac_loc,
-            #                                         geneName,
-            #                                         gene_loc,
-            #                                         bacteriocin.sbjct))
+            if verbose:  print "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
+                                                                             organism,
+                                                                             bacteriocin.sbjct_start,
+                                                                             bacteriocin.sbjct_end,
+                                                                             bacteriocin.strand,
+                                                                             geneName,
+                                                                             mid,
+                                                                             geneRecord.strand,
+                                                                             bacteriocin.sbjct)
+            outHandle.write("%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n"%(bacID,
+                                                                            organism,
+                                                                            bacteriocin.sbjct_start,
+                                                                            bacteriocin.sbjct_end,
+                                                                            bacteriocin.strand,
+                                                                            geneName,
+                                                                            mid,
+                                                                            geneRecord.strand,
+                                                                            bacteriocin.sbjct))
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -168,7 +167,7 @@ if __name__=="__main__":
     args = parser.parse_args()
     outHandle = open(args.output_file,'w')
     outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
-   
+
     main(args.genbank_files,
          args.bacteriocins,
          args.genes,

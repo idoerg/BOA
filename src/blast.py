@@ -46,13 +46,14 @@ class  XMLRecord(object):
                  expected_value,
                  score,
                  query,             #Sequence from database
-                 query_id,           
+                 query_id,
                  query_start,
                  query_end,
                  sbjct,             #Sequence that was blasted
-                 sbjct_id,           
+                 sbjct_id,
                  sbjct_start,
-                 sbjct_end):
+                 sbjct_end,
+                 hsp):
         self.description = description
         self.score = score
         self.expected_value = expected_value
@@ -64,12 +65,16 @@ class  XMLRecord(object):
         self.sbjct_id = sbjct_id
         self.sbjct_start = sbjct_start
         self.sbjct_end = sbjct_end
-        
+        self.hsp = hsp
+        if self.hsp.frame[0]>0:
+            self.strand ="+"
+        else:
+            self.strand ="-"
     def __str__(self):
         geneCoord = "%d-%d"%(self.sbjct_start,self.sbjct_end)
         return "%s\t%s"%(geneCoord,self.sbjct)
 
-    
+
 class CoordXMLRecord(XMLRecord):
     """
     Records information for each blast entry that is important for multiple alignment
@@ -82,23 +87,23 @@ class CoordXMLRecord(XMLRecord):
                  expected_value,
                  score,
                  query,             #Sequence from database
-                 query_id,           
+                 query_id,
                  query_start,
                  query_end,
                  sbjct,             #Sequence that was blasted
-                 sbjct_id,           
+                 sbjct_id,
                  sbjct_start,
                  sbjct_end):
-        
+
         super(CoordXMLRecord,self).__init__(description,
                                             expected_value,
                                             score,
                                             query,
-                                            query_id,           
+                                            query_id,
                                             query_start,
                                             query_end,
                                             sbjct,
-                                            sbjct_id,           
+                                            sbjct_id,
                                             sbjct_start,
                                             sbjct_end)
         try:
@@ -246,6 +251,7 @@ class BLAST(object):
             print>>sys.stderr,e
             print>>sys.stderr,"No blast hits"
             raise
+        
     def parseXML(self,mode=''):
         input_file = self.blastfile
         hits = []
@@ -271,6 +277,7 @@ class BLAST(object):
                                                       sbjct_end = hsp.sbjct_end)
                                 hits.append(record)
                             else:
+
                                 record=XMLRecord(description = alignment.title,
                                                  expected_value = hsp.expect,
                                                  score = hsp.score,
@@ -281,7 +288,8 @@ class BLAST(object):
                                                  sbjct_id = alignment.hit_def,
                                                  sbjct = hsp.sbjct,
                                                  sbjct_start = hsp.sbjct_start,
-                                                 sbjct_end = hsp.sbjct_end)
+                                                 sbjct_end = hsp.sbjct_end,
+                                                 hsp=hsp)
                                 hits.append(record)
 
 
@@ -293,7 +301,7 @@ class BLAST(object):
 if __name__=="__main__":
     import unittest
     import test
-    
+
     class TestNuc2NucBlast(unittest.TestCase):
         def setUp(self):
             self.refseq = "AGCTGGCGGCGCGAGGAAGAGGAACGTAGCTGGCGGCGCGAGGAAGAGGAACGT"
