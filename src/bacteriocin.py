@@ -22,11 +22,11 @@ import intervals
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class BacteriocinHandler:
-    def __init__(self,genbank,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+    def __init__(self,genome,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.genbank = genbank
-        self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
-
+        #self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
+        self.genome_file = genome
         #self.genome_file = "%s/genome.%d.fasta"%(intermediate,self.pid)
         self.evalue = evalue
         self.num_threads = num_threads
@@ -47,10 +47,10 @@ class BacteriocinHandler:
     def getGenomeFile(self):
         return self.genome_file
 
-    def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads):
+    def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads,formatdb):
         try:
             bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
-            bacBlast.buildDatabase("nucleotide")
+            if formatdb: bacBlast.buildDatabase("nucleotide")
             bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
             hits = bacBlast.parseBLAST("xml")
             return hits
@@ -75,17 +75,17 @@ def filterBacteriocins(bacteriocins,genes,radius):
     return filtered,geneNeighborhoods
 
 
-def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
-    for gbk in genbank_files:
-        genomehr = genome.GenomeHandler(gbk,
-                                        intermediate,
-                                        gene_evalue,
-                                        num_threads,
-                                        radius,
-                                        verbose,
-                                        keep_tmp)
-        genes = genomehr.getAlignedGenes(genes,gene_evalue,num_threads)
-        bacthr = BacteriocinHandler(gbk,
+def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,formatdb,radius,verbose,keep_tmp):
+    for gnome in genome_files:
+        gnomehr = genome.GenomeHandler(gnome,
+                                       intermediate,
+                                       gene_evalue,
+                                       num_threads,
+                                       radius,
+                                       verbose,
+                                       keep_tmp)
+        genes = gnomehr.getAlignedGenes(genes,gene_evalue,num_threads,formatdb)
+        bacthr = BacteriocinHandler(gnome,
                                     intermediate,
                                     bac_evalue,
                                     num_threads,
@@ -94,7 +94,8 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
                                     keep_tmp)
         bacteriocins = bacthr.getAlignedBacteriocins(bacteriocins,
                                                      bac_evalue,
-                                                     num_threads)
+                                                     num_threads,
+                                                     formatdb)
         if verbose and genes == None: print "No genes found"
         if verbose and bacteriocins == None: print "No bacteriocins found"
         if genes == None or bacteriocins == None: continue
@@ -111,7 +112,7 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
             geneStart,geneEnd,geneName,geneRecord = gene[0],gene[1],gene[2],gene[3]
             gene_loc = "%s-%s"%(geneStart,geneEnd)
             bacID = bacteriocin.query_id.split(' ')[0]
-            organism = os.path.basename(os.path.splitext(gbk)[0])
+            organism = bacteriocin.sbjct_id.split(' ')[0]
             mid = (geneStart+geneEnd)/2
             if verbose:  print "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
                                                                              organism,
@@ -134,10 +135,10 @@ def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
-        'Finds intergenic regions from genback file')
+        'Finds bacteriocins surrounding target genes')
     parser.add_argument(\
-        '--genbank-files', type=str, nargs="+", required=False,
-        help='The genbank files containing annotated genes')
+        '--genome-files', type=str, nargs="+", required=False,
+        help='FASTA files containing bacterial genomes')
     parser.add_argument(\
         '--genes', type=str,required=True,default="",
         help='A FASTA file containing all of the target genes of interest')
@@ -160,6 +161,9 @@ if __name__=="__main__":
         '--verbose', action='store_const', const=True, default=False,
         help='Messages for debugging')
     parser.add_argument(\
+        '--formatdb', action='store_const', const=True, default=False,
+        help='Indicates if formatdb should be run')
+    parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
 
@@ -168,7 +172,7 @@ if __name__=="__main__":
     outHandle = open(args.output_file,'w')
     outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
 
-    main(args.genbank_files,
+    main(args.genome_files,
          args.bacteriocins,
          args.genes,
          outHandle,
@@ -176,6 +180,7 @@ if __name__=="__main__":
          args.gene_evalue,
          args.bac_evalue,
          args.num_threads,
+         args.formatdb,
          args.radius,
          args.verbose,
          args.keep_tmp)

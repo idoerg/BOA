@@ -51,10 +51,10 @@ class GenomeHandler:
     def getGenomeFile(self):
         return self.genome_file
 
-    def getAlignedGenes(self,genes,gene_evalue,num_threads):
+    def getAlignedGenes(self,genes,gene_evalue,num_threads,formatdb):
         try:
             geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
-            geneBlast.buildDatabase("nucleotide")
+            if formatdb: geneBlast.buildDatabase("nucleotide")
             geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
             hits = geneBlast.parseBLAST("xml")
             return hits
