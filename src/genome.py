@@ -14,19 +14,17 @@ import numpy
 import re
 import subprocess
 
-
 import genbank
 import blast
 import intergene
 
-
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class GenomeHandler:
-    def __init__(self,genbank,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+    def __init__(self,genome,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
         self.pid = os.getpid() #Use current pid to name temporary files
-        self.genbank = genbank
-        self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
-
+        #self.genbank = genbank
+        #self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
+        self.genome_file = genome
         # self.genomic_query = "%s/genomicQuery.%d.fa"%(intermediate,self.pid)
         #self.genome_file = "%s/genome.%d.fasta"%(intermediate,self.pid)
         # self.target_genes = "%s/target_genes.%d.fasta"%(intermediate,self.pid)
@@ -41,8 +39,9 @@ class GenomeHandler:
         self.intermediate = intermediate
 
     def cleanup(self):
-        os.remove(self.genomic_query)
-        os.remove(self.genome_file)
+        #os.remove(self.genomic_query)
+        #os.remove(self.genome_file)
+        pass
 
     """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
@@ -52,27 +51,27 @@ class GenomeHandler:
         return self.genome_file
 
     def getAlignedGenes(self,genes,gene_evalue,num_threads,formatdb):
-        try:
-            geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
-            if formatdb: geneBlast.buildDatabase("nucleotide")
-            geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
-            hits = geneBlast.parseBLAST("xml")
-            return hits
-        except Exception as ew:
-            print ew
-            return None
-def main(genbank_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
-    for gbk in genbank_files:
+        # try:
+        geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
+        if formatdb: geneBlast.buildDatabase("nucleotide")
+        geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
+        hits = geneBlast.parseBLAST("xml")
+        return hits
+        # except Exception as ew:
+        #     print ew
+        #     return None
+def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
+    for gbk in genome_files:
         ghr = GenomeHandler(gbk,intermediate,gene_evalue,num_threads,radius,verbose,keep_tmp)
         hits = ghr.getAlignedGenes(genes,gene_evalue,num_threads)
         outHandle.write("\n".join( map( str, hits))+"\n")
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
-        'Finds intergenic regions from genback file')
+        'Finds target genes in a FASTA file')
     parser.add_argument(\
-        '--genbank-files', type=str, nargs="+", required=False,
-        help='The genbank files containing annotated genes')
+        '--genome-files', type=str, nargs="+", required=False,
+        help='The FASTA containg the bacterial genome')
     parser.add_argument(\
         '--genes', type=str,required=True,default="",
         help='A FASTA file containing all of the target genes of interest')
@@ -102,7 +101,7 @@ if __name__=="__main__":
     args = parser.parse_args()
     outHandle = open(args.output_file,'w')
 
-    main(args.genbank_files,
+    main(args.genome_files,
          args.bacteriocins,
          args.genes,
          outHandle,

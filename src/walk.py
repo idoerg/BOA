@@ -26,7 +26,7 @@ parser.add_argument(\
     '--radius', type=int, required=False, default=10000,
     help='The search radius around every specified gene')
 parser.add_argument(\
-    '--bac-evalue', type=float, required=False, default=0.0000000001,
+    '--bac-evalue', type=float, required=False, default=0.00001,
     help='The search radius around every specified gene')
 parser.add_argument(\
     '--gene-evalue', type=float, required=False, default=0.00001,
@@ -50,22 +50,22 @@ parser.add_argument(\
 args = parser.parse_args()
 def go():
     outHandle = open(args.output_file,'w')
-    outHandle.write("bacteriocin\torganism\torganismSt\torganismEnd\tgene\tgeneSt\tbacterciocin_sequence\n")
+    outHandle.write("bacteriocin \t organism \t organismSt \t organismEnd \t strand \t gene \t geneSt \t strand \t bacterciocin_sequence\n")
     for root, subFolders, files in os.walk(args.root_dir):
         for fname in files:
-            genbank_files = []
+            genome_files = []
             ext = os.path.splitext(os.path.basename(fname))[1]
-            if ext==".gbk":
+            if ext==".fna":
                 absfile=os.path.join(root,fname)
-                genbank_files.append(absfile)
+                genome_files.append(absfile)
                 
-            if len(genbank_files)>0:
-                print "genbank_files",genbank_files
+            if len(genome_files)>0:
+                print "genome_files",genome_files
                 print "bacteriocins",args.bacteriocins
                 print "genes",args.genes
                 print "intermediate",args.intermediate
 
-                bacteriocin.main(genbank_files,
+                bacteriocin.main(genome_files,
                                  args.bacteriocins,
                                  args.genes,
                                  outHandle,

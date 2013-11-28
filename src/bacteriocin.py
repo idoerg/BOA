@@ -38,7 +38,7 @@ class BacteriocinHandler:
 
     def cleanup(self):
         os.remove(self.genomic_query)
-        os.remove(self.genome_file)
+        #os.remove(self.genome_file)
 
     """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
@@ -55,7 +55,6 @@ class BacteriocinHandler:
             hits = bacBlast.parseBLAST("xml")
             return hits
         except Exception as ew:
-            print ew
             return None
 
 #Filters out bacteriocins not contained in a gene neighborhood
@@ -85,6 +84,7 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
                                        verbose,
                                        keep_tmp)
         genes = gnomehr.getAlignedGenes(genes,gene_evalue,num_threads,formatdb)
+        #for g in genes: print g.query_id,g.sbjct_id
         bacthr = BacteriocinHandler(gnome,
                                     intermediate,
                                     bac_evalue,
@@ -110,7 +110,7 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
             bac_loc = "%s-%s"%(bacteriocin.sbjct_start,
                                bacteriocin.sbjct_end)
             geneStart,geneEnd,geneName,geneRecord = gene[0],gene[1],gene[2],gene[3]
-            gene_loc = "%s-%s"%(geneStart,geneEnd)
+            gene_loc = "%s-%s"%(geneStart,geneEnd) 
             bacID = bacteriocin.query_id.split(' ')[0]
             organism = bacteriocin.sbjct_id.split(' ')[0]
             mid = (geneStart+geneEnd)/2
@@ -152,7 +152,7 @@ if __name__=="__main__":
         '--gene-evalue', type=float, required=False, default=0.00001,
         help='The evalue for gene hits')
     parser.add_argument(\
-        '--bac-evalue', type=float, required=False, default=0.000001,
+        '--bac-evalue', type=float, required=False, default=0.00001,
         help='The evalue for bacteriocin hits')
     parser.add_argument(\
         '--intermediate', type=str, required=True,

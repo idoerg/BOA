@@ -21,6 +21,7 @@ import numpy
 import re
 import subprocess
 import shutil
+import time
 
 def addArgs(parser):
     parser.add_argument(\
@@ -166,8 +167,9 @@ class TabRecord():
 class BLAST(object):
     def __init__(self,bacteriocins_file,intergene_file,intermediate,evalue):
         self.pid = os.getpid() #Use current pid to name temporary files
+        code = hash(self.pid^(int(time.time())%self.pid))
         self.protein_db = bacteriocins_file
-        self.blastfile = "%s/%d.out"%(intermediate,self.pid)
+        self.blastfile = "%s/%d.out"%(intermediate,code)
         self.genomic_query = intergene_file
         self.intermediate = intermediate
         self.evalue = evalue
@@ -260,6 +262,7 @@ class BLAST(object):
             blast_hits = NCBIXML.parse(handle)
             blast_records = list(blast_hits)
             for record in blast_records:
+                query_id = record.query
                 for alignment in record.alignments:
                     for hsp in alignment.hsps:
                         if hsp.expect<self.evalue:
@@ -267,7 +270,7 @@ class BLAST(object):
                                 record=CoordXMLRecord(description = alignment.title,
                                                       expected_value = hsp.expect,
                                                       score = hsp.score,
-                                                      query_id = record.query,
+                                                      query_id = query_id,
                                                       query = hsp.query,
                                                       query_start = hsp.query_start,
                                                       query_end = hsp.query_end,
@@ -277,11 +280,10 @@ class BLAST(object):
                                                       sbjct_end = hsp.sbjct_end)
                                 hits.append(record)
                             else:
-
                                 record=XMLRecord(description = alignment.title,
                                                  expected_value = hsp.expect,
                                                  score = hsp.score,
-                                                 query_id = record.query,
+                                                 query_id = query_id,
                                                  query = hsp.query,
                                                  query_start = hsp.query_start,
                                                  query_end = hsp.query_end,
@@ -291,8 +293,7 @@ class BLAST(object):
                                                  sbjct_end = hsp.sbjct_end,
                                                  hsp=hsp)
                                 hits.append(record)
-
-
+                                
         except Exception as e:
             print>>sys.stderr,"Exception", e
             print>>sys.stderr,"No blast hits"
