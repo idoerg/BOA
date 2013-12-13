@@ -107,16 +107,12 @@ class CoordXMLRecord(XMLRecord):
                                             sbjct_id,
                                             sbjct_start,
                                             sbjct_end)
-        try:
-            reference,locus = location_reg.findall(self.sbjct_id)[:2]
-            self.genomeSt,self.genomeEnd,self.strand =  int(reference[0]), int(reference[1]), reference[2]
-            self.geneSt,self.geneEnd,self.geneStrand = int(locus[0]), int(locus[1]),locus[2]
-            self.query_start          +=self.genomeSt
-            self.query_end            +=self.genomeSt
-            self.organism = self.sbjct_id.split(":")[0]
-        except Exception as e:
-            print "Error: check your format\n",e
-            exit(0)
+        reference,locus = location_reg.findall(self.sbjct_id)[:2]
+        self.genomeSt,self.genomeEnd,self.strand =  int(reference[0]), int(reference[1]), reference[2]
+        self.geneSt,self.geneEnd,self.geneStrand = int(locus[0]), int(locus[1]),locus[2]
+        self.query_start          +=self.genomeSt
+        self.query_end            +=self.genomeSt
+        self.organism = self.sbjct_id.split(":")[0]
 
     def __str__(self):
         bacteriocinCoord = "%d-%d%s"%(self.query_start,self.query_end,self.strand)
@@ -224,79 +220,70 @@ class BLAST(object):
     def parseTab(self):
         input_file = self.blastfile
         hits = []
-        try:
-            with open(input_file) as handle:
-                for ln in handle:
-                    ln = ln.rstrip()
-                    if ln[0]=="#":
-                        continue
-                    toks = ln.split('\t')
-                    Query_id, Subject_id, percent_identity, alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end, e_value, bit_score = toks
-                    percent_identity, e_value, bit_score = map( float, [percent_identity, e_value, bit_score])
-                    alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end = map( int, [alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end])
-                    if e_value < self.evalue:
+        with open(input_file) as handle:
+            for ln in handle:
+                ln = ln.rstrip()
+                if ln[0]=="#":
+                    continue
+                toks = ln.split('\t')
+                Query_id, Subject_id, percent_identity, alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end, e_value, bit_score = toks
+                percent_identity, e_value, bit_score = map( float, [percent_identity, e_value, bit_score])
+                alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end = map( int, [alignment_length, mismatches, gap_openings, q_start, q_end, s_start, s_end])
+                if e_value < self.evalue:
 
-                        hits.append(TabRecord(Query_id,
-                                              Subject_id,
-                                              percent_identity,
-                                              alignment_length,
-                                              mismatches,
-                                              gap_openings,
-                                              q_start,
-                                              q_end,
-                                              s_start,
-                                              s_end,
-                                              e_value,
-                                              bit_score))
-            return hits
-        except Exception as e:
-            print>>sys.stderr,e
-            print>>sys.stderr,"No blast hits"
-            raise
+                    hits.append(TabRecord(Query_id,
+                                          Subject_id,
+                                          percent_identity,
+                                          alignment_length,
+                                          mismatches,
+                                          gap_openings,
+                                          q_start,
+                                          q_end,
+                                          s_start,
+                                          s_end,
+                                          e_value,
+                                          bit_score))
+        return hits
         
     def parseXML(self,mode=''):
         input_file = self.blastfile
         hits = []
         handle = open(input_file,'r')
-        try:
-            blast_hits = NCBIXML.parse(handle)
-            blast_records = list(blast_hits)
-            for record in blast_records:
-                query_id = record.query
-                for alignment in record.alignments:
-                    for hsp in alignment.hsps:
-                        if hsp.expect<self.evalue:
-                            if mode=='coord':
-                                record=CoordXMLRecord(description = alignment.title,
-                                                      expected_value = hsp.expect,
-                                                      score = hsp.score,
-                                                      query_id = query_id,
-                                                      query = hsp.query,
-                                                      query_start = hsp.query_start,
-                                                      query_end = hsp.query_end,
-                                                      sbjct_id = alignment.hit_def,
-                                                      sbjct = hsp.sbjct,
-                                                      sbjct_start = hsp.sbjct_start,
-                                                      sbjct_end = hsp.sbjct_end)
-                                hits.append(record)
-                            else:
-                                record=XMLRecord(description = alignment.title,
-                                                 expected_value = hsp.expect,
-                                                 score = hsp.score,
-                                                 query_id = query_id,
-                                                 query = hsp.query,
-                                                 query_start = hsp.query_start,
-                                                 query_end = hsp.query_end,
-                                                 sbjct_id = alignment.hit_def,
-                                                 sbjct = hsp.sbjct,
-                                                 sbjct_start = hsp.sbjct_start,
-                                                 sbjct_end = hsp.sbjct_end,
-                                                 hsp=hsp)
-                                hits.append(record)
-                                
-        except Exception as e:
-            print>>sys.stderr,"Exception", e
-            print>>sys.stderr,"No blast hits"
+        #try:
+        blast_hits = NCBIXML.parse(handle)
+        blast_records = list(blast_hits)
+        for record in blast_records:
+            query_id = record.query
+            for alignment in record.alignments:
+                for hsp in alignment.hsps:
+                    if hsp.expect<self.evalue:
+                        if mode=='coord':
+                            record=CoordXMLRecord(description = alignment.title,
+                                                  expected_value = hsp.expect,
+                                                  score = hsp.score,
+                                                  query_id = query_id,
+                                                  query = hsp.query,
+                                                  query_start = hsp.query_start,
+                                                  query_end = hsp.query_end,
+                                                  sbjct_id = alignment.hit_def,
+                                                  sbjct = hsp.sbjct,
+                                                  sbjct_start = hsp.sbjct_start,
+                                                  sbjct_end = hsp.sbjct_end)
+                            hits.append(record)
+                        else:
+                            record=XMLRecord(description = alignment.title,
+                                             expected_value = hsp.expect,
+                                             score = hsp.score,
+                                             query_id = query_id,
+                                             query = hsp.query,
+                                             query_start = hsp.query_start,
+                                             query_end = hsp.query_end,
+                                             sbjct_id = alignment.hit_def,
+                                             sbjct = hsp.sbjct,
+                                             sbjct_start = hsp.sbjct_start,
+                                             sbjct_end = hsp.sbjct_end,
+                                             hsp=hsp)
+                            hits.append(record)
         return hits
 
 if __name__=="__main__":

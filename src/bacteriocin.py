@@ -25,9 +25,7 @@ class BacteriocinHandler:
     def __init__(self,genome,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.genbank = genbank
-        #self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
         self.genome_file = genome
-        #self.genome_file = "%s/genome.%d.fasta"%(intermediate,self.pid)
         self.evalue = evalue
         self.num_threads = num_threads
         self.radius = radius
@@ -47,17 +45,15 @@ class BacteriocinHandler:
     def getGenomeFile(self):
         return self.genome_file
 
+    """Get all of the bacteriocins in all of the bacterial genomes"""
     def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads,formatdb):
-        try:
-            bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
-            if formatdb: bacBlast.buildDatabase("nucleotide")
-            bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
-            hits = bacBlast.parseBLAST("xml")
-            return hits
-        except Exception as ew:
-            return None
+        bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
+        if formatdb: bacBlast.buildDatabase("nucleotide")
+        bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
+        hits = bacBlast.parseBLAST("xml")
+        return hits
 
-#Filters out bacteriocins not contained in a gene neighborhood
+"""Filters out bacteriocins not contained in a gene neighborhood"""
 def filterBacteriocins(bacteriocins,genes,radius):
     ints = intervals.Intervals()
     for gene in genes:
@@ -84,7 +80,6 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
                                        verbose,
                                        keep_tmp)
         genes = gnomehr.getAlignedGenes(genes,gene_evalue,num_threads,formatdb)
-        #for g in genes: print g.query_id,g.sbjct_id
         bacthr = BacteriocinHandler(gnome,
                                     intermediate,
                                     bac_evalue,

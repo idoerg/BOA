@@ -21,13 +21,7 @@ import intergene
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class GenomeHandler:
     def __init__(self,genome,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
-        self.pid = os.getpid() #Use current pid to name temporary files
-        #self.genbank = genbank
-        #self.genome_file = "%s.fna"%(os.path.splitext(genbank)[0])
         self.genome_file = genome
-        # self.genomic_query = "%s/genomicQuery.%d.fa"%(intermediate,self.pid)
-        #self.genome_file = "%s/genome.%d.fasta"%(intermediate,self.pid)
-        # self.target_genes = "%s/target_genes.%d.fasta"%(intermediate,self.pid)
         self.evalue = evalue
         self.num_threads = num_threads
         self.radius = radius
@@ -46,20 +40,18 @@ class GenomeHandler:
     """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
         return self.genomic_query
-
+    
     def getGenomeFile(self):
         return self.genome_file
 
+    """Runs blast to find the gene locations in all of the bacterial genomes"""
     def getAlignedGenes(self,genes,gene_evalue,num_threads,formatdb):
-        # try:
         geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
         if formatdb: geneBlast.buildDatabase("nucleotide")
         geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
         hits = geneBlast.parseBLAST("xml")
+        print hits
         return hits
-        # except Exception as ew:
-        #     print ew
-        #     return None
 def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
     for gbk in genome_files:
         ghr = GenomeHandler(gbk,intermediate,gene_evalue,num_threads,radius,verbose,keep_tmp)
