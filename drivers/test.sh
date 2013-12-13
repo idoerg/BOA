@@ -1,9 +1,8 @@
-##User specified parameters
+
 GENOME=/data/genomes/Bacterial/all/all.fna   #File containing all of the bacterial genomes
-BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
+BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins/genes
 BACTERCIOCIN_FILE=bacteriocins.fa            #Location of bacteriocin file (where known bacteriocins are stored)
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
-##########################################################################################
 
 BACTERIOCINS=$BACDIR/$BACTERCIOCIN_FILE      
 TARGET_GENES=$BACDIR/$GENES                  #Location of gene file (where sagB is stored)
@@ -57,3 +56,24 @@ python $SRC/bacteriocin.py \
 # cat $INTERMEDIATE/genome*.six.faa > $TRANSLATED
 # hmmbuild --informat afa $HMMFILE $MULTIALIGN
 # hmmsearch $HMMFILE $TRANSLATED > $RESULT
+
+# SRC=../src
+# #GENOME=../example/Brachyspira_pilosicoli
+# #GENOME=../example/all
+# GENOME=/data/genomes/Bacterial/all
+# BACTERIOCINS=../bacteriocins
+# INTERMEDIATE=intermediate
+# #INTERMEDIATE=/data/tmp
+# python $SRC/bacteriocin.py \
+#     --genes=$BACTERIOCINS/genes.fa \
+#     --genome-files=$GENOME/*.fna \
+#     --bacteriocins=$BACTERIOCINS/bacteriocins.fa \
+#     --intermediate=$INTERMEDIATE \
+#     --bac-evalue=1e-2 \
+#     --num-threads=7 \
+#     --verbose \
+#     --radius=50000 \
+#     --output-file=blast_results.txt 
+
+    
+
