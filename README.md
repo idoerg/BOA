@@ -18,7 +18,9 @@ BACTERCIOCIN_FILE
 
 GENES
 
-Then execute ./run.sh
+Then the run script by executing the command 
+
+sh run.sh
 
 To run the python script in the src folder, use the something along the lines of the following command 
 
