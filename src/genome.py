@@ -40,14 +40,16 @@ class GenomeHandler:
     """Gets the filtered intergenic regions"""
     def getGenomicQuery(self):
         return self.genomic_query
-    
+
     def getGenomeFile(self):
         return self.genome_file
 
     """Runs blast to find the gene locations in all of the bacterial genomes"""
     def getAlignedGenes(self,genes,gene_evalue,num_threads,formatdb):
         geneBlast = blast.BLAST(self.genome_file,genes,self.intermediate,gene_evalue)
-        if formatdb: geneBlast.buildDatabase("nucleotide")
+        if formatdb:
+            geneBlast.buildDatabase("nucleotide")
+            print geneBlast.formatDBCommand()
         geneBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
         hits = geneBlast.parseBLAST("xml")
         print hits
