@@ -106,8 +106,10 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
                                bacteriocin.sbjct_end)
             geneStart,geneEnd,geneName,geneRecord = gene[0],gene[1],gene[2],gene[3]
             gene_loc = "%s-%s"%(geneStart,geneEnd) 
-            bacID = bacteriocin.query_id.split(' ')[0]
-            organism = bacteriocin.sbjct_id.split(' ')[0]
+            bacID = bacteriocin.query_id
+            organism = bacteriocin.sbjct_id
+            #bacID = bacteriocin.query_id.split(' ')[0]
+            #organism = bacteriocin.sbjct_id.split(' ')[0]
             mid = (geneStart+geneEnd)/2
             if verbose:  print "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
                                                                              organism,
