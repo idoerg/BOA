@@ -186,8 +186,10 @@ class BLAST(object):
     """
     def buildDatabase(self,base="nucleotide"):
         #cmd="formatdb -i %s -p T -o T"%(self.protein_db)
-        char = "F" if base=="nucleotide" else "T"
-        cmd="formatdb -i %s -p %s"%(self.protein_db,char)
+        #char = "F" if base=="nucleotide" else "T"
+        char = "nucl" if base=="nucleotide" else "prot"
+        #cmd="formatdb -i %s -p %s"%(self.protein_db,char)
+        cmd="makeblastdb -in %s -dbtype %s"%(self.protein_db,char)
         self.formatdbcmd = cmd
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
@@ -198,8 +200,9 @@ class BLAST(object):
     """
     def run(self,blast_cmd="blastn",mode="xml",num_threads=1):
         outHandle = open(self.blastfile,'w')
-        m = 7 if mode=='xml' else 9
-        cmd="blastall -p %s -d %s -i %s -m %d -o %s -e %f -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
+        m = 5 if mode=='xml' else 7
+        #cmd="blastall -p %s -d %s -i %s -m %d -o %s -e %f -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
+        cmd="%s -db %s -query %s -outfmt %d -out %s -evalue %f -num_threads %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
         self.blastcmd = cmd
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
@@ -244,7 +247,7 @@ class BLAST(object):
                                           e_value,
                                           bit_score))
         return hits
-        
+
     def parseXML(self,mode=''):
         input_file = self.blastfile
         hits = []

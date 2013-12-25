@@ -48,7 +48,9 @@ class BacteriocinHandler:
     """Get all of the bacteriocins in all of the bacterial genomes"""
     def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads,formatdb):
         bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
-        if formatdb: bacBlast.buildDatabase("nucleotide")
+        if formatdb:
+            bacBlast.buildDatabase("nucleotide")
+            print bacBlast.formatDBCommand()
         bacBlast.run(blast_cmd="tblastn",mode="xml",num_threads=num_threads)
         hits = bacBlast.parseBLAST("xml")
         return hits
@@ -108,8 +110,9 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
             gene_loc = "%s-%s"%(geneStart,geneEnd) 
             bacID = bacteriocin.query_id
             organism = bacteriocin.sbjct_id
-            #bacID = bacteriocin.query_id.split(' ')[0]
-            #organism = bacteriocin.sbjct_id.split(' ')[0]
+            gene_loc = "%s-%s"%(geneStart,geneEnd)
+            bacID = bacteriocin.query_id.split(' ')[0]
+            organism = bacteriocin.sbjct_id.split(' ')[0]
             mid = (geneStart+geneEnd)/2
             if verbose:  print "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
                                                                              organism,
