@@ -10,6 +10,6 @@ All species can be placed in phylogenic tree and display a number for the number
 4) Read Introduction to Computational Genomics Ch 5,7
 5) Look at phylogenetic databases (e.g Greengenes) http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=resources#Archaea and Bacteria
 
-Download 16SRNA datasets (nice barcode for phylogenic analyis), filter and try to build a tree from it.
+Download 16SRNA datasets for each species (nice barcode for phylogenic analyis), filter and try to build a tree from it.
 
 
