@@ -1,3 +1,15 @@
-1. Run blast with 10^-5 e-values
-2. Get sagB coordinates and compare them to results
-3. Fix sagB bug
+Todo:
+
+Build a phylogenic tree
+
+All species can be placed in phylogenic tree and display a number for the number of bacteriocins for each species
+
+1) Do this with the original BAGEL data
+2) Research to make sure others haven't done this yet
+3) Email BAGEL people again
+4) Read Introduction to Computational Genomics Ch 5,7
+5) Look at phylogenetic databases (e.g Greengenes) http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=resources#Archaea and Bacteria
+
+Download 16SRNA datasets (nice barcode for phylogenic analyis), filter and try to build a tree from it.
+
+
