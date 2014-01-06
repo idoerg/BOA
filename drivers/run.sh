@@ -1,5 +1,6 @@
 ##User specified parameters
-GENOME=/data/genomes/Bacterial/all/all.fna   #File containing all of the bacterial genomes
+GENOME=../data/all/all.fna                   #File containing all of the bacterial genomes
+#GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
 BACTERCIOCIN_FILE=bacteriocins.fa            #Location of bacteriocin file (where known bacteriocins are stored)
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
@@ -8,7 +9,8 @@ GENES=genes.fa                               #Location of gene file (where sagB 
 BACTERIOCINS=$BACDIR/$BACTERCIOCIN_FILE      
 TARGET_GENES=$BACDIR/$GENES                  #Location of gene file (where sagB is stored)
 
-INTERMEDIATE=intermediate                    #Intermediate directory
+INTERMEDIATE=/tmp/intermediate               #Intermediate directory
+#INTERMEDIATE=intermediate               #Intermediate directory
 BLASTED=$INTERMEDIATE/blast_results.txt      #BLAST results (filtering outside of sagB neighborhoods)
 ALIGN=$INTERMEDIATE/aligned.fa               #Poor mans multiple alignment
 MULTIALIGN=$INTERMEDIATE/aligned.faa         #---
@@ -35,6 +37,7 @@ python $SRC/bacteriocin.py \
     --bac-evalue=1e-5 \
     --num-threads=7 \
     --radius=50000 \
+    --formatdb \
     --verbose \
     --output-file=$BLASTED
 
