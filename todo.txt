@@ -1,5 +1,14 @@
 Todo:
 
+1) Identify the bacteriocins by intergenic regions and genes
+2) Check for redundancy in blasted bacteriocins (check if the same bacteriocin is blasted to the same region multiple times)
+3) Get a histogram for all_bagel_blast
+
+Good Lab practices
+1) Tarball from differently labeled subdirectories
+2) Include a README for every tarball.  Needs to be clear enough so that it can be repeatable
+
+<-- Forget about this for now -->
 Build a phylogenic tree
 
 All species can be placed in phylogenic tree and display a number for the number of bacteriocins for each species
@@ -11,5 +20,4 @@ All species can be placed in phylogenic tree and display a number for the number
 5) Look at phylogenetic databases (e.g Greengenes) http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/index.cgi?chapter=resources#Archaea and Bacteria
 
 Download 16SRNA datasets for each species (nice barcode for phylogenic analyis), filter and try to build a tree from it.
-
 
