@@ -1,6 +1,7 @@
 Todo:
 
 1) Identify the bacteriocins by intergenic regions and genes
+1a) Create a script to generate a database of intergenic regions
 2) Check for redundancy in blasted bacteriocins (check if the same bacteriocin is blasted to the same region multiple times)
 3) Get a histogram for all_bagel_blast
 

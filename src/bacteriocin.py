@@ -55,6 +55,12 @@ class BacteriocinHandler:
         hits = bacBlast.parseBLAST("xml")
         return hits
 
+"""
+Given a set of genomes and bacteriocins, determine which bacteriocins are in intergenic regions
+"""
+def identifyIntergenic(bacteriocins,genomes):
+    pass
+
 """Filters out bacteriocins not contained in a gene neighborhood"""
 def filterBacteriocins(bacteriocins,genes,radius):
     ints = intervals.Intervals()
@@ -170,7 +176,7 @@ if __name__=="__main__":
     blast.addArgs(parser)
     args = parser.parse_args()
     outHandle = open(args.output_file,'w')
-    outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
+    #outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
 
     main(args.genome_files,
          args.bacteriocins,

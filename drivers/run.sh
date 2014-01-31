@@ -1,8 +1,8 @@
 ##User specified parameters
-GENOME=../data/all/all.fna                   #File containing all of the bacterial genomes
+GENOME=/data/genomes/Bacterial/all/all.fna                   #File containing all of the bacterial genomes
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
-BACTERCIOCIN_FILE=bacteriocins.fa            #Location of bacteriocin file (where known bacteriocins are stored)
+BACTERCIOCIN_FILE=bagel.fa            #Location of bacteriocin file (where known bacteriocins are stored)
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
 ##########################################################################################
 
@@ -37,11 +37,12 @@ python $SRC/bacteriocin.py \
     --bac-evalue=1e-5 \
     --num-threads=7 \
     --radius=50000 \
-    --formatdb \
     --verbose \
     --output-file=$BLASTED
 
    
+
+
 
 # cat $BLASTED | tail -n+2 | awk '{print ">"$2,"\n"$9}' > $ALIGN
 # LEN=`cat $ALIGN | awk 'NR%2==0' | wc -L`

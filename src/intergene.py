@@ -14,7 +14,7 @@ import numpy
 # Copyright(C) 2009 Iddo Friedberg & Ian MC Fleming
 # Released under Biopython license. http://www.biopython.org/DIST/LICENSE
 # Do not remove this comment
-def get_interregions(genbank_path,output_file,intergene_length=1):
+def get_interregions(genbank_path,output_file,intergene_length=1,write_flag = 'w'):
     try:
         seq_record = SeqIO.parse(open(genbank_path), "genbank").next()
         cds_list_plus = []
@@ -57,9 +57,9 @@ def get_interregions(genbank_path,output_file,intergene_length=1):
                       SeqRecord(intergene_seq,id="%s-ign-%d:%d-%d%s" % (seq_record.name,i,last_end+1,this_start,strand_string),
                       description="%s %d-%d %s" % (seq_record.name, last_end+1,
                                                             this_start,strand_string)))
-        SeqIO.write(intergenic_records, open(output_file,'w'), "fasta")
+        SeqIO.write(intergenic_records, open(output_file,write_flag), "fasta")
     except Exception as e:
-        print "Error ",e
+        print "Error at",genbank_path,e
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=\

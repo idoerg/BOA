@@ -14,6 +14,3 @@ python $SRC/walk.py \
     --keep-tmp \
     --verbose \
     --output-file=blast_results.txt 
-
-    
-
