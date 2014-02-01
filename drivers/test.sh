@@ -1,20 +1,21 @@
-
-GENOME=/data/genomes/Bacterial/all/all.fna   #File containing all of the bacterial genomes
-BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins/genes
-BACTERCIOCIN_FILE=bacteriocins.fa            #Location of bacteriocin file (where known bacteriocins are stored)
-GENES=genes.fa                               #Location of gene file (where sagB is stored)
+#File containing all of the bacterial genomes
+GENOME=/home/jamie/Documents/Bacfinder/example/Streptococcus_pyogenes/NC_011375.fna
+INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the bacterial genomes
+BACDIR=../bacteriocins                           #Folder containing all of the bacteriocins/genes
+BACTERCIOCIN_FILE=bacteriocins.fa                #Location of bacteriocin file (where known bacteriocins are stored)
+GENES=genes.fa                                   #Location of gene file (where sagB is stored)
 
 BACTERIOCINS=$BACDIR/$BACTERCIOCIN_FILE      
-TARGET_GENES=$BACDIR/$GENES                  #Location of gene file (where sagB is stored)
+TARGET_GENES=$BACDIR/$GENES                      #Location of gene file (where sagB is stored)
 
-INTERMEDIATE=intermediate                    #Intermediate directory
-BLASTED=$INTERMEDIATE/blast_results.txt      #BLAST results (filtering outside of sagB neighborhoods)
-ALIGN=$INTERMEDIATE/aligned.fa               #Poor mans multiple alignment
-MULTIALIGN=$INTERMEDIATE/aligned.faa         #---
-HMMFILE=$INTERMEDIATE/bac.hmm                #HMMER hmmbuild file
-RESULT=out.txt                               #HMMER output
-
-TRANSLATED=$INTERMEDIATE/sixpack.fa          #Temporary file where all of the translated proteins are
+INTERMEDIATE=intermediate                        #Intermediate directory
+BLASTED=$INTERMEDIATE/blast_results.txt          #BLAST results (filtering outside of sagB neighborhoods)
+ALIGN=$INTERMEDIATE/aligned.fa                   #Poor mans multiple alignment
+MULTIALIGN=$INTERMEDIATE/aligned.faa             #---
+HMMFILE=$INTERMEDIATE/bac.hmm                    #HMMER hmmbuild file
+RESULT=out.txt                                   #HMMER output
+					        
+TRANSLATED=$INTERMEDIATE/sixpack.fa              #Temporary file where all of the translated proteins are
 
 SRC=../src
 UTIL=$SRC/util
@@ -30,11 +31,13 @@ python $SRC/bacteriocin.py \
     --genes=$TARGET_GENES \
     --genome-files=$GENOME \
     --bacteriocins=$BACTERIOCINS \
+    --intergenes=$INTERGENES \
     --intermediate=$INTERMEDIATE \
     --bac-evalue=1e-5 \
     --num-threads=7 \
     --radius=50000 \
     --verbose \
+    --formatdb \
     --output-file=$BLASTED
 
    

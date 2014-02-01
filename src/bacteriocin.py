@@ -19,6 +19,7 @@ import blast
 import intergene
 import genome
 import intervals
+import intergeneHandler
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class BacteriocinHandler:
@@ -58,15 +59,22 @@ class BacteriocinHandler:
 """
 Given a set of genomes and bacteriocins, determine which bacteriocins are in intergenic regions
 """
-def identifyIntergenic(bacteriocins,genomes):
-    pass
-
+def identifyIntergenic(bacteriocins,intergene_file):
+    print "filename",intergene_file
+    intergeneObj = intergeneHandler.IntergeneHandler(intergene_file)
+    intergeneObj.getIntervals()
+    intergeneDict = dict()
+    for bact in bacteriocins:
+        gene = bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand
+        intergeneDict[(bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand)] = intergeneObj.overlapIntergene(gene)
+    return intergeneDict
+        
 """Filters out bacteriocins not contained in a gene neighborhood"""
 def filterBacteriocins(bacteriocins,genes,radius):
     ints = intervals.Intervals()
     for gene in genes:
         start,end,refid = gene.sbjct_start,gene.sbjct_end,gene.query_id
-        ints.append((start-radius,end+radius,refid,gene))
+        ints.append( (start-radius,end+radius,refid,gene) )
     filtered = []
     geneNeighborhoods = []
     for bact in bacteriocins:
@@ -78,7 +86,7 @@ def filterBacteriocins(bacteriocins,genes,radius):
     return filtered,geneNeighborhoods
 
 
-def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,formatdb,radius,verbose,keep_tmp):
+def main(genome_files,bacteriocins,genes,intergene_file,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,formatdb,radius,verbose,keep_tmp):
     for gnome in genome_files:
         gnomehr = genome.GenomeHandler(gnome,
                                        intermediate,
@@ -108,8 +116,15 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
                                                             genes,
                                                             radius)
         records = zip(bacteriocins,geneNeighborhoods)
+        intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
+        
         for record in records:
             bacteriocin,gene = record
+            inIntergene = intergeneDict[(bacteriocin.sbjct_id,
+                                         bacteriocin.sbjct_start,
+                                         bacteriocin.sbjct_end,
+                                         bacteriocin.strand)]
+            regionType = "intergene" if inIntergene else "gene"
             bac_loc = "%s-%s"%(bacteriocin.sbjct_start,
                                bacteriocin.sbjct_end)
             geneStart,geneEnd,geneName,geneRecord = gene[0],gene[1],gene[2],gene[3]
@@ -120,7 +135,7 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
             bacID = bacteriocin.query_id.split(' ')[0]
             organism = bacteriocin.sbjct_id.split(' ')[0]
             mid = (geneStart+geneEnd)/2
-            if verbose:  print "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
+            if verbose:  print "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s"%(bacID,
                                                                              organism,
                                                                              bacteriocin.sbjct_start,
                                                                              bacteriocin.sbjct_end,
@@ -128,16 +143,18 @@ def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_
                                                                              geneName,
                                                                              mid,
                                                                              geneRecord.strand,
+                                                                             regionType,
                                                                              bacteriocin.sbjct)
-            outHandle.write("%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n"%(bacID,
-                                                                            organism,
-                                                                            bacteriocin.sbjct_start,
-                                                                            bacteriocin.sbjct_end,
-                                                                            bacteriocin.strand,
-                                                                            geneName,
-                                                                            mid,
-                                                                            geneRecord.strand,
-                                                                            bacteriocin.sbjct))
+            outHandle.write("%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n"%(bacID,
+                                                                                 organism,
+                                                                                 bacteriocin.sbjct_start,
+                                                                                 bacteriocin.sbjct_end,
+                                                                                 bacteriocin.strand,
+                                                                                 geneName,
+                                                                                 mid,
+                                                                                 geneRecord.strand,
+                                                                                 regionType,
+                                                                                 bacteriocin.sbjct))
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -148,6 +165,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--genes', type=str,required=True,default="",
         help='A FASTA file containing all of the target genes of interest')
+    parser.add_argument(\
+        '--intergenes', type=str, required=True,
+        help='FASTA files containing intergenic regions')
     parser.add_argument(\
         '--bacteriocins', type=str, required=True,
         help='The bacteriocin proteins that are to be blasted')
@@ -181,6 +201,7 @@ if __name__=="__main__":
     main(args.genome_files,
          args.bacteriocins,
          args.genes,
+         args.intergenes,
          outHandle,
          args.intermediate,
          args.gene_evalue,

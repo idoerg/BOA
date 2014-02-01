@@ -61,6 +61,9 @@ def get_interregions(genbank_path,output_file,intergene_length=1,write_flag = 'w
     except Exception as e:
         print "Error at",genbank_path,e
 
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=\
                                          'Finds intergenic regions from genback file')
