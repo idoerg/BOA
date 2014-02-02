@@ -9,7 +9,12 @@ import site
 import argparse
 import string
 import numpy
+import re
 
+base_path = os.path.dirname(os.path.abspath(__file__))
+for directory_name in ['test']:
+    site.addsitedir(os.path.join(base_path, directory_name))
+import test_genbank
 
 # Copyright(C) 2009 Iddo Friedberg & Ian MC Fleming
 # Released under Biopython license. http://www.biopython.org/DIST/LICENSE
@@ -74,9 +79,39 @@ if __name__ == '__main__':
         '--intergene-length', type=int, default=1,required=False,
         help='The path of the genbank file')
     parser.add_argument(\
-        '--output', type=str, default='.',required=False,
+        '--output-file', type=str, default='.',required=False,
         help='The fasta file containing the intergenic regions')
+    parser.add_argument(\
+        '--test', action='store_const', const=True, default=False,
+        help='Run the unittests')
+
     args = parser.parse_args()
 
-    get_interregions(args.genbank_path,args.output_file,args.intergene_length)
+    if not args.test:
+        get_interregions(args.genbank_path,args.output_file,args.intergene_length)
+    else:
+        del sys.argv[1:]
+        import unittest
+        print "Testing ..."
+        class TestIntegene(unittest.TestCase):
+            def setUp(self):
+                test_input = test_genbank.yeast
+                self.test_file = "test.gbk"
+                self.out_file = "out.fa"
+                handle = open(self.test_file,'w')
+                handle.write(test_input)
+                handle.close()
+            def tearDown(self):
+                os.remove(self.test_file)
 
+            def test1(self):
+                get_interregions(self.test_file,self.out_file)
+                reg = re.compile("([A-Z]+\d+)-ign-\d+:(\d+)-(\d+)(\S)")
+                records = [r for r in SeqIO.parse(open(self.out_file,'r'),"fasta")]
+                ids = [r.id for r in records]
+                #Each record has (accession,start,end,strand)
+                descriptions = [reg.findall(ids[i])[0] for i in range(len(ids))]
+                accession,start,end,strand = descriptions[0]
+                self.assertEquals(int(start),207)
+                self.assertEquals(int(end),686)
+    unittest.main()
