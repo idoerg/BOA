@@ -1,5 +1,6 @@
 ##User specified parameters
 GENOME=/data/genomes/Bacterial/all/all.fna                   #File containing all of the bacterial genomes
+INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the bacterial genomes
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
 BACTERCIOCIN_FILE=bagel.fa            #Location of bacteriocin file (where known bacteriocins are stored)
@@ -33,6 +34,7 @@ python $SRC/bacteriocin.py \
     --genes=$TARGET_GENES \
     --genome-files=$GENOME \
     --bacteriocins=$BACTERIOCINS \
+    --intergenes=$INTERGENES \
     --intermediate=$INTERMEDIATE \
     --bac-evalue=1e-5 \
     --num-threads=7 \
