@@ -1,9 +1,5 @@
 """
-Finds bacteriocins
-
-Todo
-1) Fix the unittests
-2) Deprecate the BLAST XML parser
+Finds intergenic regions in a bacterial genome
 """
 
 import Bio
@@ -35,6 +31,8 @@ class IntergeneHandler:
     def __init__(self,intergene_file):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.intergene_file = intergene_file
+        
+        
     """
     Retrieves intervals that can be used to determine if bacteriocin overlap any intergenic regions
     """

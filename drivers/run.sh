@@ -1,9 +1,9 @@
 ##User specified parameters
-GENOME=/data/genomes/Bacterial/all/all.fna                   #File containing all of the bacterial genomes
-INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the bacterial genomes
+GENOME=/data/genomes/Bacterial/all/all.fna       #File containing all of the bacterial genomes
+INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the intergenic regions in bacterial genomes
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
-BACTERCIOCIN_FILE=bagel.fa            #Location of bacteriocin file (where known bacteriocins are stored)
+BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
 ##########################################################################################
 
@@ -19,6 +19,8 @@ HMMFILE=$INTERMEDIATE/bac.hmm                #HMMER hmmbuild file
 RESULT=out.txt                               #HMMER output
 
 TRANSLATED=$INTERMEDIATE/sixpack.fa          #Temporary file where all of the translated proteins are
+BLASTFA=$INTERMEDIATE/blast.fa
+CLUSTER=$INTERMEDIATE/cluster 
 
 SRC=../src
 UTIL=$SRC/util
@@ -30,18 +32,20 @@ then
     mkdir $INTERMEDIATE
 fi
 
-python $SRC/bacteriocin.py \
-    --genes=$TARGET_GENES \
-    --genome-files=$GENOME \
-    --bacteriocins=$BACTERIOCINS \
-    --intergenes=$INTERGENES \
-    --intermediate=$INTERMEDIATE \
-    --bac-evalue=1e-5 \
-    --num-threads=7 \
-    --radius=50000 \
-    --verbose \
-    --output-file=$BLASTED
+# python $SRC/bacteriocin.py \
+#     --genes=$TARGET_GENES \
+#     --genome-files=$GENOME \
+#     --bacteriocins=$BACTERIOCINS \
+#     --intergenes=$INTERGENES \
+#     --intermediate=$INTERMEDIATE \
+#     --bac-evalue=1e-5 \
+#     --num-threads=7 \
+#     --radius=50000 \
+#     --verbose \
+#     --output-file=$BLASTED
 
+cat $BLASTED | awk '{print ">"$2"\n"$10}' > $BLASTFA
+cdhit -i $BLASTFA -o $CLUSTER -c 0.7
    
 
 

@@ -43,8 +43,10 @@ class Intervals(object):
         #     (qstart<=start and qend>=end)):
         #     return True
         # return False
-
-        for interval in self.intervals:
+        """TODO: This is linear time.
+           I will eventually have to implement an interval tree to speed it up
+        """
+        for interval in self.intervals: 
             start,end = interval[0],interval[1]
             if ((qstart>=start and qstart<=end) or
                 (qend>=start and qend<=end) or
@@ -59,9 +61,16 @@ class Intervals(object):
             if qstart>=start and qstart<=end or qend>=start and qend<=end:
                 return interval
         return None
-
+    
     def __str__(self):
         return "\n".join( map( str,self.intervals))
+
+#Obtains original format of the interval
+def reformat(interval,radius):
+    start_bound,end_bound,refid,gene = interval
+    start,end = start_bound+radius,end_bound-radius
+    return (start,end,refid,gene)
+    
 if __name__=="__main__":
     import unittest
     class TestIntervals(unittest.TestCase):

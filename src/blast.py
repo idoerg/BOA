@@ -25,7 +25,7 @@ import time
 
 def addArgs(parser):
     parser.add_argument(\
-        '--output-file', type=str, required=True,
+        '--output-file', type=str, required=False,
         help='The output file containing the BLAST output')
     parser.add_argument(\
         '--keep-tmp', action='store_const', const=True, default=False,
@@ -54,7 +54,7 @@ class  XMLRecord(object):
                  sbjct_id,
                  sbjct_start,
                  sbjct_end,
-                 hsp):
+                 strand):
         self.description = description
         self.score = score
         self.expected_value = expected_value
@@ -66,11 +66,8 @@ class  XMLRecord(object):
         self.sbjct_id = sbjct_id
         self.sbjct_start = sbjct_start
         self.sbjct_end = sbjct_end
-        self.hsp = hsp
-        if self.hsp.frame[0]>0:
-            self.strand ="+"
-        else:
-            self.strand ="-"
+        #self.hsp = hsp
+        
     def __str__(self):
         geneCoord = "%d-%d"%(self.sbjct_start,self.sbjct_end)
         return "%s\t%s"%(geneCoord,self.sbjct)
@@ -274,6 +271,10 @@ class BLAST(object):
                                                   sbjct_end = hsp.sbjct_end)
                             hits.append(record)
                         else:
+                            if hsp.frame[0]>0:
+                                strand ="+"
+                            else:
+                                strand ="-"
                             record=XMLRecord(description = alignment.title,
                                              expected_value = hsp.expect,
                                              score = hsp.score,
@@ -285,7 +286,7 @@ class BLAST(object):
                                              sbjct = hsp.sbjct,
                                              sbjct_start = hsp.sbjct_start,
                                              sbjct_end = hsp.sbjct_end,
-                                             hsp=hsp)
+                                             strand=strand)
                             hits.append(record)
         return hits
 
