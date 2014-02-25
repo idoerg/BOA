@@ -1,3 +1,4 @@
+
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
@@ -22,6 +23,7 @@ import intergene
 import genome
 import intervals
 import intergeneHandler
+import pickle
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class BacteriocinHandler:
@@ -62,15 +64,19 @@ class BacteriocinHandler:
 Given a set of genomes and bacteriocins, determine which bacteriocins are in intergenic regions
 """
 def identifyIntergenic(bacteriocins,intergene_file):
+    print "Building intergenic dictionary"
     print "filename",intergene_file
+    print "Number of bacteriocins",len(bacteriocins)
     intergeneObj = intergeneHandler.IntergeneHandler(intergene_file)
     intergeneObj.getIntervals()
     intergeneDict = dict()
     for bact in bacteriocins:
         gene = bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand
-        intergeneDict[(bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand)] = intergeneObj.overlapIntergene(gene)
+        overlaps = intergeneObj.overlapIntergene(gene)
+        print str(gene),overlaps
+        intergeneDict[(bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand)] = overlaps
     return intergeneDict
-        
+
 """
 Filters out bacteriocins not contained in a gene neighborhood
 bacteriocins: list of bacteriocins blast hits
@@ -85,22 +91,26 @@ def filterBacteriocins(bacteriocins,genes,radius):
     #ints = intervals.Intervals()
     intervalDict = defaultdict( intervals.Intervals )
     for gene in genes:
-        start,end,refid,orgid = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id
-        intervalDict[orgid].append( (start-radius,end+radius,refid,gene) )
+        start,end,refid,orgid,strand = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id,gene.strand
+        #Builds dictionary dependent on organism id
+        #print start,end,refid,orgid,strand
+        #print "Radius",radius
+        intervalDict[(orgid,strand)].append( (start-radius,end+radius,refid,gene) )
     filtered = []
     geneNeighborhoods = []
     for bact in bacteriocins:
-        start,end,orgid = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id
-        if orgid not in intervalDict:
+        start,end,refid,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.query_id,bact.sbjct_id,bact.strand
+        #print start,end,start,end,refid,orgid,strand, ((orgid,strand) not in intervalDict)
+        if (orgid,strand) not in intervalDict:
             continue
-        nearestGene = intervalDict[orgid].search( (start,end) )
+        nearestGene = intervalDict[(orgid,strand)].search( (start,end) )
         if nearestGene!=None:
             filtered.append( bact )
             nearestGene = intervals.reformat(nearestGene,radius)
             gstart,gend,refid,gene = nearestGene
-            print "Radius: ",radius
-            print "Bacteriocin: (%d,%d,%s)"%(start,end,orgid)
-            print "Gene: (%d,%d,%s)"%(gstart,gend,gene.sbjct_id)
+            #print "Radius: ",radius
+            #print "Bacteriocin: (%d,%d,%s)"%(start,end,orgid)
+            #print "Gene: (%d,%d,%s)"%(gstart,gend,gene.sbjct_id)
             geneNeighborhoods.append(nearestGene)
     return filtered,geneNeighborhoods
 
@@ -136,11 +146,14 @@ def main(genome_files,bacteriocins,
         if genes == None or bacteriocins == None: continue
         if verbose: print "Genes found\n","\n".join(map(str,genes))
         if verbose: print "Bacteriocins found\n","\n".join(map(str,bacteriocins))
+        if verbose: print "Number of original bacteriocins",len(bacteriocins)
         bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,
                                                             genes,
                                                             radius)
+        if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
         bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
-        intergeneDict = identifyIntergenic(bacteriocins,intergene_file)        
+        intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
+        pickle.dump(intergeneDict,open("intergene.dict",'w'))
         for bact_gene in bact_gene_pairs:
             bacteriocin,gene = bact_gene
             inIntergene = intergeneDict[(bacteriocin.sbjct_id,
@@ -156,7 +169,7 @@ def main(genome_files,bacteriocins,
             organism = bacteriocin.sbjct_id
             bacID    = bacteriocin.query_id.split(' ')[0]
             organism = bacteriocin.sbjct_id.split(' ')[0]
-            argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s\t %"
+            argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s\t %s \n"
             if verbose:  print argstr%(bacID,
                                        organism,
                                        bacteriocin.sbjct_start,

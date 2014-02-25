@@ -66,6 +66,7 @@ class  XMLRecord(object):
         self.sbjct_id = sbjct_id
         self.sbjct_start = sbjct_start
         self.sbjct_end = sbjct_end
+        self.strand = strand
         #self.hsp = hsp
         
     def __str__(self):

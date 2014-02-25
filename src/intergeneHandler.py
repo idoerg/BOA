@@ -32,7 +32,6 @@ class IntergeneHandler:
         self.pid = os.getpid() #Use current pid to name temporary files
         self.intergene_file = intergene_file
         
-        
     """
     Retrieves intervals that can be used to determine if bacteriocin overlap any intergenic regions
     """
@@ -48,10 +47,13 @@ class IntergeneHandler:
     """
     def overlapIntergene(self,gene):
         accession,start,end,strand = gene
+        #ints = self.intergeneDict[(accession,strand)]
         ints = intervals.Intervals()
         ints.setIntervals(self.intergeneDict[(accession,strand)])
         region = gene[1],gene[2]
-        return region in ints
+        overlap = ints.search(region)
+        print str(gene), str(overlap)
+        return overlap!=None
         
 if __name__=="__main__":
     import unittest

@@ -3,15 +3,15 @@ GENOME=/data/genomes/Bacterial/all/all.fna       #File containing all of the bac
 INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the intergenic regions in bacterial genomes
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
-BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
+#BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
+BACTERCIOCIN_FILE=all_bacteriocins.fa
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
 ##########################################################################################
 
 BACTERIOCINS=$BACDIR/$BACTERCIOCIN_FILE      
 TARGET_GENES=$BACDIR/$GENES                  #Location of gene file (where sagB is stored)
-
 INTERMEDIATE=/tmp/intermediate               #Intermediate directory
-#INTERMEDIATE=intermediate               #Intermediate directory
+#INTERMEDIATE=intermediate                   #Intermediate directory
 BLASTED=$INTERMEDIATE/blast_results.txt      #BLAST results (filtering outside of sagB neighborhoods)
 ALIGN=$INTERMEDIATE/aligned.fa               #Poor mans multiple alignment
 MULTIALIGN=$INTERMEDIATE/aligned.faa         #---
@@ -32,20 +32,20 @@ then
     mkdir $INTERMEDIATE
 fi
 
-# python $SRC/bacteriocin.py \
-#     --genes=$TARGET_GENES \
-#     --genome-files=$GENOME \
-#     --bacteriocins=$BACTERIOCINS \
-#     --intergenes=$INTERGENES \
-#     --intermediate=$INTERMEDIATE \
-#     --bac-evalue=1e-5 \
-#     --num-threads=7 \
-#     --radius=50000 \
-#     --verbose \
-#     --output-file=$BLASTED
+python $SRC/bacteriocin.py \
+    --genes=$TARGET_GENES \
+    --genome-files=$GENOME \
+    --bacteriocins=$BACTERIOCINS \
+    --intergenes=$INTERGENES \
+    --intermediate=$INTERMEDIATE \
+    --bac-evalue=1e-5 \
+    --num-threads=7 \
+    --radius=50000 \
+    --verbose \
+    --output-file=$BLASTED
 
-cat $BLASTED | awk '{print ">"$2"\n"$10}' > $BLASTFA
-cdhit -i $BLASTFA -o $CLUSTER -c 0.7
+# cat $BLASTED | awk '{print ">"$2"\n"$10}' > $BLASTFA
+# cdhit -i $BLASTFA -o $CLUSTER -c 0.7
    
 
 
