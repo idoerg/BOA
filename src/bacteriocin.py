@@ -76,7 +76,33 @@ def identifyIntergenic(bacteriocins,intergene_file):
         print str(gene),overlaps
         intergeneDict[(bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand)] = overlaps
     return intergeneDict
+"""
+Filters out all query sequences that don't fall in one of the intervals
+intervalDict: A dictionary of intervals indexed by (organismID,strand)
+queries: A list of query objects with
+        (start,end,orgid,strand,query_obj)
+"""
+def spatialFilter(queries,intervalDict,radius):
+    filtered = []
+    geneNeighborhoods = []
+    for query in queries:
+        start,end,orgid,strand,query_obj = query
+        #start,end,orgid,strand = query.sbjct_start,query.sbjct_end,query.sbjct_id,query.strand
+        if (orgid,strand) not in intervalDict:
+            continue
+        nearestGene = intervalDict[(orgid,strand)].search( (start,end) )
+        if nearestGene!=None:
+            filtered.append( query_obj )
+            nearestGene = intervals.reformat(nearestGene,radius)
+            gstart,gend,_,gene = nearestGene
+            geneNeighborhoods.append(nearestGene)
+    return filtered,geneNeighborhoods
 
+"""
+Filter out all annotations that are within the radius of a bacteriocin
+"""
+def filterAnnotations(bacteriocins,radius):
+    pass
 """
 Filters out bacteriocins not contained in a gene neighborhood
 bacteriocins: list of bacteriocins blast hits
@@ -96,24 +122,26 @@ def filterBacteriocins(bacteriocins,genes,radius):
         #print start,end,refid,orgid,strand
         #print "Radius",radius
         intervalDict[(orgid,strand)].append( (start-radius,end+radius,refid,gene) )
-    filtered = []
-    geneNeighborhoods = []
-    for bact in bacteriocins:
-        start,end,refid,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.query_id,bact.sbjct_id,bact.strand
-        #print start,end,start,end,refid,orgid,strand, ((orgid,strand) not in intervalDict)
-        if (orgid,strand) not in intervalDict:
-            continue
-        nearestGene = intervalDict[(orgid,strand)].search( (start,end) )
-        if nearestGene!=None:
-            filtered.append( bact )
-            nearestGene = intervals.reformat(nearestGene,radius)
-            gstart,gend,refid,gene = nearestGene
-            #print "Radius: ",radius
-            #print "Bacteriocin: (%d,%d,%s)"%(start,end,orgid)
-            #print "Gene: (%d,%d,%s)"%(gstart,gend,gene.sbjct_id)
-            geneNeighborhoods.append(nearestGene)
+    # filtered = []
+    # geneNeighborhoods = []
+    # for bact in bacteriocins:
+    #     start,end,refid,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.query_id,bact.sbjct_id,bact.strand
+    #     #print start,end,start,end,refid,orgid,strand, ((orgid,strand) not in intervalDict)
+    #     if (orgid,strand) not in intervalDict:
+    #         continue
+    #     nearestGene = intervalDict[(orgid,strand)].search( (start,end) )
+    #     if nearestGene!=None:
+    #         filtered.append( bact )
+    #         nearestGene = intervals.reformat(nearestGene,radius)
+    #         gstart,gend,refid,gene = nearestGene
+    #         #print "Radius: ",radius
+    #         #print "Bacteriocin: (%d,%d,%s)"%(start,end,orgid)
+    #         #print "Gene: (%d,%d,%s)"%(gstart,gend,gene.sbjct_id)
+    #         geneNeighborhoods.append(nearestGene)
+    # return filtered,geneNeighborhoods
+    queries = [(b.sbjct_start,b.sbjct_end,b.sbjct_id,b.strand,b) for b in bacteriocins] #Put into standardized format
+    filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,geneNeighborhoods
-
 
 def main(genome_files,bacteriocins,
          genes,intergene_file,

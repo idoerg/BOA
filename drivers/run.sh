@@ -4,7 +4,7 @@ INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the int
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
 #BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
-BACTERCIOCIN_FILE=all_bacteriocins.fa
+BACTERCIOCIN_FILE=bagel.fa
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
 ##########################################################################################
 
@@ -40,7 +40,7 @@ python $SRC/bacteriocin.py \
     --intermediate=$INTERMEDIATE \
     --bac-evalue=1e-5 \
     --num-threads=7 \
-    --radius=50000 \
+    --radius=50000000000 \
     --verbose \
     --output-file=$BLASTED
 
