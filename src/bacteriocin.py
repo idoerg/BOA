@@ -21,19 +21,21 @@ import genbank
 import blast
 import intergene
 import genome
-import intervals
+#import intervals
+import annotations
 import intergeneHandler
 import pickle
 
+from bx.intervals import *
+
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class BacteriocinHandler:
-    def __init__(self,genome,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+    def __init__(self,genome,intermediate,evalue,num_threads,verbose,keep_tmp):
         self.pid = os.getpid() #Use current pid to name temporary files
         self.genbank = genbank
         self.genome_file = genome
         self.evalue = evalue
         self.num_threads = num_threads
-        self.radius = radius
         self.verbose = verbose
         self.keep_tmp = keep_tmp
         self.noHits = True
@@ -68,16 +70,18 @@ def identifyIntergenic(bacteriocins,intergene_file):
     print "filename",intergene_file
     print "Number of bacteriocins",len(bacteriocins)
     intergeneObj = intergeneHandler.IntergeneHandler(intergene_file)
+    
     intergeneObj.getIntervals()
     intergeneDict = dict()
     for bact in bacteriocins:
         gene = bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand
         overlaps = intergeneObj.overlapIntergene(gene)
-        print str(gene),overlaps
         intergeneDict[(bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand)] = overlaps
     return intergeneDict
+
 """
 Filters out all query sequences that don't fall in one of the intervals
+Note: returns a list of all of the overlapping intervals
 intervalDict: A dictionary of intervals indexed by (organismID,strand)
 queries: A list of query objects with
         (start,end,orgid,strand,query_obj)
@@ -85,24 +89,39 @@ queries: A list of query objects with
 def spatialFilter(queries,intervalDict,radius):
     filtered = []
     geneNeighborhoods = []
+    i = 0
     for query in queries:
         start,end,orgid,strand,query_obj = query
-        #start,end,orgid,strand = query.sbjct_start,query.sbjct_end,query.sbjct_id,query.strand
+                #start,end,orgid,strand = query.sbjct_start,query.sbjct_end,query.sbjct_id,query.strand
         if (orgid,strand) not in intervalDict:
             continue
-        nearestGene = intervalDict[(orgid,strand)].search( (start,end) )
-        if nearestGene!=None:
-            filtered.append( query_obj )
-            nearestGene = intervals.reformat(nearestGene,radius)
-            gstart,gend,_,gene = nearestGene
-            geneNeighborhoods.append(nearestGene)
+        
+        nearTargets = intervalDict[(orgid,strand)].find( start,end )
+        i+=1
+        if len(nearTargets)>0:
+            for target in nearTargets:
+                filtered.append(query_obj)
+                _,_,_,geneobj = target
+                geneNeighborhoods.append(geneobj)
     return filtered,geneNeighborhoods
+               
 
 """
 Filter out all annotations that are within the radius of a bacteriocin
 """
-def filterAnnotations(bacteriocins,radius):
-    pass
+annot_reg = re.compile("([A-Z]+_[0-9]+).")
+def filterAnnotations(annots,bacteriocins,radius):
+    intervalDict = defaultdict( IntervalTree )
+    for bact in bacteriocins:
+        start,end,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id,bact.strand
+        orgid = annot_reg.findall(orgid)[0]
+        intervalDict[(orgid,strand)].add(start-radius,end+radius,
+                                         (start,end,"",bact))        
+        #intervalDict[(orgid,strand)].append( (start-radius,end+radius,"",annotation) ) #no refid
+    queries = [(a[0],a[1],a[2],a[3],a) for a in annots] 
+    filtered,bacteriocinNeighborhoods = spatialFilter(queries,intervalDict,radius)    
+    return filtered,bacteriocinNeighborhoods
+
 """
 Filters out bacteriocins not contained in a gene neighborhood
 bacteriocins: list of bacteriocins blast hits
@@ -114,47 +133,96 @@ geneNeighborhoods: a list of intervals with a radius surrounding the
           target genes
 """
 def filterBacteriocins(bacteriocins,genes,radius):
-    #ints = intervals.Intervals()
-    intervalDict = defaultdict( intervals.Intervals )
+    if radius<0:
+        radius = 50000000 #largest bacterial genome
+    intervalDict = defaultdict( IntervalTree )
     for gene in genes:
+    
         start,end,refid,orgid,strand = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id,gene.strand
-        #Builds dictionary dependent on organism id
-        #print start,end,refid,orgid,strand
-        #print "Radius",radius
-        intervalDict[(orgid,strand)].append( (start-radius,end+radius,refid,gene) )
-    # filtered = []
-    # geneNeighborhoods = []
-    # for bact in bacteriocins:
-    #     start,end,refid,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.query_id,bact.sbjct_id,bact.strand
-    #     #print start,end,start,end,refid,orgid,strand, ((orgid,strand) not in intervalDict)
-    #     if (orgid,strand) not in intervalDict:
-    #         continue
-    #     nearestGene = intervalDict[(orgid,strand)].search( (start,end) )
-    #     if nearestGene!=None:
-    #         filtered.append( bact )
-    #         nearestGene = intervals.reformat(nearestGene,radius)
-    #         gstart,gend,refid,gene = nearestGene
-    #         #print "Radius: ",radius
-    #         #print "Bacteriocin: (%d,%d,%s)"%(start,end,orgid)
-    #         #print "Gene: (%d,%d,%s)"%(gstart,gend,gene.sbjct_id)
-    #         geneNeighborhoods.append(nearestGene)
-    # return filtered,geneNeighborhoods
+        intervalDict[(orgid,strand)].add(start-radius,end+radius,
+                                         (start,end,refid,gene))
+
+        #intervalDict[(orgid,strand)].append( (start-radius,end+radius,refid,gene) )
     queries = [(b.sbjct_start,b.sbjct_end,b.sbjct_id,b.strand,b) for b in bacteriocins] #Put into standardized format
     filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,geneNeighborhoods
 
+def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
+    for bacteriocin in bacteriocins:
+        if genes:  bacteriocin,gene = bacteriocin
+        inIntergene = intergeneDict[(bacteriocin.sbjct_id,
+                                     bacteriocin.sbjct_start,
+                                     bacteriocin.sbjct_end,
+                                     bacteriocin.strand)]
+        regionType = "intergene" if inIntergene else "gene"        
+        bacID    = bacteriocin.query_id
+        organism = bacteriocin.sbjct_id
+        bacID    = bacteriocin.query_id.split(' ')[0]
+        organism = bacteriocin.sbjct_id.split(' ')[0]
+        if genes:
+            geneStart,geneEnd,geneName = gene.sbjct_start,gene.sbjct_end,gene.query_id
+            argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s\t %s \n"
+            result_str = argstr%(bacID,
+                                 organism,
+                                 bacteriocin.sbjct_start,
+                                 bacteriocin.sbjct_end,
+                                 bacteriocin.strand,
+                                 geneName,
+                                 geneStart,
+                                 geneEnd,
+                                 gene.strand,
+                                 regionType,
+                                 bacteriocin.sbjct)
+        else:
+            argstr   = "%s\t %s\t %d\t %d\t %s\t %s\t %s \n"
+            result_str = argstr%(bacID,
+                                 organism,
+                                 bacteriocin.sbjct_start,
+                                 bacteriocin.sbjct_end,
+                                 bacteriocin.strand,
+                                 regionType,
+                                 bacteriocin.sbjct)
+        outHandle.write(result_str)
+
+
+def writeAnnotations(annot_bact_pairs,outHandle):
+    for annot_bact in annot_bact_pairs:
+        annot,bacteriocin = annot_bact      
+        annot_st,annot_end,annot_org,annot_strand,annot_seq = annot
+        bacID    = bacteriocin.query_id
+        organism = bacteriocin.sbjct_id
+        bacID    = bacteriocin.query_id.split(' ')[0]
+        organism = bacteriocin.sbjct_id.split(' ')[0]        
+        argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s \n"
+        result_str = argstr%(bacID,
+                             organism,
+                             bacteriocin.sbjct_start,
+                             bacteriocin.sbjct_end,
+                             bacteriocin.strand,
+                             annot_org,
+                             annot_st,
+                             annot_end,
+                             annot_strand,
+                             annot_seq)        
+        outHandle.write(result_str)
+
 def main(genome_files,bacteriocins,
          genes,intergene_file,
-         outHandle,intermediate,
+         annotations_file,
+         bacteriocinsOut,
+         filteredOut,
+         annotationsOut,
+         intermediate,
          gene_evalue,bac_evalue,
          num_threads,formatdb,
-         radius,verbose,keep_tmp):
+         gene_radius,
+         bacteriocin_radius,
+         verbose,keep_tmp):
     for gnome in genome_files:
         gnomehr = genome.GenomeHandler(gnome,
                                        intermediate,
                                        gene_evalue,
                                        num_threads,
-                                       radius,
                                        verbose,
                                        keep_tmp)
         genes = gnomehr.getAlignedGenes(genes,gene_evalue,num_threads,formatdb)
@@ -162,7 +230,6 @@ def main(genome_files,bacteriocins,
                                     intermediate,
                                     bac_evalue,
                                     num_threads,
-                                    radius,
                                     verbose,
                                     keep_tmp)
         bacteriocins = bacthr.getAlignedBacteriocins(bacteriocins,
@@ -175,51 +242,20 @@ def main(genome_files,bacteriocins,
         if verbose: print "Genes found\n","\n".join(map(str,genes))
         if verbose: print "Bacteriocins found\n","\n".join(map(str,bacteriocins))
         if verbose: print "Number of original bacteriocins",len(bacteriocins)
-        bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,
-                                                            genes,
-                                                            radius)
+        intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
+        writeBacteriocins(bacteriocins,intergeneDict,bacteriocinsOut)
+        annots = [annot for annot in annotations.Annotations(annotations_file)]
+        annots,bacteriocinNeighborhoods = filterAnnotations(annots,bacteriocins,bacteriocin_radius)
+        annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
+        writeAnnotations(annot_bact_pairs, annotationsOut)
+        
+        bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,genes,gene_radius)
         if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
         bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
         intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
-        pickle.dump(intergeneDict,open("intergene.dict",'w'))
-        for bact_gene in bact_gene_pairs:
-            bacteriocin,gene = bact_gene
-            inIntergene = intergeneDict[(bacteriocin.sbjct_id,
-                                         bacteriocin.sbjct_start,
-                                         bacteriocin.sbjct_end,
-                                         bacteriocin.strand)]
-            regionType = "intergene" if inIntergene else "gene"
-            bac_loc  = "%s-%s"%(bacteriocin.sbjct_start,
-                                bacteriocin.sbjct_end)
-            geneStart,geneEnd,geneName,geneRecord = gene[0],gene[1],gene[2],gene[3]
-            gene_loc = "%s-%s"%(geneStart,geneEnd) 
-            bacID    = bacteriocin.query_id
-            organism = bacteriocin.sbjct_id
-            bacID    = bacteriocin.query_id.split(' ')[0]
-            organism = bacteriocin.sbjct_id.split(' ')[0]
-            argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s\t %s \n"
-            if verbose:  print argstr%(bacID,
-                                       organism,
-                                       bacteriocin.sbjct_start,
-                                       bacteriocin.sbjct_end,
-                                       bacteriocin.strand,
-                                       geneName,
-                                       geneStart,
-                                       geneEnd,
-                                       geneRecord.strand,
-                                       regionType,
-                                       bacteriocin.sbjct)
-            outHandle.write(argstr%(bacID,
-                                    organism,
-                                    bacteriocin.sbjct_start,
-                                    bacteriocin.sbjct_end,
-                                    bacteriocin.strand,
-                                    geneName,
-                                    geneStart,
-                                    geneEnd,
-                                    geneRecord.strand,
-                                    regionType,
-                                    bacteriocin.sbjct))
+        writeBacteriocins(bact_gene_pairs,intergeneDict, filteredOut,genes="True")
+
+        #pickle.dump(intergeneDict,open("intergene.dict",'w'))
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -234,11 +270,17 @@ if __name__=="__main__":
         '--intergenes', type=str, required=False,
         help='FASTA files containing intergenic regions')
     parser.add_argument(\
+        '--annotations', type=str, required=False,
+        help='FASTA files containing annotated regions')
+    parser.add_argument(\
         '--bacteriocins', type=str, required=False,
         help='The bacteriocin proteins that are to be blasted')
     parser.add_argument(\
-        '--radius', type=int, required=False, default=10000,
-        help='The search radius around every specified gene')
+        '--gene_radius', type=int, required=False, default=-1,
+        help='The search radius around every specified gene. By default, this filter option is off')
+    parser.add_argument(\
+        '--bacteriocin-radius', type=int, required=False, default=5000,
+        help='The search radius around every specified bacteriocin')
     parser.add_argument(\
         '--gene-evalue', type=float, required=False, default=0.00001,
         help='The evalue for gene hits')
@@ -248,6 +290,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--intermediate', type=str, required=False,
         help='Directory for storing intermediate files')
+    parser.add_argument(\
+        '--output', type=str, required=False,
+        help='The output file basename for filtered annotations and bacteriocins')
     parser.add_argument(\
         '--verbose', action='store_const', const=True, default=False,
         help='Messages for debugging')
@@ -262,24 +307,39 @@ if __name__=="__main__":
     args = parser.parse_args()
     #outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
     if not args.test:
-        outHandle = open(args.output_file,'w')
+        bacteriocinsOut = open("%s_bacteriocins.txt"%(args.output),'w')
+        filteredOut = open("%s_filtered.txt"%(args.output),'w')
+        annotationsOut  = open("%s_annotations.txt"%(args.output),'w')
         main(args.genome_files,
              args.bacteriocins,
              args.genes,
              args.intergenes,
-             outHandle,
+             args.annotations,
+             bacteriocinsOut,
+             filteredOut,
+             annotationsOut,
              args.intermediate,
              args.gene_evalue,
              args.bac_evalue,
              args.num_threads,
              args.formatdb,
-             args.radius,
+             args.gene_radius,
+             args.bacteriocin_radius,
              args.verbose,
              args.keep_tmp)
     else:
         del sys.argv[1:]
-        import unittest        
-        class TestFilters(unittest.TestCase):            
+        import unittest
+        import test_genbank
+        class TestFilters(unittest.TestCase):
+            def setUp(self):
+                test_input = test_genbank.yeast
+                self.test_file = "test.gbk"
+                self.out_file = "out.fa"
+                handle = open(self.test_file,'w')
+                handle.write(test_input)
+                handle.close()
+                annotations.parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
             def test_filter_bacteriocins_1(self):
                 bacteriocins = [blast.XMLRecord(description="",
                                                 expected_value=0.00001,
@@ -312,7 +372,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                                sbjct_id = "org2",
+                                            sbjct_id = "org2",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 100,
                                                 sbjct_end   = 110,
@@ -343,12 +403,117 @@ if __name__=="__main__":
                                          strand = "-")]
                 radius = 100
                 filtered,hoods = filterBacteriocins(bacteriocins,genes,radius)
-                print map( str, filtered)
                 self.assertEquals(1,len(filtered))
                 self.assertEquals(1,len(hoods))
                 self.assertTrue(bacteriocins[0] in filtered)
-                start,end,refid,gene = hoods[0]
+                record = hoods[0]
+                start,end,refid,gene = record.sbjct_start,record.sbjct_end,record.query_id,record.strand
+                
                 self.assertEquals(start,150)
                 self.assertEquals(end,160)
                 self.assertEquals(refid,"gene1")
+            def test_filter_bacteriocins_2(self):
+                bacteriocins = [blast.XMLRecord(description="",
+                                                expected_value=0.00001,
+                                                score = 0,
+                                                query_id = "bacteriocin1",
+                                                query="ACGTACGTTT",
+                                                query_start = 1,
+                                                query_end   = 10,
+                                                sbjct_id = "org1",
+                                                sbjct="ACGTACGTTT",
+                                                sbjct_start = 100,
+                                                sbjct_end   = 110,
+                                                strand = "-"),
+                                blast.XMLRecord(description="",
+                                                expected_value=0.00001,
+                                                score = 0,
+                                                query_id = "bacteriocin2",
+                                                query="ACGTACGTTT",
+                                                query_start = 1,
+                                                query_end   = 10,
+                                                sbjct_id = "org1",
+                                                sbjct="ACGTACGTTT",
+                                                sbjct_start = 1000,
+                                                sbjct_end   = 1010,
+                                                strand = "-"),
+                                blast.XMLRecord(description="",
+                                                expected_value=0.00001,
+                                                score = 0,
+                                                query_id = "bacteriocin3",
+                                                query="ACGTACGTTT",
+                                                query_start = 1,
+                                                query_end   = 10,
+                                            sbjct_id = "org2",
+                                                sbjct="ACGTACGTTT",
+                                                sbjct_start = 100,
+                                                sbjct_end   = 110,
+                                                strand = "-")]
+                genes = [blast.XMLRecord(description="",
+                                         expected_value=0.00001,
+                                         score = 0,
+                                         query_id = "gene1",
+                                         query="AAAAAAAAAA",
+                                         query_start = 1,
+                                         query_end   = 10,
+                                         sbjct_id = "org1",
+                                         sbjct="AAAAAAAAAA",
+                                         sbjct_start = 150,
+                                         sbjct_end   = 160,
+                                         strand = "-"),
+                         blast.XMLRecord(description="",
+                                         expected_value=0.00001,
+                                         score = 0,
+                                         query_id = "gene2",
+                                         query="AAAAAAAAAA",
+                                         query_start = 1,
+                                         query_end   = 10,
+                                         sbjct_id = "org2",
+                                         sbjct="AAAAAAAAAA",
+                                         sbjct_start = 1050,
+                                         sbjct_end   = 1060,
+                                         strand = "-")]
+                radius = -1
+                filtered,hoods = filterBacteriocins(bacteriocins,genes,radius)
+                self.assertEquals(3,len(filtered))
+                self.assertEquals(3,len(hoods))
+                self.assertTrue(bacteriocins[0] in filtered)
+
+            def test_filter_annotations_1(self):
+                bacteriocins = [blast.XMLRecord(description="",
+                                                expected_value=0.00001,
+                                                score = 0,
+                                                query_id = "bacteriocin1",
+                                                query="ACGTACGTTT",
+                                                query_start = 250,
+                                                query_end   = 260,
+                                                sbjct_id = "org1",
+                                                sbjct="ACGTACGTTT",
+                                                sbjct_start = 250,
+                                                sbjct_end   = 260,
+                                                strand = "-"),
+                                blast.XMLRecord(description="",
+                                                expected_value=0.00001,
+                                                score = 0,
+                                                query_id = "bacteriocin2",
+                                                query="ACGTACGTTT",
+                                                query_start = 450,
+                                                query_end   = 460,
+                                                sbjct_id = "org1",
+                                                sbjct="ACGTACGTTT",
+                                                sbjct_start = 450,
+                                                sbjct_end   = 460,
+                                                strand = "-")]
+                radius = 100
+                annots = [A for A in annotations.Annotations(self.out_file)]
+                filtered,hoods = filterAnnotations(annots,bacteriocins,radius)
+                # self.assertEquals(1,len(filtered))
+                # self.assertEquals(1,len(hoods))
+                # self.assertTrue(bacteriocins[0] in filtered)
+                # start,end,refid,gene = hoods[0]
+                # self.assertEquals(start,150)
+                # self.assertEquals(end,160)
+                # self.assertEquals(refid,"gene1")
+                
+                
         unittest.main()

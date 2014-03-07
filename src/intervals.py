@@ -4,6 +4,8 @@ This data structure makes sure that no two intervals overlap each other
 """
 import bisect
 
+    
+
 class Intervals(object):
 
     def __init__(self):

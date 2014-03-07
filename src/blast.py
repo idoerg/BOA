@@ -25,9 +25,6 @@ import time
 
 def addArgs(parser):
     parser.add_argument(\
-        '--output-file', type=str, required=False,
-        help='The output file containing the BLAST output')
-    parser.add_argument(\
         '--keep-tmp', action='store_const', const=True, default=False,
         help='Keeps temporary files such as blast database and blast output xml')
     parser.add_argument(\

@@ -2,9 +2,14 @@ Installation
 ============
 
 Make sure that you have the following installed
+
 1) biopython
+
 2) Beautiful Soup (only if you want to do online retrieval from the NCBI ftp site)
+
 3) blastall
+
+4) bx-python
 
 Getting Started
 ===============

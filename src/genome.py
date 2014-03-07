@@ -20,11 +20,10 @@ import intergene
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class GenomeHandler:
-    def __init__(self,genome,intermediate,evalue,num_threads,radius,verbose,keep_tmp):
+    def __init__(self,genome,intermediate,evalue,num_threads,verbose,keep_tmp):
         self.genome_file = genome
         self.evalue = evalue
         self.num_threads = num_threads
-        self.radius = radius
         self.verbose = verbose
         self.keep_tmp = keep_tmp
 
@@ -54,9 +53,9 @@ class GenomeHandler:
         hits = geneBlast.parseBLAST("xml")
         print hits
         return hits
-def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,radius,verbose,keep_tmp):
+def main(genome_files,bacteriocins,genes,outHandle,intermediate,gene_evalue,bac_evalue,num_threads,verbose,keep_tmp):
     for gbk in genome_files:
-        ghr = GenomeHandler(gbk,intermediate,gene_evalue,num_threads,radius,verbose,keep_tmp)
+        ghr = GenomeHandler(gbk,intermediate,gene_evalue,num_threads,verbose,keep_tmp)
         hits = ghr.getAlignedGenes(genes,gene_evalue,num_threads)
         outHandle.write("\n".join( map( str, hits))+"\n")
 
@@ -72,9 +71,6 @@ if __name__=="__main__":
     parser.add_argument(\
         '--bacteriocins', type=str, required=True,
         help='The bacteriocin proteins that are to be blasted')
-    parser.add_argument(\
-        '--radius', type=int, required=False, default=10000,
-        help='The search radius around every specified gene')
     parser.add_argument(\
         '--gene-evalue', type=float, required=False, default=0.00001,
         help='The evalue for gene hits')
@@ -103,6 +99,5 @@ if __name__=="__main__":
          args.gene_evalue,
          args.bac_evalue,
          args.num_threads,
-         args.radius,
          args.verbose,
          args.keep_tmp)
