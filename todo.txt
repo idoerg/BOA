@@ -1,9 +1,34 @@
 Todo:
+1) Get a table with (cluster ID, length of representative sequence, protein function)
+2) Only keep locus id
+3) Print out text file with rows and columns labeled (also email pickle object)
+4) Send pickle of bacteriocin sequences from top 66 clusters
+5) Run Sean's bacteriocins (give IDs of .4)
+6) Label sequences plasmid or chromosome
+7) Start cluster numbers at 1
 
-1) Identify the bacteriocins by intergenic regions and genes
-1a) Create a script to generate a database of intergenic regions
-2) Check for redundancy in blasted bacteriocins (check if the same bacteriocin is blasted to the same region multiple times)
-3) Get a histogram for all_bagel_blast
+##
+1) Make clearer labels on annotated anchor genes
+2) Expand axes on anchor gene distance histogram
+3) Make breaks in histogram just 1
+4) Get locus tag for anchor genes (| separate all descriptions)
+5) Don't look for CDS, look for gene
+6) Remove duplicates in two ways
+ a) Count locus tags only once
+7) Add -d option to cdhit
+8) Look at the clusters that have 10 or more members and classify them
+9) Investigate to see if there are multiple different bacteriocins per anchor gene
+10) Investigate how many species of bacteriocins are in each cluster
+11) Correct aligned fasta format in bacteriocins
+12) Get heatmap of bacteriocin counts/clusters
+13) In each cluster, find out which bacterial species the representative cluster comes from
+14) Plasmids/chromosomes
+
+1) Identify overlaps
+   Partial overlaps (same reading frame)
+   Different reading frames
+2) Plot distribution of overlaps versus species
+
 
 Good Lab practices
 1) Tarball from differently labeled subdirectories
@@ -22,3 +47,11 @@ All species can be placed in phylogenic tree and display a number for the number
 
 Download 16SRNA datasets for each species (nice barcode for phylogenic analyis), filter and try to build a tree from it.
 
+Proposal:
+
+1) Parse the 16S-RNA trees from http://greengenes.lbl.gov/Download/Trees/.  
+   Use these trees to identify how bacteriocins are distributed along the leaves
+2) Build a maximum parsimony tree from anchor genes
+3) Cluster anchor genes together to identify anchor genes
+4) Cluster bacteriocins build HMM profiles from bacteriocin cluster and run HMMER on it
+5) Start thinking about how to design a machine learning tool to identify bacteriocins
