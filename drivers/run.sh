@@ -9,7 +9,8 @@ ANNOTATIONS=/data/tmp/annotations.fa         #Location of the annotations
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
 
-BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
+#BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
+BACTERCIOCIN_FILE=shaun.fa
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
 ##########################################################################################
 
@@ -36,7 +37,7 @@ then
     echo "Creating Intermediate file"
     mkdir $INTERMEDIATE
 fi
-sh generate_annotations.sh
+#sh generate_annotations.sh
 python $SRC/bacteriocin.py \
     --genes=$TARGET_GENES \
     --genome-files=$GENOME \

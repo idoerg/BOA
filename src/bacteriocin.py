@@ -118,9 +118,9 @@ def filterAnnotations(annots,bacteriocins,radius):
         intervalDict[(orgid,strand)].add(start-radius,end+radius,
                                          (start,end,"",bact))        
         #intervalDict[(orgid,strand)].append( (start-radius,end+radius,"",annotation) ) #no refid
-    queries = [(a[0],a[1],a[2],a[3],a) for a in annots] 
-    filtered,bacteriocinNeighborhoods = spatialFilter(queries,intervalDict,radius)    
-    return filtered,bacteriocinNeighborhoods
+    queries = [(a[0],a[1],a[2],a[3],a) for a in annots] #orgid,start,end,strand
+    filtered,annotNeighborhoods = spatialFilter(queries,intervalDict,radius)    
+    return filtered,annotNeighborhoods
 
 """
 Filters out bacteriocins not contained in a gene neighborhood
@@ -187,12 +187,13 @@ def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
 
 def writeAnnotations(annot_bact_pairs,outHandle):
     for annot_bact in annot_bact_pairs:
-        annot,bacteriocin = annot_bact      
-        annot_st,annot_end,annot_org,annot_strand,annot_seq = annot
+        annot,bacteriocin = annot_bact
+        annot_st,annot_end,annot_org,annot_strand,annot_locus,annot_seq = annot
         bacID    = bacteriocin.query_id
         organism = bacteriocin.sbjct_id
         bacID    = bacteriocin.query_id.split(' ')[0]
-        organism = bacteriocin.sbjct_id.split(' ')[0]        
+        organism = bacteriocin.sbjct_id.split(' ')[0]
+        organism+= annot_locus
         argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s \n"
         result_str = argstr%(bacID,
                              organism,

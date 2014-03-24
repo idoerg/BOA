@@ -20,7 +20,7 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
 loc_reg = re.compile("(\d+):>?(\d+)\S\((\S)\)")
-annot_reg = re.compile("([A-Z]+_[0-9]+)\s(\d+)\s(\d+)\s(\S)")
+annot_reg = re.compile("([A-Z]+_[0-9]+)\s(\d+)\s(\d+)\s(\S)\s(\S+)")
 """
 A container to process fasta objects and obtain information for annotations
 """
@@ -33,10 +33,10 @@ class Annotations(object):
     def next(self):
         try:
             record = next(self.iterator)
-            orgid,start,end,strand = annot_reg.findall(record.description)[0]
+            orgid,start,end,strand,locus = annot_reg.findall(record.description)[0]
             start,end = int(start),int(end)
             sequence = str(record.seq)
-            return start,end,orgid,strand,sequence
+            return start,end,orgid,strand,locus,sequence
         except StopIteration as s:
             raise StopIteration()
         
@@ -48,6 +48,7 @@ def parseAnnotations(organism,genbank_file,outHandle):
         for feature in seq_record.features:
             if feature.type == 'CDS':
                 try: #because annotations are stupid
+                    locus = feature.qualifiers["locus_tag"][0]
                     note = feature.qualifiers["note"][0]
                     db_xref = feature.qualifiers["db_xref"][0]
                     protid = feature.qualifiers["protein_id"][0]
@@ -55,22 +56,25 @@ def parseAnnotations(organism,genbank_file,outHandle):
                     st,end,strand = loc_reg.findall(str(feature.location))[0]
                     strand = "+" if strand else "-"
                     description = "%s\t%s\t%s"%(protid,db_xref,note)
-                    fasta_str = ">%d %s %s %s %s %s\n%s\n"%(index,
-                                                            organism,
-                                                            st,end,strand,
-                                                            description,
-                                                            sequence)
+                    fasta_str = ">%d %s %s %s %s %s %s\n%s\n"%(index,
+                                                               organism,
+                                                               st,end,strand,
+                                                               locus,
+                                                               description,
+                                                               sequence)
                     outHandle.write(fasta_str)
                 except KeyError as k:                    
-                    print "Exception",k
-                    print feature
+                    #print "Exception",k
+                    #print feature
+                    locus = feature.qualifiers["locus_tag"][0]
                     sequence  = feature.qualifiers["translation"][0]
                     st,end,strand = loc_reg.findall(str(feature.location))[0]
                     strand = "+" if strand else "-"
-                    fasta_str = ">%d %s %s %s %s\n%s\n"%(index,
-                                                         organism,
-                                                         st,end,strand,
-                                                         sequence)
+                    fasta_str = ">%d %s %s %s %s %s\n%s\n"%(index,
+                                                            organism,
+                                                            st,end,strand,
+                                                            locus,
+                                                            sequence)
                     outHandle.write(fasta_str)
                 
                 index+=1
@@ -78,6 +82,7 @@ def parseAnnotations(organism,genbank_file,outHandle):
         
     except Exception as e:
         print "Exception",e
+        
 
     #SeqIO.write(sequences, outHandle, "fasta")    
 
