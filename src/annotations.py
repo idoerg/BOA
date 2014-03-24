@@ -20,40 +20,69 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
 loc_reg = re.compile("(\d+):>?(\d+)\S\((\S)\)")
-
+annot_reg = re.compile("([A-Z]+_[0-9]+)\s(\d+)\s(\d+)\s(\S)\s(\S+)")
+"""
+A container to process fasta objects and obtain information for annotations
+"""
+class Annotations(object):
+    def __init__(self,infile):
+        self.infile = infile
+        self.iterator = SeqIO.parse(infile,"fasta")
+    def __iter__(self):
+        return self
+    def next(self):
+        try:
+            record = next(self.iterator)
+            orgid,start,end,strand,locus = annot_reg.findall(record.description)[0]
+            start,end = int(start),int(end)
+            sequence = str(record.seq)
+            return start,end,orgid,strand,locus,sequence
+        except StopIteration as s:
+            raise StopIteration()
+        
+    
 def parseAnnotations(organism,genbank_file,outHandle):
     index = 1
     try:
         seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
         for feature in seq_record.features:
             if feature.type == 'CDS':
-                try:
-                    # note = feature.qualifiers["note"][0]
-                    # db_xref = feature.qualifiers["db_xref"][0]
-                    # protid = feature.qualifiers["protein_id"][0]
+                try: #because annotations are stupid
+                    locus = feature.qualifiers["locus_tag"][0]
+                    note = feature.qualifiers["note"][0]
+                    db_xref = feature.qualifiers["db_xref"][0]
+                    protid = feature.qualifiers["protein_id"][0]
                     sequence  = feature.qualifiers["translation"][0]
                     st,end,strand = loc_reg.findall(str(feature.location))[0]
                     strand = "+" if strand else "-"
-                    #description = "%s\t%s\t%s"%(protid,db_xref,note)
-                    fasta_str = ">%d %s %s %s %s\n%s\n"%(index,
-                                                         organism,
-                                                         st,end,strand,
-                                                         #description,
-                                                         sequence)
+                    description = "%s\t%s\t%s"%(protid,db_xref,note)
+                    fasta_str = ">%d %s %s %s %s %s %s\n%s\n"%(index,
+                                                               organism,
+                                                               st,end,strand,
+                                                               locus,
+                                                               description,
+                                                               sequence)
                     outHandle.write(fasta_str)
-                except KeyError as k:
-                    print "Exception",k
-                    print feature
-                    fasta_str = ">%d %s %s %s %s\n%s\n"%(index,
-                                                         organism,
-                                                         st,end,strand,
-                                                         sequence)
+                except KeyError as k:                    
+                    #print "Exception",k
+                    #print feature
+                    locus = feature.qualifiers["locus_tag"][0]
+                    sequence  = feature.qualifiers["translation"][0]
+                    st,end,strand = loc_reg.findall(str(feature.location))[0]
+                    strand = "+" if strand else "-"
+                    fasta_str = ">%d %s %s %s %s %s\n%s\n"%(index,
+                                                            organism,
+                                                            st,end,strand,
+                                                            locus,
+                                                            sequence)
                     outHandle.write(fasta_str)
+                
                 index+=1
         
         
     except Exception as e:
         print "Exception",e
+        
 
     #SeqIO.write(sequences, outHandle, "fasta")    
 
@@ -87,7 +116,7 @@ if __name__=="__main__":
         del sys.argv[1:]
         import test_genbank
         import unittest
-        class TestAnnotatons(unittest.TestCase):
+        class TestParseAnnotatons(unittest.TestCase):
             def setUp(self):
                 test_input = test_genbank.yeast
                 self.test_file = "test.gbk"
@@ -97,11 +126,32 @@ if __name__=="__main__":
                 handle.close()
             def tearDown(self):
                 os.remove(self.test_file)
-
+                #os.remove(self.out_file)
             def testParse(self):
                 parseAnnotations("yeast",self.test_file,open(self.out_file,'w'))
                 
-
-                
+        class TestAnnotatons(unittest.TestCase):
+            def setUp(self):
+                test_input = test_genbank.yeast
+                self.test_file = "test.gbk"
+                self.out_file = "out.fa"
+                handle = open(self.test_file,'w')
+                handle.write(test_input)
+                handle.close()
+                parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
+            def tearDown(self):
+                os.remove(self.test_file)
+                #os.remove(self.out_file)
+            def testIterator(self):
+                annots = Annotations(self.out_file)
+                objs = [A for A in annots]
+                self.assertEquals(len(objs),3)
+                start,end,orgid,strand,seq = zip(*objs)
+                start,end,orgid,strand,seq = list(start),list(end),list(orgid),list(strand),list(seq)
+                self.assertTrue(0 in start)
+                self.assertTrue("NC_12345" in orgid)
+                self.assertTrue("+" in strand)
+                self.assertTrue(206 in end)
+            
         unittest.main()
     

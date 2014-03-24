@@ -14,7 +14,6 @@ import re
 base_path = os.path.dirname(os.path.abspath(__file__))
 for directory_name in ['test']:
     site.addsitedir(os.path.join(base_path, directory_name))
-import test_genbank
 
 # Copyright(C) 2009 Iddo Friedberg & Ian MC Fleming
 # Released under Biopython license. http://www.biopython.org/DIST/LICENSE
@@ -92,6 +91,7 @@ if __name__ == '__main__':
     else:
         del sys.argv[1:]
         import unittest
+        import test_genbank
         print "Testing ..."
         class TestIntegene(unittest.TestCase):
             def setUp(self):
@@ -114,4 +114,4 @@ if __name__ == '__main__':
                 accession,start,end,strand = descriptions[0]
                 self.assertEquals(int(start),207)
                 self.assertEquals(int(end),686)
-    unittest.main()
+        unittest.main()

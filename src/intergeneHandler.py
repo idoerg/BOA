@@ -19,11 +19,13 @@ import string
 import numpy
 import re
 import subprocess
-import intervals
+#import intervals
 
 import genbank
 import blast
 import intergene
+
+from bx.intervals import *
 
 loc_reg = re.compile("(\S\S_\d+)-ign-\d+:(\d+)-(\d+)(\S)")
 
@@ -36,24 +38,28 @@ class IntergeneHandler:
     Retrieves intervals that can be used to determine if bacteriocin overlap any intergenic regions
     """
     def getIntervals(self):
-        self.intergeneDict = defaultdict(list)
+        self.intergeneDict = defaultdict( IntervalTree )
         for record in SeqIO.parse(open(self.intergene_file,'r'),"fasta"):
             match = loc_reg.findall(record.id)[0]
             accession,start,end,strand = match
-            self.intergeneDict[(accession,strand)].append( (int(start),int(end),strand) )            
+            self.intergeneDict[(accession,strand)].add(int(start),int(end))
+            #self.intergeneDict[(accession,strand)].append( (int(start),int(end),strand) )            
     """
     Returns true if bacteriocin interval overlaps intergene region
     Otherwise, returns false
     """
     def overlapIntergene(self,gene):
         accession,start,end,strand = gene
-        #ints = self.intergeneDict[(accession,strand)]
-        ints = intervals.Intervals()
-        ints.setIntervals(self.intergeneDict[(accession,strand)])
-        region = gene[1],gene[2]
-        overlap = ints.search(region)
-        print str(gene), str(overlap)
-        return overlap!=None
+        tree = self.intergeneDict[(accession,strand)]
+        overlaps = tree.find(start,end)
+        return len(overlaps)>0
+        # #ints = self.intergeneDict[(accession,strand)]
+        # ints = intervals.Intervals()
+        # ints.setIntervals(self.intergeneDict[(accession,strand)])
+        # region = gene[1],gene[2]
+        # overlap = ints.search(region)
+        # print str(gene), str(overlap)
+        # return overlap!=None
         
 if __name__=="__main__":
     import unittest
@@ -74,10 +80,10 @@ if __name__=="__main__":
         def cleanUp(self):
             os.remove(self.input_file)
                         
-        def testDictionary(self):
-            testHandler = IntergeneHandler(self.input_file)
-            testHandler.getIntervals()
-            self.assertEquals(len(testHandler.intergeneDict[('NC_014561',"+")]),2)
+        # def testDictionary(self):
+        #     testHandler = IntergeneHandler(self.input_file)
+        #     testHandler.getIntervals()
+        #     self.assertEquals(len(testHandler.intergeneDict[('NC_014561',"+")]),2)
             
         def testContains(self):
             testHandler = IntergeneHandler(self.input_file)
