@@ -1,7 +1,6 @@
 """
 A blast pipeline to blast bacteriocin proteins against intergenic regions
 
-
 Word of caution: blastx is not thread safe :(
 """
 import Bio
@@ -34,6 +33,7 @@ def addArgs(parser):
 location_reg = re.compile(":(\d+)-(\d+)(\S)")
 locus_reg = re.compile("locus:(\d+)-(\d+)(\S)")
 
+       
 class  XMLRecord(object):
     """
 
@@ -64,13 +64,22 @@ class  XMLRecord(object):
         self.sbjct_start = sbjct_start
         self.sbjct_end = sbjct_end
         self.strand = strand
-        #self.hsp = hsp
         
+
     def __str__(self):
-        geneCoord = "%d-%d"%(self.sbjct_start,self.sbjct_end)
-        return "%s\t%s"%(geneCoord,self.sbjct)
-
-
+          return '\t'.join(map(str,[self.query_id,
+                                    self.query,
+                                    self.query_start,
+                                    self.query_end,
+                                    self.sbjct_id,
+                                    self.sbjct,
+                                    self.sbjct_start,
+                                    self.sbjct_end,
+                                    self.strand,
+                                    self.description,
+                                    self.score,
+                                    self.expected_value]))
+    
 class CoordXMLRecord(XMLRecord):
     """
     Records information for each blast entry that is important for multiple alignment

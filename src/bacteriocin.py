@@ -40,18 +40,7 @@ class BacteriocinHandler:
         self.keep_tmp = keep_tmp
         self.noHits = True
         self.intermediate = intermediate
-
-    def cleanup(self):
-        os.remove(self.genomic_query)
-        #os.remove(self.genome_file)
-
-    """Gets the filtered intergenic regions"""
-    def getGenomicQuery(self):
-        return self.genomic_query
-
-    def getGenomeFile(self):
-        return self.genome_file
-
+ 
     """Get all of the bacteriocins in all of the bacterial genomes"""
     def getAlignedBacteriocins(self,bacteriocins,bac_evalue,num_threads,formatdb):
         bacBlast = blast.BLAST(self.genome_file,bacteriocins,self.intermediate,bac_evalue)
@@ -62,6 +51,7 @@ class BacteriocinHandler:
         hits = bacBlast.parseBLAST("xml")
         return hits
 
+
 """
 Given a set of genomes and bacteriocins, determine which bacteriocins are in intergenic regions
 """
@@ -69,8 +59,7 @@ def identifyIntergenic(bacteriocins,intergene_file):
     print "Building intergenic dictionary"
     print "filename",intergene_file
     print "Number of bacteriocins",len(bacteriocins)
-    intergeneObj = intergeneHandler.IntergeneHandler(intergene_file)
-    
+    intergeneObj = intergeneHandler.IntergeneHandler(intergene_file)    
     intergeneObj.getIntervals()
     intergeneDict = dict()
     for bact in bacteriocins:
@@ -89,19 +78,14 @@ queries: A list of query objects with
 def spatialFilter(queries,intervalDict,radius):
     filtered = []
     geneNeighborhoods = []
-    i = 0
     for query in queries:
-        start,end,orgid,strand,query_obj = query
-                #start,end,orgid,strand = query.sbjct_start,query.sbjct_end,query.sbjct_id,query.strand
-        if (orgid,strand) not in intervalDict:
-            continue
-        
+        header, query_obj = query
+        start,end,orgid,strand = header
+        if (orgid,strand) not in intervalDict: continue
         nearTargets = intervalDict[(orgid,strand)].find( start,end )
-        i+=1
         if len(nearTargets)>0:
-            for target in nearTargets:
+            for geneobj in nearTargets:
                 filtered.append(query_obj)
-                _,_,_,geneobj = target
                 geneNeighborhoods.append(geneobj)
     return filtered,geneNeighborhoods
                
@@ -115,10 +99,13 @@ def filterAnnotations(annots,bacteriocins,radius):
     for bact in bacteriocins:
         start,end,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id,bact.strand
         orgid = annot_reg.findall(orgid)[0]
-        intervalDict[(orgid,strand)].add(start-radius,end+radius,
-                                         (start,end,"",bact))        
-        #intervalDict[(orgid,strand)].append( (start-radius,end+radius,"",annotation) ) #no refid
-    queries = [(a[0],a[1],a[2],a[3],a) for a in annots] #orgid,start,end,strand
+        stBound,endBound = start-radius,end+radius
+        intervalDict[(orgid,strand)].add( stBound,endBound,bact )                                                 
+    headers = []
+    for a in annots: 
+        orgid,start,end,strand = a[0],a[1],a[2],a[3];
+        headers.append( (orgid,start,end,strand) )
+    queries = zip(headers,annots) 
     filtered,annotNeighborhoods = spatialFilter(queries,intervalDict,radius)    
     return filtered,annotNeighborhoods
 
@@ -131,19 +118,19 @@ filtered: list of target genes blast hits that make it
           through the filtering criteria imposed by the radius
 geneNeighborhoods: a list of intervals with a radius surrounding the
           target genes
+header = (orgid,start,end,strand)
 """
 def filterBacteriocins(bacteriocins,genes,radius):
-    if radius<0:
-        radius = 50000000 #largest bacterial genome
+    if radius<0: radius = 50000000 #largest bacterial genome
     intervalDict = defaultdict( IntervalTree )
-    for gene in genes:
-    
+    for gene in genes:    
         start,end,refid,orgid,strand = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id,gene.strand
-        intervalDict[(orgid,strand)].add(start-radius,end+radius,
-                                         (start,end,refid,gene))
-
-        #intervalDict[(orgid,strand)].append( (start-radius,end+radius,refid,gene) )
-    queries = [(b.sbjct_start,b.sbjct_end,b.sbjct_id,b.strand,b) for b in bacteriocins] #Put into standardized format
+        stBound,endBound = start-radius,end+radius
+        intervalDict[(orgid,strand)].add( stBound,endBound,gene )
+    headers = []
+    for b in bacteriocins: 
+        headers.append( (b.sbjct_start,b.sbjct_end,b.sbjct_id,b.strand) )
+    queries = zip(headers,bacteriocins) 
     filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,geneNeighborhoods
 
@@ -349,7 +336,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                                sbjct_id = "org1",
+                                                sbjct_id = "NC_12345",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 100,
                                                 sbjct_end   = 110,
@@ -361,7 +348,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                                sbjct_id = "org1",
+                                                sbjct_id = "NC_12345",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 1000,
                                                 sbjct_end   = 1010,
@@ -373,7 +360,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                            sbjct_id = "org2",
+                                            sbjct_id = "NC_12346",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 100,
                                                 sbjct_end   = 110,
@@ -385,7 +372,7 @@ if __name__=="__main__":
                                          query="AAAAAAAAAA",
                                          query_start = 1,
                                          query_end   = 10,
-                                         sbjct_id = "org1",
+                                         sbjct_id = "NC_12345",
                                          sbjct="AAAAAAAAAA",
                                          sbjct_start = 150,
                                          sbjct_end   = 160,
@@ -421,7 +408,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                                sbjct_id = "org1",
+                                                sbjct_id = "NC_12345",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 100,
                                                 sbjct_end   = 110,
@@ -433,7 +420,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                                sbjct_id = "org1",
+                                                sbjct_id = "NC_12345",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 1000,
                                                 sbjct_end   = 1010,
@@ -445,7 +432,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 1,
                                                 query_end   = 10,
-                                            sbjct_id = "org2",
+                                            sbjct_id = "NC_12346",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 100,
                                                 sbjct_end   = 110,
@@ -457,7 +444,7 @@ if __name__=="__main__":
                                          query="AAAAAAAAAA",
                                          query_start = 1,
                                          query_end   = 10,
-                                         sbjct_id = "org1",
+                                         sbjct_id = "NC_12345",
                                          sbjct="AAAAAAAAAA",
                                          sbjct_start = 150,
                                          sbjct_end   = 160,
@@ -469,13 +456,15 @@ if __name__=="__main__":
                                          query="AAAAAAAAAA",
                                          query_start = 1,
                                          query_end   = 10,
-                                         sbjct_id = "org2",
+                                         sbjct_id = "NC_12346",
                                          sbjct="AAAAAAAAAA",
                                          sbjct_start = 1050,
                                          sbjct_end   = 1060,
                                          strand = "-")]
-                radius = -1
+                radius = 10000
                 filtered,hoods = filterBacteriocins(bacteriocins,genes,radius)
+                print '\n'.join(map(str,filtered))
+                print '\n'.join(map(str,hoods))
                 self.assertEquals(3,len(filtered))
                 self.assertEquals(3,len(hoods))
                 self.assertTrue(bacteriocins[0] in filtered)
@@ -488,7 +477,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 250,
                                                 query_end   = 260,
-                                                sbjct_id = "org1",
+                                                sbjct_id = "NC_12345",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 250,
                                                 sbjct_end   = 260,
@@ -500,7 +489,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 450,
                                                 query_end   = 460,
-                                                sbjct_id = "org1",
+                                                sbjct_id = "NC_12345",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 450,
                                                 sbjct_end   = 460,
