@@ -22,7 +22,7 @@ def cleanUp(clusterProc):
     fnames = obtainFileHandles(clusterProc)
     for handle in fnames:
         os.remove(handle)
-        
+
 """Obtains ids for all of the sequences and write them into separate cluster files"""
 def writeClusters(clusterProc):
     i = 0
