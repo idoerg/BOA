@@ -19,9 +19,7 @@ bac_reg = re.compile(">(\d+.\d)")
 species_reg = re.compile("([A-Z]+_\d+)")
 cluster_id_reg = re.compile(">(\S+)")
 def bacteriocinHeatmap(cdhitProc):
-    """
-    Fill in 2D array
-    """
+    """ Fill in 2D array """
     bacHeats = defaultdict( list )
     numClusters = len(cdhitProc.clusters)
     for i,cluster in enumerate(cdhitProc.clusters):

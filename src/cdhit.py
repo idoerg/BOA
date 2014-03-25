@@ -26,6 +26,7 @@ class CDHit(object):
         self.similarity = similarity
         self.cluster_out = "%s.clstr"%(output_file)
         self.cluster_counts = "%s.count"%(output_file)
+        self.clusters = list()
     #Cleans up all of the temporary files generated
     def cleanup(self):
         pass
@@ -41,13 +42,12 @@ class CDHit(object):
     cluster_reg = re.compile(r"")
     def processCluster(self):
         pass
+
     """
     Parses clustering information from CD hit
     """
     def parseClusters(self):
-        #buf = queue()
         self.clusters = list()
-
         with open(self.cluster_out,'r') as handle:
             for ln in handle:
                 ln = ln.rstrip()
