@@ -119,28 +119,32 @@ class HMMER(object):
             
 
 """First separate all of the sequences into clusters of 70%"""
-def go(infilepath,outfilepath):
-    clusterProc = cdhit.CDHit(infilepath,outfilepath,0.7)
-    clusterProc.run()
-    clusterProc.parseClusters()
-    writeClusters(clusterProc)
-    #cleanUp(clusterProc)
-
+def go(trainingSet,genome,results):
+    hmmer = HMMER(trainingSet)
+    hmmer.HMMspawn()
+    hmmer.search(genome,results)
+    hmmer.cleanUp()
+    
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Runs HMMER on CDHit clusters')
     parser.add_argument(\
-        '--fasta', type=str, required=False,
+        '--training', type=str, required=False,
         help='Input sequences to cluster')
+    parser.add_argument(\
+        '--genome', type=str, required=False,
+        help='Genome to align against')
+    parser.add_argument(\
+        '--output', type=str, required=False,
+        help='All HMMER alignments')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
     args = parser.parse_args()
     if not args.test:
-        directory = os.path.dirname(args.fasta)
-        basename = os.path.basename(args.fasta)
-        outputfile = "%s/%s.fa"%(directory,basename)
-        go(args.fasta,outputfile)
+        directory = os.path.dirname(args.output)
+        basename = os.path.basename(args.output)
+        go(args.traing,args.genome,args.output)
     else:
         del sys.argv[1:]
         import unittest
