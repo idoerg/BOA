@@ -9,8 +9,8 @@ ANNOTATIONS=/data/tmp/annotations.fa         #Location of the annotations
 #GENOME=../example/Streptococcus_pyogenes/NC_011375.fna
 BACDIR=../bacteriocins                       #Folder containing all of the bacteriocins and genes
 
-#BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
-BACTERCIOCIN_FILE=shaun.fa
+BACTERCIOCIN_FILE=bagel.fa                   #Location of bacteriocin file (where known bacteriocins are stored)
+#BACTERCIOCIN_FILE=shaun.fa
 GENES=genes.fa                               #Location of gene file (where sagB is stored)
 ##########################################################################################
 
@@ -47,7 +47,7 @@ python $SRC/bacteriocin.py \
     --intermediate=$INTERMEDIATE \
     --bac-evalue=1e-5 \
     --num-threads=7 \
-    --bacteriocin-radius=2000 \
+    --bacteriocin-radius=50000 \
     --output=$BLASTED
 
 # cat $BLASTED | awk '{print ">"$2"\n"$10}' > $BLASTFA

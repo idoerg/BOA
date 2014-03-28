@@ -54,6 +54,7 @@ def parseAnnotations(organism,genbank_file,outHandle):
                     protid = feature.qualifiers["protein_id"][0]
                     sequence  = feature.qualifiers["translation"][0]
                     st,end,strand = loc_reg.findall(str(feature.location))[0]
+                    print "strand",strand
                     description = "%s\t%s\t%s"%(protid,db_xref,note)
                     fasta_str = ">%d %s %s %s %s %s %s\n%s\n"%(index,
                                                                organism,

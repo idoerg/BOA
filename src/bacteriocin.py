@@ -81,8 +81,8 @@ def spatialFilter(queries,intervalDict,radius):
     for query in queries:
         header, query_obj = query
         start,end,orgid,strand = header
-        if (orgid,strand) not in intervalDict: continue
-        nearTargets = intervalDict[(orgid,strand)].find( start,end )
+        if orgid not in intervalDict: continue
+        nearTargets = intervalDict[orgid].find( start,end )
         if len(nearTargets)>0:
             for geneobj in nearTargets:
                 filtered.append(query_obj)
@@ -100,7 +100,7 @@ def filterAnnotations(annots,bacteriocins,radius):
         start,end,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id,bact.strand
         orgid = annot_reg.findall(orgid)[0]
         stBound,endBound = start-radius,end+radius
-        intervalDict[(orgid,strand)].add( stBound,endBound,bact )                                                 
+        intervalDict[orgid].add( stBound,endBound,bact )                                                 
     headers = []
     for a in annots: 
         orgid,start,end,strand = a[0],a[1],a[2],a[3];
@@ -126,7 +126,7 @@ def filterBacteriocins(bacteriocins,genes,radius):
     for gene in genes:    
         start,end,refid,orgid,strand = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id,gene.strand
         stBound,endBound = start-radius,end+radius
-        intervalDict[(orgid,strand)].add( stBound,endBound,gene )
+        intervalDict[orgid].add( stBound,endBound,gene )
     headers = []
     for b in bacteriocins: 
         headers.append( (b.sbjct_start,b.sbjct_end,b.sbjct_id,b.strand) )
