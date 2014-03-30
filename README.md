@@ -38,17 +38,19 @@ First set PATH=$PATH:Bacfinder/src:Bacfinder/scripts
 Before running the pipeline, two databases must be setup, the annotated genes database, and the intergenes database.  This is assuming that you already have a set of genbank files and fasta genomes contained within a root directory.
 
 To create the annotated genes database, execute the following command:
-
-python annotated_genes.py --root-dir=< root directory of genbank files > --output-file=< output file of annotated regions >
-
+```
+python annotated_genes.py --root-dir=< root directory of genbank files > 
+                          --output-file=< output file of annotated regions >
+```
 To create the intergenes database, execute the following command:
-
-python intergene.py --root-dir=<root directory genbank files> --output-file=< output file of intergenic regions >
-
+```
+python intergene.py --root-dir=<root directory genbank files> 
+                    --output-file=< output file of intergenic regions >
+```
 Both of these scripts are hierarchy independent.  It will find all of the genbank files within the root-directory, regardless of how the root directory is organized.
 
 Now you are ready to run the blast pipeline.  To run the blast pipeline, run the following command
-
+```
 python bacteriocin.py --genome-files=< Fasta files of genomes >
                       --bacteriocins=< known bacteriocins fasta > 
                       --annotated-genes=< annotated genes database >  
@@ -56,7 +58,7 @@ python bacteriocin.py --genome-files=< Fasta files of genomes >
                       --intermediate=< A folder to store extra files > 
                       --output=<basename of output file>  
 The output option is the basename for two different files.  If you output option is test, then the files you expect to see are test.annotated.txt and test.bacteriocins.
-
+```
 test.annotated.txt contains the list of annotated genes within the a radius around all of the blasted bacteriocins.  This search radius can be specified in the bacteriocin.py script.
 The format of test.annotated.txt is a tab-delimited format with column headers specified as follows
 
@@ -84,9 +86,9 @@ The format of test.bacteriocins.txt is a tab-delimited format with column header
 7. blasted bacteriocin sequence
 
 If you want to visualize the results from the blast pipeline, run the following command
-
+```
 python analyze.py --accession-table=< a map between accession and species >
                   --bacteriocins=< blasted bacteriocins in tab format >
                   --anchor-genes=< overlapping anchor genes in tab format >
-
+```
 The accession table can be found under the data folder
