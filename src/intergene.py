@@ -72,8 +72,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=\
                                          'Finds intergenic regions from genback file')
     parser.add_argument(\
-        '--genbank-path', type=str, required=False,
-        help='The path of the genbank file')
+        '--root-dir', type=str,required=True,default="",
+        help='Root directory of all of the files of interest')
     parser.add_argument(\
         '--intergene-length', type=int, default=1,required=False,
         help='The path of the genbank file')
@@ -87,7 +87,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.test:
-        get_interregions(args.genbank_path,args.output_file,args.intergene_length)
+        outHandle = open(args.output_file,'w')
+        for root, subFolders, files in os.walk(args.root_dir):
+            for fname in files:
+                genome_files = []
+                ext = os.path.splitext(os.path.basename(fname))[1]
+                if ext==".gbk":
+                    absfile=os.path.join(root,fname)
+                    get_interregions(absfile,args.output_file,
+                                     intergene_length=1,
+                                     write_flag='a')
     else:
         del sys.argv[1:]
         import unittest

@@ -22,7 +22,7 @@ import blast
 import intergene
 import genome
 #import intervals
-import annotations
+import annotated_genes
 import intergeneHandler
 import pickle
 
@@ -94,7 +94,7 @@ def spatialFilter(queries,intervalDict,radius):
 Filter out all annotations that are within the radius of a bacteriocin
 """
 annot_reg = re.compile("([A-Z]+_[0-9]+).")
-def filterAnnotations(annots,bacteriocins,radius):
+def filterAnnotatedGenes(annots,bacteriocins,radius):
     intervalDict = defaultdict( IntervalTree )
     for bact in bacteriocins:
         start,end,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id,bact.strand
@@ -172,7 +172,7 @@ def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
         outHandle.write(result_str)
 
 
-def writeAnnotations(annot_bact_pairs,outHandle):
+def writeAnnotatedGenes(annot_bact_pairs,outHandle):
     for annot_bact in annot_bact_pairs:
         annot,bacteriocin = annot_bact
         annot_st,annot_end,annot_org,annot_strand,annot_locus,annot_seq = annot
@@ -195,7 +195,7 @@ def writeAnnotations(annot_bact_pairs,outHandle):
         outHandle.write(result_str)
 
 def main(genome_files,bacteriocins,
-         genes,intergene_file,
+         geneFile,intergene_file,
          annotations_file,
          bacteriocinsOut,
          filteredOut,
@@ -206,6 +206,7 @@ def main(genome_files,bacteriocins,
          gene_radius,
          bacteriocin_radius,
          verbose,keep_tmp):
+    genes=None
     for gnome in genome_files:
         gnomehr = genome.GenomeHandler(gnome,
                                        intermediate,
@@ -213,7 +214,6 @@ def main(genome_files,bacteriocins,
                                        num_threads,
                                        verbose,
                                        keep_tmp)
-        genes = gnomehr.getAlignedGenes(genes,gene_evalue,num_threads,formatdb)
         bacthr = BacteriocinHandler(gnome,
                                     intermediate,
                                     bac_evalue,
@@ -224,24 +224,26 @@ def main(genome_files,bacteriocins,
                                                      bac_evalue,
                                                      num_threads,
                                                      formatdb)
+        if geneFile!=None:
+            genes = gnomehr.getAlignedGenes(geneFile,gene_evalue,num_threads,formatdb)
         if verbose and genes == None: print "No genes found"
         if verbose and bacteriocins == None: print "No bacteriocins found"
-        if genes == None or bacteriocins == None: continue
+        if bacteriocins == None: continue
         if verbose: print "Genes found\n","\n".join(map(str,genes))
         if verbose: print "Bacteriocins found\n","\n".join(map(str,bacteriocins))
         if verbose: print "Number of original bacteriocins",len(bacteriocins)
         intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
         writeBacteriocins(bacteriocins,intergeneDict,bacteriocinsOut)
-        annots = [annot for annot in annotations.Annotations(annotations_file)]
-        annots,bacteriocinNeighborhoods = filterAnnotations(annots,bacteriocins,bacteriocin_radius)
+        annots = [annot for annot in annotated_genes.AnnotatedGenes(annotations_file)]
+        annots,bacteriocinNeighborhoods = filterAnnotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
-        writeAnnotations(annot_bact_pairs, annotationsOut)
-        
-        bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,genes,gene_radius)
-        if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
-        bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
-        intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
-        writeBacteriocins(bact_gene_pairs,intergeneDict, filteredOut,genes="True")
+        writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
+        if genes!=None:
+            bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,genes,gene_radius)
+            if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
+            bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
+            intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
+            writeBacteriocins(bact_gene_pairs,intergeneDict, filteredOut,genes="True")
 
         #pickle.dump(intergeneDict,open("intergene.dict",'w'))
 
@@ -252,14 +254,14 @@ if __name__=="__main__":
         '--genome-files', type=str, nargs="+", required=False,
         help='FASTA files containing bacterial genomes')
     parser.add_argument(\
-        '--genes', type=str,required=False,default="",
+        '--genes', type=str,required=False,default=None,
         help='A FASTA file containing all of the target genes of interest')
     parser.add_argument(\
         '--intergenes', type=str, required=False,
         help='FASTA files containing intergenic regions')
     parser.add_argument(\
-        '--annotations', type=str, required=False,
-        help='FASTA files containing annotated regions')
+        '--annotated-genes', type=str, required=False,
+        help='FASTA files containing annotated genetic regions')
     parser.add_argument(\
         '--bacteriocins', type=str, required=False,
         help='The bacteriocin proteins that are to be blasted')
@@ -276,11 +278,11 @@ if __name__=="__main__":
         '--bac-evalue', type=float, required=False, default=0.00001,
         help='The evalue for bacteriocin hits')
     parser.add_argument(\
-        '--intermediate', type=str, required=False,
+        '--intermediate', type=str, required=False,default='.',
         help='Directory for storing intermediate files')
     parser.add_argument(\
         '--output', type=str, required=False,
-        help='The output file basename for filtered annotations and bacteriocins')
+        help='The output file basename for filtered annotationed regions and bacteriocins')
     parser.add_argument(\
         '--verbose', action='store_const', const=True, default=False,
         help='Messages for debugging')
@@ -295,14 +297,14 @@ if __name__=="__main__":
     args = parser.parse_args()
     #outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
     if not args.test:
-        bacteriocinsOut = open("%s_bacteriocins.txt"%(args.output),'w')
+        bacteriocinsOut = open("%s.bacteriocins.txt"%(args.output),'w')
         filteredOut = open("%s_filtered.txt"%(args.output),'w')
-        annotationsOut  = open("%s_annotations.txt"%(args.output),'w')
+        annotationsOut  = open("%s.annotated.txt"%(args.output),'w')
         main(args.genome_files,
              args.bacteriocins,
              args.genes,
              args.intergenes,
-             args.annotations,
+             args.annotated_genes,
              bacteriocinsOut,
              filteredOut,
              annotationsOut,
@@ -496,7 +498,7 @@ if __name__=="__main__":
                                                 strand = "-")]
                 radius = 100
                 annots = [A for A in annotations.Annotations(self.out_file)]
-                filtered,hoods = filterAnnotations(annots,bacteriocins,radius)
+                filtered,hoods = filterAnnotatedGenes(annots,bacteriocins,radius)
                 # self.assertEquals(1,len(filtered))
                 # self.assertEquals(1,len(hoods))
                 # self.assertTrue(bacteriocins[0] in filtered)
