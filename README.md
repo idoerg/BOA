@@ -49,11 +49,11 @@ Both of these scripts are hierarchy independent.  It will find all of the genban
 
 Now you are ready to run the blast pipeline.  To run the blast pipeline, run the following command
 
-python bacteriocin.py --genome-files=< Fasta files of genomes > \
-                      --bacteriocins=< known bacteriocins fasta > \
-                      --annotated-genes=< annotated genes database >  \
-                      --intergenes=< intergenes database > \
-                      --intermediate=< A folder to store extra files > \
+python bacteriocin.py --genome-files=< Fasta files of genomes >
+                      --bacteriocins=< known bacteriocins fasta > 
+                      --annotated-genes=< annotated genes database >  
+                      --intergenes=< intergenes database > 
+                      --intermediate=< A folder to store extra files > 
                       --output=<basename of output file>  
 The output option is the basename for two different files.  If you output option is test, then the files you expect to see are test.annotated.txt and test.bacteriocins.
 
