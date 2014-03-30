@@ -27,7 +27,7 @@ def truncate(speciesName):
     
     return '_'.join(toks[:2])
     
-def heatMap(heats,title,showX=False,showY=False):
+def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False):
     scoremap = DataFrame(heats).T.fillna(0)
     xlabels = list(scoremap.columns)
     ylabels = list(scoremap.index)
@@ -39,11 +39,11 @@ def heatMap(heats,title,showX=False,showY=False):
     heatmap = plt.pcolor(scoremap)
     plt.colorbar()
     plt.title(title,fontsize=22)
-    plt.xlabel('Cluster number')
-    plt.ylabel('Bacteriocin ID')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.xlim(0,len(xlabels))
     plt.ylim(0,len(ylabels))
-    fig.subplots_adjust(bottom=0.2)
+    fig.subplots_adjust(bottom=0.3)
     
 """Heatmap of bacteriocins versus species"""
 def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
@@ -60,8 +60,12 @@ def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
                 plasmidHeats[bacID][speciesName] += 1
             else:
                 genomeHeats[bacID][speciesName] += 1
-    heatMap(genomeHeats,"Bacteriocins vs Clusters Genome Heatmap",showX=True,showY=True)
-    heatMap(plasmidHeats,"Bacteriocins vs Clusters Plasmid Heatmap",showX=True,showY=True)
+    heatMap(genomeHeats,"Bacteriocins vs Species Genome Heatmap",
+            xlabel='Species',ylabel='Bacteriocin ID',
+            showX=True,showY=True)
+    heatMap(plasmidHeats,"Bacteriocins vs Species Plasmid Heatmap",
+            xlabel='Species',ylabel='Bacteriocin ID',
+            showX=True,showY=True)
     
         
 """
@@ -90,8 +94,12 @@ def bacteriocinHeatmap(cdhitProc,accTable):
                     genomeHeats[bacID] = [0]*numClusters
                 genomeHeats[bacID][i] += 1
             
-    heatMap(genomeHeats,"Bacteriocins vs Species Genome Heatmap",showX=True,showY=True)
-    heatMap(plasmidHeats,"Bacteriocins vs Species Plasmid Heatmap",showX=True,showY=True)
+    heatMap(genomeHeats,"Bacteriocins vs Clusters Genome Heatmap",
+            xlabel='Cluster number',ylabel='Bacteriocin ID',
+            showX=False,showY=True)
+    heatMap(plasmidHeats,"Bacteriocins vs Clusters Plasmid Heatmap",
+            xlabel='Cluster number',ylabel='Bacteriocin ID',
+            showX=False,showY=True)
     
     
 
@@ -120,7 +128,7 @@ def bacteriocinIDHistogram(cdhitProc):
     plt.title('Bacteriocin homologs',fontsize=22)
     
 
-"""Histogram of bacteriocin diversity in each cluster"""
+"""Histogram of bacteriocin counts in each cluster"""
 def bacteriocinClusterHistogram(cdhitProc):
     clrCnts = []
     labels = []
@@ -202,12 +210,12 @@ def anchorGeneDistanceHeatmap(cdhitProc):
             clusterIDs+=[i]*len(interval)
     
     plt.figure()
-    plt.hist2d(dists,clusterIDs,bins=200,norm=LogNorm())
+    plt.hist2d(dists,clusterIDs,bins=30,norm=LogNorm())
     plt.colorbar()
     plt.xlabel('Distance from bacteriocin',fontsize=18)
     plt.ylabel("Cluster ID",fontsize=18)
     plt.title('Distance distribution of anchor genes per cluster',fontsize=22)
-        
+    
 """Distance distribution of all clusters"""
 def anchorGenePosition(cdhitProc):
     dists = []
@@ -287,7 +295,7 @@ def getFASTA(infasta,cdhit,outfasta):
             handle.write("%d\n"%len(record.seq))
 
 def removeDuplicates(items):
-    uniqueDict = {x[-1]:x for x in items}
+    uniqueDict = {tuple(x[-5:]):x for x in items}
     return uniqueDict.values()
 
 """
@@ -341,13 +349,14 @@ if __name__=="__main__":
         cPickle.dump(cdhitProc,open(clusterFile,'wb'))
         os.remove(clrfasta)
         
-    getFASTA(cluster_file,cdhitProc,outfasta)
-    cdhitProc.filterSize(40)  #filter out everything less than n
-    anchorGeneDistanceHeatmap(cdhitProc)
+    getFASTA(cluster_file,cdhitProc,outfasta)#writes clusters to FASTA
+    cdhitProc.filterSize(10)  #filter out everything less than n
     anchorGeneClusterHistogram(cdhitProc)
+    cdhitProc.filterSize(30)  #filter out everything less than n
     bacteriocinSpeciesHeatmap(cdhitProc,accTable)
     bacteriocinHeatmap(cdhitProc,accTable)    
     anchorGenePosition(cdhitProc)
+    anchorGeneDistanceHeatmap(cdhitProc)
     plt.show()    
     
     
