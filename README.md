@@ -3,25 +3,17 @@ Installation
 
 Make sure that you have the following installed
 
-1) Python2.7 or greater 
-
-2) biopython 
-
-3) matplotlib
-
-4) blastall
-
-5) bx-python
-
-6) hmmer
-
-7) cdhit
-
-8) clustalw
-
-9) panda
-
-10) numpy
+1.  Python2.7 or greater 
+2.  biopython 
+3.  matplotlib
+4.  numpy
+5.  panda
+6.  bx-python
+7.  blastall
+8.  hmmer
+9.  cdhit
+10. clustalw
+ 
 
 If you are using ubuntu, most of these packages can be installed using the following command
 
