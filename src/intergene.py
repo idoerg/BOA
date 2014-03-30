@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=\
                                          'Finds intergenic regions from genback file')
     parser.add_argument(\
-        '--root-dir', type=str,required=True,default="",
+        '--root-dir', type=str,required=False,default="",
         help='Root directory of all of the files of interest')
     parser.add_argument(\
         '--intergene-length', type=int, default=1,required=False,

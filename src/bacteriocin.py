@@ -329,7 +329,7 @@ if __name__=="__main__":
                 handle = open(self.test_file,'w')
                 handle.write(test_input)
                 handle.close()
-                annotations.parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
+                annotated_genes.parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
             def test_filter_bacteriocins_1(self):
                 bacteriocins = [blast.XMLRecord(description="",
                                                 expected_value=0.00001,
@@ -497,7 +497,7 @@ if __name__=="__main__":
                                                 sbjct_end   = 460,
                                                 strand = "-")]
                 radius = 100
-                annots = [A for A in annotations.Annotations(self.out_file)]
+                annots = [A for A in annotated_genes.AnnotatedGenes(self.out_file)]
                 filtered,hoods = filterAnnotatedGenes(annots,bacteriocins,radius)
                 # self.assertEquals(1,len(filtered))
                 # self.assertEquals(1,len(hoods))
