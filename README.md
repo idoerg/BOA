@@ -57,8 +57,9 @@ python bacteriocin.py --genome-files=< Fasta files of genomes >
                       --intergenes=< intergenes database > 
                       --intermediate=< A folder to store extra files > 
                       --output=<basename of output file>  
-The output option is the basename for two different files.  If you output option is test, then the files you expect to see are test.annotated.txt and test.bacteriocins.
 ```
+The output option is the basename for two different files.  If you output option is test, then the files you expect to see are test.annotated.txt and test.bacteriocins.
+
 test.annotated.txt contains the list of annotated genes within the a radius around all of the blasted bacteriocins.  This search radius can be specified in the bacteriocin.py script.
 The format of test.annotated.txt is a tab-delimited format with column headers specified as follows
 
