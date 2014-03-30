@@ -17,7 +17,7 @@ site.addsitedir(os.path.join(base_path, 'src'))
 import cdhit
 from  acc2species import AccessionToSpecies
 from collections import Counter
-
+from pandas import *
 bac_reg = re.compile(">(\d+.\d)")
 species_reg = re.compile("([A-Z]+_\d+)")
 cluster_id_reg = re.compile(">(\S+)")
@@ -27,51 +27,46 @@ def truncate(speciesName):
     
     return '_'.join(toks[:2])
     
-def heatMap(heats,speciesLabels,title):
-    r,c = len(heats.keys()),len(heats[heats.keys()[0]])
-    scoremap = np.zeros((r,c))
-    i = 0
-    for k,v in heats.iteritems():
-        s = '\t'.join(map(str,v))
-        scoremap[i,:] = v
-        i+=1
-    
+def heatMap(heats,title,showX=False,showY=False):
+    scoremap = DataFrame(heats).T.fillna(0)
+    xlabels = list(scoremap.columns)
+    ylabels = list(scoremap.index)
     fig, ax = plt.subplots()
-    ypos = np.arange(r)+0.5
-    pylab.yticks(ypos, heats.keys())
-    xpos = np.arange(c)+0.5
-    #pylab.xticks(xpos, speciesLabels,rotation=90)
-    
-    #heathandle.close()
-    heatmap = plt.pcolor(scoremap, cmap='PuBu_r')
+    xpos = np.arange(len(xlabels))+0.5
+    ypos = np.arange(len(ylabels))+0.5
+    if showX: pylab.xticks(xpos, xlabels,rotation=90)
+    if showY: pylab.yticks(ypos, ylabels)
+    heatmap = plt.pcolor(scoremap)
     plt.colorbar()
     plt.title(title,fontsize=22)
     plt.xlabel('Cluster number')
     plt.ylabel('Bacteriocin ID')
-    plt.xlim(0,c)
+    plt.xlim(0,len(xlabels))
+    plt.ylim(0,len(ylabels))
     fig.subplots_adjust(bottom=0.2)
+    
 """Heatmap of bacteriocins versus species"""
 def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
-    genomeHeats = defaultdict( dict )
-    plasmidHeats = defaultdict( dict )
-    for i,cluster in enumerate(cdhitProc.clusters):
+    genomeHeats = defaultdict( Counter )
+    plasmidHeats = defaultdict( Counter )
+    for cluster in cdhitProc.clusters:
         members = cluster.seqs
-        head =""
         for mem in members:
             bacID=bac_reg.findall(mem)[0]
             accID = species_reg.findall(mem)[0]
             seqType,speciesName = accTable.lookUp(accID)
-            if mem[-1]=="*": head=mem
+            speciesName = truncate(speciesName)
             if seqType=="plasmid":
-                if len(plasmidHeats[bacID])==0:
-                    plasmidHeats[bacID] = [0]*numClusters
-                plasmidHeats[bacID][i] += 1
+                plasmidHeats[bacID][speciesName] += 1
             else:
-                if len(genomeHeats[bacID])==0:
-                    genomeHeats[bacID] = [0]*numClusters
-                genomeHeats[bacID][i] += 1
-    pass
-
+                genomeHeats[bacID][speciesName] += 1
+    heatMap(genomeHeats,"Bacteriocins vs Clusters Genome Heatmap",showX=True,showY=True)
+    heatMap(plasmidHeats,"Bacteriocins vs Clusters Plasmid Heatmap",showX=True,showY=True)
+    
+        
+"""
+Bacteriocins versus clusters
+"""
 def bacteriocinHeatmap(cdhitProc,accTable):
     """ Fill in 2D array """
     genomeHeats = defaultdict( list )
@@ -95,13 +90,8 @@ def bacteriocinHeatmap(cdhitProc,accTable):
                     genomeHeats[bacID] = [0]*numClusters
                 genomeHeats[bacID][i] += 1
             
-        #accID = species_reg.findall(head)[0]
-        #seqType,speciesName = accTable.lookUp(accID)
-        #speciesName = truncate(speciesName)
-        species.append(str(i))
-        
-    heatMap(genomeHeats,species,"Whole genome heatmap")
-    heatMap(plasmidHeats,species,"Plasmid heatmap")
+    heatMap(genomeHeats,"Bacteriocins vs Species Genome Heatmap",showX=True,showY=True)
+    heatMap(plasmidHeats,"Bacteriocins vs Species Plasmid Heatmap",showX=True,showY=True)
     
     
 
@@ -181,9 +171,7 @@ def speciesClusterHistogram(cdhitProc):
     plt.xlabel("Number of different species",fontsize=18)
     plt.title('Species Count',fontsize=22)
     
-"""
-Checks the interval overlaps
-"""
+"""Checks the interval overlaps"""
 def overlap(bst,bend,ast,aend):
     if bst > ast and bst<aend:
         return True
@@ -196,6 +184,7 @@ def overlap(bst,bend,ast,aend):
     else:
         return False
 
+"""Distance distribution of each cluster """
 def anchorGeneDistanceHeatmap(cdhitProc):
     clusterIDs = []
     dists = []
@@ -219,7 +208,7 @@ def anchorGeneDistanceHeatmap(cdhitProc):
     plt.ylabel("Cluster ID",fontsize=18)
     plt.title('Distance distribution of anchor genes per cluster',fontsize=22)
         
-    
+"""Distance distribution of all clusters"""
 def anchorGenePosition(cdhitProc):
     dists = []
     for cluster in cdhitProc.clusters:
@@ -239,7 +228,7 @@ def anchorGenePosition(cdhitProc):
     plt.ylabel("Number of anchor genes",fontsize=18)
     plt.title('Distance distribution of anchor genes',fontsize=22)
 
-"""Histogram of bacteriocin diversity in each cluster"""
+"""Histogram of bacteriocin counts in each cluster"""
 def anchorGeneClusterHistogram(cdhitProc):
     clrCnts = []
     labels = []
@@ -257,7 +246,9 @@ def anchorGeneClusterHistogram(cdhitProc):
     plt.title('Bacteriocin Count',fontsize=22)
     
 
-    
+"""
+Histogram of bacteriocin length
+"""
 def bacteriocinLength(bacteriocinFile):
     lens = []
     with open(bacteriocinFile,'r') as handle:
@@ -280,7 +271,9 @@ def findhead(clrs):#finds representative sequence
     for clr in clrs:
         if "*" in clr:
             return clr
-
+"""
+Write all sequence in top scoring clusters to fasta file
+"""
 def getFASTA(infasta,cdhit,outfasta):
     handle = open("lengths.txt",'w')
     record_dict = SeqIO.to_dict(SeqIO.parse(infasta,'fasta'))
@@ -292,7 +285,25 @@ def getFASTA(infasta,cdhit,outfasta):
             out.write(">%s\n"%record.id)
             out.write("%s\n"%str(record.seq))
             handle.write("%d\n"%len(record.seq))
-
+"""
+Preprocess fasta file
+"""
+def preprocessFasta(blastTab,fastaout):
+    items = []
+    with open(blastTab,'r') as handle:
+        for ln in handle:
+            ln = ln.rstrip()
+            toks = ln.split('\t')
+            assert len(toks)>=10
+            toks = [tok.replace(' ','') for tok in toks] #remove white space
+            items.append(tuple(toks))
+    toks = list(set(items)) #unique
+    with open(fastaout,'w') as handle:
+        for item in items:
+            bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
+            seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
+            handle.write(seqstr)
+    
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Format Blast output for iTOL visualization ')
@@ -305,13 +316,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--anchor-genes', type=str, required=False,
         help='Anchor genes from genbank files in blast format')
-    parser.add_argument(\
-        '--anchor-genes-fasta', type=str, required=False,
-        help='Anchor genes from genbank files in fasta format')
     
     args = parser.parse_args()
-    directory = os.path.dirname(args.anchor_genes_fasta)    
-    input_file = args.anchor_genes_fasta
+    directory = os.path.dirname(args.anchor_genes)    
     cluster_file = "%s/anchor_gene_cluster"%directory
     outfasta = "%s/anchor_gene_cluster.fa"%directory
     threshold = 0.7
@@ -320,21 +327,21 @@ if __name__=="__main__":
     if os.path.exists(clusterFile):
         cdhitProc = cPickle.load(open(clusterFile,'rb'))
     else:
-        cdhitProc = cdhit.CDHit(input_file,cluster_file,threshold)
+        clrfasta = "anchorgenes.fa"
+        preprocessFasta(args.anchor_genes,clrfasta)
+        
+        cdhitProc = cdhit.CDHit(clrfasta,cluster_file,threshold)
         cdhitProc.run()
         cdhitProc.parseClusters()
         cdhitProc.countOut()
         cPickle.dump(cdhitProc,open(clusterFile,'wb'))
+        os.remove(clrfasta)
+        
     getFASTA(cluster_file,cdhitProc,outfasta)
-    cdhitProc.filterSize(50)  #filter out everything less than n 
-    cdhitProc.filterSize(30)  #filter out everything less than n
+    cdhitProc.filterSize(40)  #filter out everything less than n
     anchorGeneDistanceHeatmap(cdhitProc)
     anchorGeneClusterHistogram(cdhitProc)
-    
-    #bacteriocinIDHistogram(cdhitProc)
-    #bacteriocinClusterHistogram(cdhitProc)
-    #speciesClusterHistogram(cdhitProc)
-    
+    bacteriocinSpeciesHeatmap(cdhitProc,accTable)
     bacteriocinHeatmap(cdhitProc,accTable)    
     anchorGenePosition(cdhitProc)
     plt.show()    
