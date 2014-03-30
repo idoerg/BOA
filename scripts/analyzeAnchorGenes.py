@@ -285,6 +285,11 @@ def getFASTA(infasta,cdhit,outfasta):
             out.write(">%s\n"%record.id)
             out.write("%s\n"%str(record.seq))
             handle.write("%d\n"%len(record.seq))
+
+def removeDuplicates(items):
+    uniqueDict = {x[-1]:x for x in items}
+    return uniqueDict.values()
+
 """
 Preprocess fasta file
 """
@@ -297,7 +302,7 @@ def preprocessFasta(blastTab,fastaout):
             assert len(toks)>=10
             toks = [tok.replace(' ','') for tok in toks] #remove white space
             items.append(tuple(toks))
-    toks = list(set(items)) #unique
+    items = removeDuplicates(items)
     with open(fastaout,'w') as handle:
         for item in items:
             bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
@@ -329,7 +334,6 @@ if __name__=="__main__":
     else:
         clrfasta = "anchorgenes.fa"
         preprocessFasta(args.anchor_genes,clrfasta)
-        
         cdhitProc = cdhit.CDHit(clrfasta,cluster_file,threshold)
         cdhitProc.run()
         cdhitProc.parseClusters()
