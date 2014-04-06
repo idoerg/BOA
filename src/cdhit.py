@@ -27,6 +27,8 @@ class CDHit(object):
         self.cluster_out = "%s.clstr"%(output_file)
         self.cluster_counts = "%s.count"%(output_file)
         self.clusters = list()
+    def __len__(self):
+        return len(self.clusters)    
     #Cleans up all of the temporary files generated
     def cleanup(self):
         pass
@@ -40,8 +42,7 @@ class CDHit(object):
         proc.wait()
 
     cluster_reg = re.compile(r"")
-    def processCluster(self):
-        pass
+
 
     """
     Parses clustering information from CD hit
