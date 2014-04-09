@@ -1,7 +1,6 @@
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
-
 import sys
 import os
 import site

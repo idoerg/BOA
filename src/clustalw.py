@@ -16,6 +16,7 @@ class ClustalW(object):
         self.dnd = "%s.dnd"%basename
     def run(self):
         cline = ClustalwCommandline(infile=self.input)
+        print cline
         child = subprocess.Popen(str(cline),
                                  stdout=subprocess.PIPE,
                                  shell=True)
@@ -24,6 +25,11 @@ class ClustalW(object):
         handle = open(self.output, 'w+')
         align = AlignIO.read(self.aln, "clustal")
         AlignIO.write([align], handle, 'stockholm')
+        handle.close()
+    def outputFASTA(self):
+        handle = open(self.output, 'w+')
+        align = AlignIO.read(self.aln, "clustal")
+        AlignIO.write([align], handle, 'fasta')
         handle.close()
     def cleanUp(self):
         os.remove(self.aln)
@@ -39,7 +45,8 @@ if __name__=='__main__':
                        '>testseq2',
                        'AGCTAGCT']
             open(self.infile,'w').write('\n'.join(entries))
-            self.outfile = "out.sto"
+            self.outsto = "out.sto"
+            self.outfasta = "out.fasta"
             basename,_ = os.path.splitext(self.infile)
             #output from clustalw
             self.aln = "%s.aln"%basename
@@ -47,18 +54,28 @@ if __name__=='__main__':
             
         def tearDown(self):
             os.remove(self.infile)
-            os.remove(self.outfile)
             os.remove(self.aln)
             os.remove(self.dnd)
-        
-        def testrun(self):
-           cw = ClustalW(self.infile,self.outfile)
+            
+        def testRunSto(self):
+           cw = ClustalW(self.infile,self.outsto)
            cw.run()
            cw.outputSTO()
-           handle = open(self.outfile,'r')
+           handle = open(self.outsto,'r')
            lines = handle.readlines()
            line1 = lines[0].rstrip()
-           self.assertEquals(line1,"# STOCKHOLM 1.0") 
+           self.assertEquals(line1,"# STOCKHOLM 1.0")
+           os.remove(self.outsto)
+        def testRunFasta(self):
+           cw = ClustalW(self.infile,self.outfasta)
+           cw.run()
+           cw.outputFASTA()
+           handle = open(self.outfasta,'r')
+           lines = handle.readlines()
+           line1 = lines[0].rstrip()
+           self.assertEquals(line1[0],">")
+           os.remove(self.outfasta)
+                        
     unittest.main()
     
     
