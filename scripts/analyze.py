@@ -4,30 +4,52 @@ import site
 import re
 import numpy as np
 import numpy.random
+
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.cbook as cbook
+from matplotlib._png import read_png
+from matplotlib.offsetbox import OffsetImage 
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
+
 import numpy
 import pylab
 import argparse
 import cPickle
 from collections import defaultdict
-from matplotlib.colors import LogNorm
 from Bio import SeqIO
+from Bio import Phylo
+
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 site.addsitedir(os.path.join(base_path, 'src'))
 import cdhit
+import fasttree
 from  acc2species import AccessionToSpecies
+from accessionMap import GGAccession
+
 from collections import Counter
 from pandas import *
+
 bac_reg = re.compile(">(\d+.\d)")
-species_reg = re.compile("([A-Z]+_\d+)")
+acc_reg = re.compile("([A-Z]+_\d+)")
 cluster_id_reg = re.compile(">(\S+)")
 
 def truncate(speciesName):
     toks = speciesName.split(' ')
     
     return '_'.join(toks[:2])
-    
-def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False):
+
+def produce_tree(treeFile):
+    tree=Phylo.read(treeFile,"newick")
+    Phylo.draw(tree, axes=phyl_ax)
+    tree_f=plt.gcf()
+    print type(tree_f)
+    return tree_f
+
+def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False,treeFile=""):
     scoremap = DataFrame(heats).T.fillna(0)
     xlabels = list(scoremap.columns)
     ylabels = list(scoremap.index)
@@ -36,15 +58,23 @@ def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False):
     ypos = np.arange(len(ylabels))+0.5
     if showX: pylab.xticks(xpos, xlabels,rotation=90)
     if showY: pylab.yticks(ypos, ylabels)
-    heatmap = plt.pcolor(scoremap,norm=LogNorm())
-    plt.colorbar()
-    plt.title(title,fontsize=22)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.xlim(0,len(xlabels))
-    plt.ylim(0,len(ylabels))
-    fig.subplots_adjust(bottom=0.6)
-    
+    if treeFile!="":
+        tree=Phylo.read(treeFile,"newick")
+        Phylo.draw(tree, axes=phyl_ax, do_show=False)
+        gs=gridspec.GridSpec(1, 2)
+        ht_ax=plt.subplot(gs[1])
+        img = ht_ax.imshow(data,origin='lower')
+
+    else:
+        heatmap = plt.pcolor(scoremap,norm=LogNorm())
+        plt.colorbar()
+        plt.title(title,fontsize=22)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.xlim(0,len(xlabels))
+        plt.ylim(0,len(ylabels))
+        fig.subplots_adjust(bottom=0.6)
+        
 """Heatmap of bacteriocins versus species"""
 def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
     genomeHeats = defaultdict( Counter )
@@ -53,7 +83,7 @@ def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
         members = cluster.seqs
         for mem in members:
             bacID=bac_reg.findall(mem)[0]
-            accID = species_reg.findall(mem)[0]
+            accID = acc_reg.findall(mem)[0]
             seqType,speciesName = accTable.lookUp(accID)
             speciesName = truncate(speciesName)
             if seqType=="plasmid":
@@ -82,7 +112,7 @@ def bacteriocinHeatmap(cdhitProc,accTable):
         head =""
         for mem in members:
             bacID=bac_reg.findall(mem)[0]
-            accID = species_reg.findall(mem)[0]
+            accID = acc_reg.findall(mem)[0]
             seqType,speciesName = accTable.lookUp(accID)
             if mem[-1]=="*": head=mem
             if seqType=="plasmid":
@@ -141,7 +171,7 @@ def bacteriocinClusterHistogram(cdhitProc):
             bacID=bac_reg.findall(mem)[0]
             counts[bacID]+=1
         size = len(counts.keys())
-        species = species_reg.findall(head)[0]
+        species = acc_reg.findall(head)[0]
         clrCnts.append(size)
         labels.append(species)
     
@@ -163,7 +193,7 @@ def speciesClusterHistogram(cdhitProc):
         head = ''
         for mem in members:
             if mem[-1]=='*': head = mem
-            speciesID=species_reg.findall(mem)[0]
+            speciesID=acc_reg.findall(mem)[0]
             counts[speciesID]+=1
         size = len(counts.keys())
         tag = cluster_id_reg.findall(head)[0][:-3]
@@ -297,7 +327,7 @@ def bacteriocinSpeciesHistogram(bacteriocinFile,accTable):
         for ln in handle:
             ln = ln.rstrip()
             toks = ln.split('\t')
-            species = species_reg.findall(toks[1])[0]
+            species = acc_reg.findall(toks[1])[0]
             cnts[species]+=1
     bacCnts = cnts.values()
     plt.figure()
@@ -347,7 +377,33 @@ def preprocessFasta(blastTab,fastaout):
             bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
             seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
             handle.write(seqstr)
-    
+def getTree(cdhitProc,rrnaFile,ggTable):
+    record_dict = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+    rrnas = []
+    ggMap = GGAccession(ggtable)
+    for cluster in cdhitProc.clusters:
+        members = cluster.seqs
+        for mem in members:
+            #Obtain accession IDs from cdhitProc 
+            gg = acc_reg.findall(mem)[0]
+            try:
+                acc = ggMap.lookupGenbank(gg)
+                print "Accession id",acc
+                record = record_dict[gg]
+                record.id = acc
+                rrnas.append(record)
+            except:
+                print "GG id not found",gg
+            #Obtain corresponding 16SRNAs
+    rrnaOut = "selected16SrRNA"
+    SeqIO.write(rrnas, rrnaOut, "fasta")
+    #Run FastTree
+    ft = UnAlignedFastTree() 
+    ft.align() #Run multiple sequence alignment and spit out aligned fasta file
+    ft.run() #Run fasttree on multiple alignment and spit out newick tree
+    ft.cleanUp() #Clean up!
+    pass
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Format Blast output for iTOL visualization ')
@@ -360,6 +416,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--anchor-genes', type=str, required=False,
         help='Anchor genes from genbank files in blast format')
+    parser.add_argument(\
+        '--rRNA', type=str, required=False,
+        help='16SRNA sequences')
     
     args = parser.parse_args()
     directory = os.path.dirname(args.anchor_genes)    
@@ -382,14 +441,16 @@ if __name__=="__main__":
         
     getFASTA(cluster_file,cdhitProc,outfasta)#writes clusters to FASTA
     print "Before filtering",len(cdhitProc)
-    cdhitProc.filterSize(50)  #filter out everything less than n
+    cdhitProc.filterSize(60)  #filter out everything less than n
     print "After filtering",len(cdhitProc)
-    anchorGeneClusterHistogram(cdhitProc)
-    bacteriocinSpeciesHeatmap(cdhitProc,accTable)
-    bacteriocinHeatmap(cdhitProc,accTable)    
-    anchorGenePosition(cdhitProc)
-    anchorGeneDistanceHeatmap(cdhitProc)
-    bacteriocinSpeciesHistogram(args.bacteriocins,accTable)
+    getTree(cdhitProc,args.rRNA)
+    #anchorGeneClusterHistogram(cdhitProc)
+    #bacteriocinSpeciesHeatmap(cdhitProc,accTable)
+   
+    #bacteriocinHeatmap(cdhitProc,accTable)    
+    #anchorGenePosition(cdhitProc)
+    #anchorGeneDistanceHeatmap(cdhitProc)
+    #bacteriocinSpeciesHistogram(args.bacteriocins,accTable)
     plt.show()
         
     
