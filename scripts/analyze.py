@@ -34,7 +34,7 @@ from collections import Counter
 from pandas import *
 
 bac_reg = re.compile(">(\d+.\d)")
-acc_reg = re.compile("([A-Z]+_\d+)")
+acc_reg = re.compile("([A-Z]+_\d+.\d)")
 cluster_id_reg = re.compile(">(\S+)")
 
 def truncate(speciesName):
@@ -377,28 +377,25 @@ def preprocessFasta(blastTab,fastaout):
             bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
             seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
             handle.write(seqstr)
-def getTree(cdhitProc,rrnaFile,ggTable):
-    record_dict = SeqIO.to_dict(SeqIO.parse(handle, "fasta"))
+def getTree(cdhitProc,rrnaFile):
+    record_dict = SeqIO.to_dict(SeqIO.parse(open(rrnaFile,'r'), "fasta"))
     rrnas = []
-    ggMap = GGAccession(ggtable)
     for cluster in cdhitProc.clusters:
         members = cluster.seqs
         for mem in members:
             #Obtain accession IDs from cdhitProc 
-            gg = acc_reg.findall(mem)[0]
+            acc = acc_reg.findall(mem)[0]
             try:
-                acc = ggMap.lookupGenbank(gg)
-                print "Accession id",acc
-                record = record_dict[gg]
-                record.id = acc
+                record = record_dict[acc]
                 rrnas.append(record)
-            except:
-                print "GG id not found",gg
+            except Exception as k:
+                print 'GG missing',k
+                
             #Obtain corresponding 16SRNAs
     rrnaOut = "selected16SrRNA"
     SeqIO.write(rrnas, rrnaOut, "fasta")
     #Run FastTree
-    ft = UnAlignedFastTree() 
+    ft = fasttree.UnAlignedFastTree(rrnaOut) 
     ft.align() #Run multiple sequence alignment and spit out aligned fasta file
     ft.run() #Run fasttree on multiple alignment and spit out newick tree
     ft.cleanUp() #Clean up!

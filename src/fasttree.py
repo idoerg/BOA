@@ -56,22 +56,25 @@ class UnAlignedFastTree(FastTree):
         #os.remove(self.accSeqs)
         os.remove(self.algnFile)
 
-        
-def ggRun(in16SRNA):#Running FastTree on gg 16SRNA data
-    basename,_ = os.path.splitext(in16SRNA)
-    ft = UnAlignedFastTree(in16SRNA)
+def ggRun(in16SRNA,ggFile):#Running FastTree on gg 16SRNA data
+    tmpFasta = "tmp%d.fasta"%os.getpid()
+    ggMap = GGAccession(ggFile)
+    ggMap.swapGG(in16SRNA,tmpFasta)
+    basename,_ = os.path.splitext(tmpFasta)
+    ft = UnAlignedFastTree(tmpFasta)
     ft.align() #Run multiple sequence alignment and spit out aligned fasta file
     ft.run() #Run fasttree on multiple alignment and spit out newick tree
     ft.cleanUp() #Clean up!
+    os.remove(tmpFasta)
     
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Runs fasttree on unaligned 16SRNA sequences from greengenes')
     parser.add_argument(\
-        '--16SRNA', type=str, nargs="+", required=False,
+        '--rRNA', type=str, required=False,
         help='FASTA files containing 16SRNA sequences')
     parser.add_argument(\
-        '--gg-table', type=str, nargs="+", required=False,
+        '--gg-table', type=str, required=False,
         help='A table that converts gg ids to accession ids')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
@@ -79,7 +82,7 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.test:
-        ggRun()
+        ggRun(args.rRNA,args.gg_table)
     else:
         del sys.argv[1:]
         import unittest

@@ -18,7 +18,7 @@ class ClustalW(object):
         cline = ClustalwCommandline(infile=self.input)
         print cline
         child = subprocess.Popen(str(cline),
-                                 stdout=subprocess.PIPE,
+                                 #stdout=subprocess.PIPE,
                                  shell=True)
         child.wait()
     def outputSTO(self):

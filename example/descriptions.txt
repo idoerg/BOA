@@ -1,0 +1,168 @@
+NC_003155
+NC_004719
+NC_011375
+Note: bacteriocin protoxin, streptolysin S family; Region: streptolysinS; TIGR03602
+Position: [569808:>569919](+)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [1017087:1017711](+)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [<1561331:1562669](-)
+Note: Type-A lantibiotic; Region: L_biotic_typeA; pfam04604
+Position: [1562953:1563097](-)
+NC_003923
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [299971:300550](-)
+Note: bacteriocin-associated integral membrane (putative immunity) protein; Region: bact_immun_7tm; TIGR01654
+Position: [1007244:>1007589](+)
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [1009536:1010139](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
+Position: [1909531:1910287](-)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [1910301:1910970](-)
+Note: LanC is the cyclase enzyme of the lanthionine synthetase. Lanthinoine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as precursor peptides and then post-translationally modified to contain thioether cross-links...; Region: LanC; cd04793
+Position: [1912933:1914052](-)
+Note: thiopeptide-type bacteriocin biosynthesis domain; Region: thiopep_ocin; TIGR03891
+Position: [1914194:1914953](-)
+Note: lantibiotic, gallidermin/nisin family; Region: lantibio_gallid; TIGR03731
+Position: [1917216:1917354](-)
+Note: lantibiotic, gallidermin/nisin family; Region: lantibio_gallid; TIGR03731
+Position: [1918096:1918234](-)
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [2344197:2344788](-)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [2596157:2596823](+)
+NC_013131
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [1409742:1410375](-)
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [1746117:1746687](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cd04434
+Position: [2823847:2824678](+)
+Note: bacteriocin biosynthesis cyclodehydratase domain; Region: cyclo_dehyd_2; TIGR03882
+Position: [4131797:>4132151](+)
+Note: bacteriocin biosynthesis cyclodehydratase domain; Region: cyclo_dehyd_2; TIGR03882
+Position: [<4133808:4134030](+)
+Note: bacteriocin biosynthesis cyclodehydratase domain; Region: cyclo_dehyd_2; TIGR03882
+Position: [4143959:4144433](+)
+Note: KEGG: sgr:SGR_4418  lantibiotic precursor
+Position: [4145776:4145974](-)
+Note: PFAM: Lanthionine synthetase C family protein; KEGG: sgr:SGR_4809  lantibiotic modifying enzyme
+Position: [4203863:4206902](+)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [<4205771:>4206065](+)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [<4206371:4206713](+)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [4472326:4473373](+)
+Note: thiopeptide-type bacteriocin biosynthesis domain; Region: thiopep_ocin; TIGR03891
+Position: [4473484:4474186](+)
+Note: KEGG: sgr:SGR_4418  lantibiotic precursor
+Position: [4757297:4757534](+)
+Note: bacteriocin biosynthesis cyclodehydratase domain; Region: cyclo_dehyd_2; TIGR03882
+Position: [4758870:4759263](-)
+Note: KEGG: sgr:SGR_4413  lantibiotic biosynthesis protein
+Position: [4762542:4763664](-)
+Note: PFAM: Lantibiotic dehydratase domain protein; KEGG: saq:Sare_2588 lantibiotic dehydratase domain- containing protein
+Position: [4763660:4766474](-)
+Note: bacteriocin biosynthesis cyclodehydratase domain; Region: cyclo_dehyd_2; TIGR03882
+Position: [4769343:4769847](-)
+Note: putative thiazole-containing bacteriocin maturation protein; Region: ocin_ThiF_like; TIGR03693
+Position: [<4770925:4772173](-)
+Note: bacteriocin biosynthesis cyclodehydratase domain; Region: cyclo_dehyd_2; TIGR03882
+Position: [<4771153:4771507](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [4810788:4811640](+)
+Note: type 2 lantibiotic biosynthesis protein LanM; Region: lanti_2_LanM; TIGR03897
+Position: [5051510:5054165](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [5051480:5054159](-)
+Note: PFAM: Linocin_M18 bacteriocin protein; KEGG: bbr:BB2479 bacteriocin
+Position: [5226067:5226916](-)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [8263284:8263899](-)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [8331086:8331755](-)
+Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
+Position: [8658232:8658589](+)
+NC_009142
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [1842644:1843169](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cd04434
+Position: [4424709:4425723](+)
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [4428973:4429528](+)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [4705953:4706907](+)
+Note: type 2 lantibiotic biosynthesis protein LanM; Region: lanti_2_LanM; TIGR03897
+Position: [4916972:4919735](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [4916951:>4918061](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cd04434
+Position: [5158632:5159568](-)
+Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
+Position: [<5401469:5401865](-)
+Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
+Position: [<5537406:5538075](+)
+NC_016894
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [170973:171642](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
+Position: [171679:172396](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutG family; Region: lanti_perm_MutG; TIGR03733
+Position: [172415:173132](+)
+Note: NHLM bacteriocin system ABC transporter, peptidase/ATP-binding protein; Region: NHLM_micro_ABC1; TIGR03796
+Position: [475744:477874](+)
+Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
+Position: [475747:476119](+)
+Note: NHLM bacteriocin system ABC transporter, ATP-binding protein; Region: NHLM_micro_ABC2; TIGR03797
+Position: [478000:480031](+)
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [686846:687401](+)
+Note: A sub-family of peptidase family C39. Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various...; Region: Peptidase_C39A; cd02549
+Position: [2118622:2119087](+)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [3467270:3467951](+)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [3892541:3893207](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
+Position: [3893239:>3893824](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutG family; Region: lanti_perm_MutG; TIGR03733
+Position: [3893997:3894699](+)
+Note: NHLM bacteriocin system ABC transporter, ATP-binding protein; Region: NHLM_micro_ABC2; TIGR03797
+Position: [3924657:3926652](-)
+Note: NHLM bacteriocin system ABC transporter, peptidase/ATP-binding protein; Region: NHLM_micro_ABC1; TIGR03796
+Position: [3926851:3928984](-)
+Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
+Position: [3928603:3928981](-)
+NC_016894
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [170973:171642](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
+Position: [171679:172396](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutG family; Region: lanti_perm_MutG; TIGR03733
+Position: [172415:173132](+)
+Note: NHLM bacteriocin system ABC transporter, peptidase/ATP-binding protein; Region: NHLM_micro_ABC1; TIGR03796
+Position: [475744:477874](+)
+Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
+Position: [475747:476119](+)
+Note: NHLM bacteriocin system ABC transporter, ATP-binding protein; Region: NHLM_micro_ABC2; TIGR03797
+Position: [478000:480031](+)
+Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
+Position: [686846:687401](+)
+Note: A sub-family of peptidase family C39. Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various...; Region: Peptidase_C39A; cd02549
+Position: [2118622:2119087](+)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [3467270:3467951](+)
+Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
+Position: [3892541:3893207](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
+Position: [3893239:>3893824](+)
+Note: lantibiotic protection ABC transporter permease subunit, MutG family; Region: lanti_perm_MutG; TIGR03733
+Position: [3893997:3894699](+)
+Note: NHLM bacteriocin system ABC transporter, ATP-binding protein; Region: NHLM_micro_ABC2; TIGR03797
+Position: [3924657:3926652](-)
+Note: NHLM bacteriocin system ABC transporter, peptidase/ATP-binding protein; Region: NHLM_micro_ABC1; TIGR03796
+Position: [3926851:3928984](-)
+Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
+Position: [3928603:3928981](-)
