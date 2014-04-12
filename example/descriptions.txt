@@ -1,6 +1,8 @@
-NC_003155
-NC_004719
-NC_011375
+Streptomyces avermitilis MA-4680
+
+Streptomyces avermitilis MA-4680
+
+Streptococcus pyogenes NZ131
 Note: bacteriocin protoxin, streptolysin S family; Region: streptolysinS; TIGR03602
 Position: [569808:>569919](+)
 Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
@@ -9,7 +11,8 @@ Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine syntheta
 Position: [<1561331:1562669](-)
 Note: Type-A lantibiotic; Region: L_biotic_typeA; pfam04604
 Position: [1562953:1563097](-)
-NC_003923
+
+Staphylococcus aureus subsp. aureus MW2
 Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
 Position: [299971:300550](-)
 Note: bacteriocin-associated integral membrane (putative immunity) protein; Region: bact_immun_7tm; TIGR01654
@@ -32,7 +35,8 @@ Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region
 Position: [2344197:2344788](-)
 Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
 Position: [2596157:2596823](+)
-NC_013131
+
+Catenulispora acidiphila DSM 44928
 Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
 Position: [1409742:1410375](-)
 Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
@@ -85,7 +89,8 @@ Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subu
 Position: [8331086:8331755](-)
 Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
 Position: [8658232:8658589](+)
-NC_009142
+
+Saccharopolyspora erythraea NRRL 2338
 Note: putative bacteriocin export ABC transporter, lactococcin 972 group; Region: L_ocin_972_ABC; TIGR03608
 Position: [1842644:1843169](-)
 Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cd04434
@@ -104,7 +109,8 @@ Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases
 Position: [<5401469:5401865](-)
 Note: LanC-like proteins. LanC is the cyclase enzyme of the lanthionine synthetase. Lanthionine is a lantibiotic, a unique class of peptide antibiotics. They are ribosomally synthesized as a precursor peptide and then post-translationally modified to contain...; Region: LanC_like; cl04955
 Position: [<5537406:5538075](+)
-NC_016894
+
+Acetobacterium woodii DSM 1030
 Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
 Position: [170973:171642](+)
 Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
@@ -135,7 +141,8 @@ Note: NHLM bacteriocin system ABC transporter, peptidase/ATP-binding protein; Re
 Position: [3926851:3928984](-)
 Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
 Position: [3928603:3928981](-)
-NC_016894
+
+Acetobacterium woodii DSM 1030
 Note: gallidermin-class lantibiotic protection ABC transporter, ATP-binding subunit; Region: galliderm_ABC; TIGR03740
 Position: [170973:171642](+)
 Note: lantibiotic protection ABC transporter permease subunit, MutE/EpiE family; Region: lanti_perm_MutE; TIGR03732
@@ -166,3 +173,4 @@ Note: NHLM bacteriocin system ABC transporter, peptidase/ATP-binding protein; Re
 Position: [3926851:3928984](-)
 Note: Peptidase family C39 mostly contains bacteriocin-processing endopeptidases from bacteria. The cysteine peptidases in family C39 cleave the &quot;double-glycine&quot; leader peptides from the precursors of various bacteriocins (mostly non-lantibiotic); Region: Peptidase_C39_like; cl00296
 Position: [3928603:3928981](-)
+

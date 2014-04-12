@@ -93,7 +93,7 @@ def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
     heatMap(genomeHeats,"Bacteriocins vs Species Genome Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
-    heatMap(plasmidHeats,"Bacteriocins vs Species Plasmid Heatmap",
+    heatMap(plasmidHeats,"Bacteriocins vs Specieso Plasmid Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
     
