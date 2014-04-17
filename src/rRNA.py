@@ -25,12 +25,16 @@ def parse16SRNA(organism,genbank_file,out):
                         if strand=="+":
                             seq = seq_record.seq
                             seq = seq[st:end]
-                            out.write(">%s\n%s\n"%(organism,str(seq)))
+                            if len(seq)>0:
+                                out.write(">%s\n%s\n"%(organism,str(seq)))
+                                seq_set.add(organism)
                         else:
                             seq = seq_record.reverse_complement().seq
                             seq = seq[st:end]
-                            out.write(">%s\n%s\n"%(organism,str(seq)))
-                        seq_set.add(organism)
+                            print st,end
+                            if len(seq)>0:
+                                out.write(">%s\n%s\n"%(organism,str(seq)))
+                                seq_set.add(organism)
                 except KeyError as k:                    
                     continue
     except Exception as e:

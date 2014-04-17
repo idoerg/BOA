@@ -1,9 +1,22 @@
+
+
+
 import os
 import sys
 import site
 import re
 import numpy as np
 import numpy.random
+
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+site.addsitedir(os.path.join(base_path, 'src'))
+import cdhit
+import fasttree
+from fasttree import FastTree
+from fasttree import UnAlignedFastTree
+
+from  acc2species import AccessionToSpecies
+from accessionMap import GGAccession
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -19,27 +32,21 @@ import numpy
 import pylab
 import argparse
 import cPickle
-from collections import defaultdict
 from Bio import SeqIO
 from Bio import Phylo
 
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-site.addsitedir(os.path.join(base_path, 'src'))
-import cdhit
-import fasttree
-from  acc2species import AccessionToSpecies
-from accessionMap import GGAccession
 
+from collections import defaultdict
 from collections import Counter
 from pandas import *
 
+
 bac_reg = re.compile(">(\d+.\d)")
-acc_reg = re.compile("([A-Z]+_\d+.\d)")
+acc_reg = re.compile("([A-Z]+_\d+)")
 cluster_id_reg = re.compile(">(\S+)")
 
 def truncate(speciesName):
-    toks = speciesName.split(' ')
-    
+    toks = speciesName.split(' ')    
     return '_'.join(toks[:2])
 
 def produce_tree(treeFile):
@@ -49,7 +56,28 @@ def produce_tree(treeFile):
     print type(tree_f)
     return tree_f
 
-def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False,treeFile=""):
+""" Lookup species names in tree """
+def lookup_by_names(tree):
+    names = {}
+    for clade in tree.get_terminals():
+        if clade.name:
+            if clade.name in names:
+                raise ValueError("Duplicate key: %s" % clade.name)
+            names[clade.name] = clade
+    return names
+        
+""" Remove all leaves that aren't contained in names """
+def prune_tree(tree,target_species):
+    leafs = tree.get_terminals()
+    all_species = set(map(str,leafs))
+    target_species = set(target_species)
+    outlier_species = all_species.difference(target_species)
+    name_dict = lookup_by_names(tree)
+    for outlier in outlier_species:
+        tree.prune(name_dict[outlier])
+    return tree
+
+def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False):
     scoremap = DataFrame(heats).T.fillna(0)
     xlabels = list(scoremap.columns)
     ylabels = list(scoremap.index)
@@ -58,6 +86,94 @@ def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False,treeFile=""):
     ypos = np.arange(len(ylabels))+0.5
     if showX: pylab.xticks(xpos, xlabels,rotation=90)
     if showY: pylab.yticks(ypos, ylabels)
+    heatmap = plt.pcolor(scoremap,norm=LogNorm())
+    plt.colorbar()
+    plt.title(title,fontsize=22)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xlim(0,len(xlabels))
+    plt.ylim(0,len(ylabels))
+    fig.subplots_adjust(bottom=0.6)
+    
+""" Reorders heatmap according to tree ordering """
+def reorderHeatMap(heats,tree):
+    leaves = tree.get_terminals()
+    neworder = map(str,leaves) #New ordering of species names
+    #print neworder
+    #Remove species not contained in tree
+    inTree = map(str,list(
+                  set(map(str,heats.index)).intersection(set(neworder))
+                  ))
+    notInTree = map(str,list(set(map(str,heats.index)).difference(set(neworder))))
+    #print notInTree 
+    heats=heats.drop(notInTree)
+    newindex = sorted(heats.index, key=lambda x: neworder.index(x))[::-1]
+    heats = heats.reindex(newindex)
+    return heats
+    
+""" Makes a heatmap with a phylotree for axes """
+def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
+    scoremap = DataFrame(heats).T.fillna(0)
+    xlabels = list(scoremap.columns)
+    ylabels = list(scoremap.index)
+    #if showX: pylab.xticks(xpos, xlabels,rotation=90)
+    #if showY: pylab.yticks(ypos, ylabels)
+    fig = plt.figure()
+    tree=Phylo.read(treeFile,"newick")
+    tree = prune_tree(tree,ylabels)
+    tree.ladderize()
+    scoremap = reorderHeatMap(scoremap,tree)
+    
+    phyloLabels = zip(map(str,tree.get_terminals()),scoremap.index)
+    
+    gs=gridspec.GridSpec(1, 2,hspace=0,wspace=0)
+    
+    phyl_ax=plt.subplot(gs[0])
+    
+    Phylo.draw(tree,axes=phyl_ax,do_show=False)
+    plt.rcParams['font.size']=8
+    xlabels = list(scoremap.columns)
+    ylabels = list(scoremap.index)
+    xpos = np.arange(len(xlabels))+0.5
+    ypos = np.arange(len(ylabels))+0.5
+    
+    ht_ax=plt.subplot(gs[1])
+    ht_ax.set_xlim(0,len(xlabels))
+    ht_ax.set_ylim(0,len(ylabels))
+    plt.setp(phyl_ax.get_xticklabels(),visible=False)
+    plt.setp(phyl_ax.get_yticklabels(),visible=False)
+    plt.setp(ht_ax.get_xticklabels(),visible=True)
+    plt.setp(ht_ax.get_yticklabels(),visible=False)
+    plt.setp(phyl_ax.get_xticklines(),visible=True)
+    plt.setp(phyl_ax.get_yticklines(),visible=True)
+    plt.setp(ht_ax.get_xticklines(),visible=True)
+    plt.setp(ht_ax.get_yticklines(),visible=True)
+    ht_ax.set_xlim(0,len(xlabel))
+    ht_ax.set_ylim(0,len(ylabel))
+    ht_ax.xaxis.set_ticks(xpos)
+    ht_ax.yaxis.set_ticks(ypos)
+    ht_ax.set_xticklabels(xlabels,rotation=45,fontsize=10,alpha=1.0)
+    ht_ax.set_yticklabels(ylabels,fontsize=10,alpha=1.0)
+    ht_ax.xaxis.set_tick_params(pad=4)
+        
+    pylab.yticks(ypos, ylabels)
+    for tick in ht_ax.xaxis.get_major_ticks():
+        tick.label1.set_horizontalalignment('right')
+        
+    heatmap = plt.pcolor(scoremap,norm=LogNorm())
+    plt.grid()
+    plt.colorbar()
+    #print plt.rcParams.keys()
+    """
+    plt.colorbar()
+    plt.title(title,fontsize=22)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xlim(0,len(xlabels))
+    plt.ylim(0,len(ylabels))
+    """
+     
+    """
     if treeFile!="":
         tree=Phylo.read(treeFile,"newick")
         Phylo.draw(tree, axes=phyl_ax, do_show=False)
@@ -74,9 +190,9 @@ def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False,treeFile=""):
         plt.xlim(0,len(xlabels))
         plt.ylim(0,len(ylabels))
         fig.subplots_adjust(bottom=0.6)
-        
+    """
 """Heatmap of bacteriocins versus species"""
-def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
+def bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable):
     genomeHeats = defaultdict( Counter )
     plasmidHeats = defaultdict( Counter )
     for cluster in cdhitProc.clusters:
@@ -87,13 +203,13 @@ def bacteriocinSpeciesHeatmap(cdhitProc,accTable):
             seqType,speciesName = accTable.lookUp(accID)
             speciesName = truncate(speciesName)
             if seqType=="plasmid":
-                plasmidHeats[bacID][speciesName] += 1
+                plasmidHeats[speciesName][bacID] += 1
             else:
-                genomeHeats[bacID][speciesName] += 1
-    heatMap(genomeHeats,"Bacteriocins vs Species Genome Heatmap",
+                genomeHeats[speciesName][bacID] += 1
+    heatMapTree(genomeHeats,tree,"Bacteriocins vs Species Genome Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
-    heatMap(plasmidHeats,"Bacteriocins vs Specieso Plasmid Heatmap",
+    heatMapTree(plasmidHeats,tree,"Bacteriocins vs Specieso Plasmid Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
     
@@ -378,28 +494,36 @@ def preprocessFasta(blastTab,fastaout):
             seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
             handle.write(seqstr)
 def getTree(cdhitProc,rrnaFile):
+    
     record_dict = SeqIO.to_dict(SeqIO.parse(open(rrnaFile,'r'), "fasta"))
     rrnas = []
+    seen = set()
     for cluster in cdhitProc.clusters:
         members = cluster.seqs
         for mem in members:
             #Obtain accession IDs from cdhitProc 
             acc = acc_reg.findall(mem)[0]
             try:
-                record = record_dict[acc]
-                rrnas.append(record)
+                if acc not in seen:
+                    record = record_dict[acc]
+                    rrnas.append(record)
+                    seen.add(acc)
             except Exception as k:
-                print 'GG missing',k
+                print 'Accession missing',k
                 
             #Obtain corresponding 16SRNAs
-    rrnaOut = "selected16SrRNA"
-    SeqIO.write(rrnas, rrnaOut, "fasta")
+    #print "Number of rRNAs",len(rrnas)
+    basename,_ = os.path.splitext(rrnaFile)
+    tmp_rrna = "%s_filtered.fasta"%basename
+    tree = "%s_filtered.tree"%basename
+    SeqIO.write(rrnas, open(tmp_rrna,'w'), "fasta")
+    
     #Run FastTree
-    ft = fasttree.UnAlignedFastTree(rrnaOut) 
+    ft = UnAlignedFastTree(tmp_rrna,tree)
     ft.align() #Run multiple sequence alignment and spit out aligned fasta file
     ft.run() #Run fasttree on multiple alignment and spit out newick tree
     ft.cleanUp() #Clean up!
-    pass
+    return tree
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -413,6 +537,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--anchor-genes', type=str, required=False,
         help='Anchor genes from genbank files in blast format')
+    parser.add_argument(\
+        '--tree', type=str, required=False,default=None,
+        help='Newick tree')
     parser.add_argument(\
         '--rRNA', type=str, required=False,
         help='16SRNA sequences')
@@ -438,11 +565,14 @@ if __name__=="__main__":
         
     getFASTA(cluster_file,cdhitProc,outfasta)#writes clusters to FASTA
     print "Before filtering",len(cdhitProc)
-    cdhitProc.filterSize(60)  #filter out everything less than n
+    cdhitProc.filterSize(50)  #filter out everything less than n
     print "After filtering",len(cdhitProc)
-    getTree(cdhitProc,args.rRNA)
+    if args.tree == None:
+        tree = getTree(cdhitProc,args.rRNA)
+    else:
+        tree = args.tree
     #anchorGeneClusterHistogram(cdhitProc)
-    #bacteriocinSpeciesHeatmap(cdhitProc,accTable)
+    bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable)
    
     #bacteriocinHeatmap(cdhitProc,accTable)    
     #anchorGenePosition(cdhitProc)

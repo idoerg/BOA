@@ -19,8 +19,11 @@ import string
 import numpy
 import re
 import subprocess
+import cdhit
 from accessionMap import GGAccession
 from clustalw import ClustalW
+from  acc2species import AccessionToSpecies
+
 
 
 class FastTree(object):
@@ -33,11 +36,11 @@ class FastTree(object):
         proc.wait()
     
 class UnAlignedFastTree(FastTree):
-    def __init__(self,rawSeqs):
+    def __init__(self,rawSeqs,treeFile):
         self.rawSeqs=rawSeqs
         basename,_ = os.path.splitext(rawSeqs)
         algnFile = "%s.align"%basename
-        treeFile = "%s.tree"%basename
+        #treeFile = "%s.tree"%basename
         #self.accSeqs = "%s.acc"%basename
         super(UnAlignedFastTree,self).__init__(algnFile,treeFile)
     """ Run fasta tree """
@@ -56,33 +59,123 @@ class UnAlignedFastTree(FastTree):
         #os.remove(self.accSeqs)
         os.remove(self.algnFile)
 
-def ggRun(in16SRNA,ggFile):#Running FastTree on gg 16SRNA data
-    tmpFasta = "tmp%d.fasta"%os.getpid()
-    ggMap = GGAccession(ggFile)
-    ggMap.swapGG(in16SRNA,tmpFasta)
-    basename,_ = os.path.splitext(tmpFasta)
-    ft = UnAlignedFastTree(tmpFasta)
+acc_reg = re.compile("([A-Z]+_\d+)")
+def truncate(speciesName):
+    toks = speciesName.split(' ')    
+    return '_'.join(toks[:2])
+
+def removeDuplicates(items):
+    uniqueDict = {tuple(x[-5:-1]):x for x in items}
+    return uniqueDict.values()
+
+"""
+Turns blast tabbed output into a fasta file
+"""
+def preprocessFasta(blastTab,fastaout):
+    items = []
+    with open(blastTab,'r') as handle:
+        for ln in handle:
+            ln = ln.rstrip()
+            toks = ln.split('\t')
+            assert len(toks)>=10
+            toks = [tok.replace(' ','') for tok in toks] #remove white space
+            items.append(tuple(toks))
+    items = removeDuplicates(items)
+    with open(fastaout,'w') as handle:
+        for item in items:
+            bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
+            seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
+            handle.write(seqstr)
+"""
+Replaces all accession ids with species names
+and matches 16SRNA sequences with species
+"""
+def accTospeciesSwap(cdhitProc, #Clustering object
+                     rrnaFasta, #Fasta from 16SRNA
+                     accTable,
+                     fastaout):  
+    rrna_dict = SeqIO.to_dict(SeqIO.parse(rrnaFasta,'fasta'))
+    outHandle = open(fastaout,'w')
+    seen = set()
+    for cluster in cdhitProc.clusters:
+        members = cluster.seqs
+        for mem in members:
+            accID = acc_reg.findall(mem)[0]
+            seqType,speciesName = accTable.lookUp(accID)
+            speciesName = truncate(speciesName)
+            if speciesName!=None and speciesName not in seen:
+                try:
+                    rrnaRecord = rrna_dict[accID]
+                    rrnaRecord.id = speciesName
+                    outHandle.write(rrnaRecord.format('fasta'))
+                    seen.add(speciesName)
+                    print "Printed record",speciesName
+                except KeyError as k:
+                    print "16SRNA not found",k
+            else:
+                print "Already in set",speciesName
+    outHandle.close()
+    
+def go(refTabs,
+       in16SRNA,
+       treeFile,
+       accTable,
+       threshold):
+    basename,_ = os.path.splitext(refTabs)
+    refFasta = "%s_ref.fasta"%basename
+    clrFasta = "%s_clr.fasta"%basename
+    filtered16SRNA = "%s_16SRNA.fasta"%basename
+    
+    preprocessFasta(refTabs,refFasta)
+    cdhitProc = cdhit.CDHit(refFasta,clrFasta,0.7)
+    cdhitProc.run()
+    cdhitProc.parseClusters()
+    cdhitProc.filterSize(threshold)     
+    
+    accTospeciesSwap(cdhitProc,
+                     in16SRNA,
+                     accTable,
+                     filtered16SRNA)
+    ft = UnAlignedFastTree(filtered16SRNA,treeFile)
     ft.align() #Run multiple sequence alignment and spit out aligned fasta file
     ft.run() #Run fasttree on multiple alignment and spit out newick tree
     ft.cleanUp() #Clean up!
-    os.remove(tmpFasta)
+    #os.remove(clrFasta)
+    #os.remove(refFile)
+    #os.remove(filtered16SRNA)
     
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Runs fasttree on unaligned 16SRNA sequences from greengenes')
     parser.add_argument(\
+        '--blast-tab', type=str, required=False,
+        help='Blast output')
+    parser.add_argument(\
+        '--accession-table', type=str, required=False,
+        help='A table that maps accession ids to species')
+    parser.add_argument(\
         '--rRNA', type=str, required=False,
         help='FASTA files containing 16SRNA sequences')
     parser.add_argument(\
-        '--gg-table', type=str, required=False,
-        help='A table that converts gg ids to accession ids')
+        '--tree', type=str, required=False,
+        help='Output newick tree')
+    parser.add_argument(\
+        '--cluster-threshold', type=int, required=False, default=60,
+        help='Threshold for filtering clusters by size')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
     args = parser.parse_args()
 
     if not args.test:
-        ggRun(args.rRNA,args.gg_table)
+        accTable = AccessionToSpecies(args.accession_table)
+
+        go(args.blast_tab,
+           args.rRNA,
+           args.tree,
+           accTable,
+           args.cluster_threshold)
+        
     else:
         del sys.argv[1:]
         import unittest
