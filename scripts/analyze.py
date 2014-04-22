@@ -136,6 +136,7 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     ylabels = list(scoremap.index)
     xpos = np.arange(len(xlabels))+0.5
     ypos = np.arange(len(ylabels))+0.5
+    plt.grid()
     
     ht_ax=plt.subplot(gs[1])
     ht_ax.set_xlim(0,len(xlabels))
@@ -152,10 +153,10 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     ht_ax.set_ylim(0,len(ylabel))
     ht_ax.xaxis.set_ticks(xpos)
     ht_ax.yaxis.set_ticks(ypos)
-    ht_ax.set_xticklabels(xlabels,rotation=45,fontsize=10,alpha=1.0)
+    ht_ax.set_xticklabels(xlabels,rotation=45,fontsize=10)
     ht_ax.set_yticklabels(ylabels,fontsize=10,alpha=1.0)
     ht_ax.xaxis.set_tick_params(pad=4)
-        
+    
     pylab.yticks(ypos, ylabels)
     for tick in ht_ax.xaxis.get_major_ticks():
         tick.label1.set_horizontalalignment('right')

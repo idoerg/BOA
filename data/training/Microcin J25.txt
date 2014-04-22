@@ -1,0 +1,7 @@
+#Organism: AF061787.1, Escherichia coli plasmid pTUC100
+#Reference: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC93700
+#locus_tag label name
+mcjA toxin
+mcjB modifier
+mcjC modifier
+mcjD transport

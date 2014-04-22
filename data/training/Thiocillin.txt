@@ -1,0 +1,19 @@
+#Organism: NC_004722.1 Bacillus cereus ATCC 14579
+#Reference: http://www.pnas.org/content/106/8/2549.full
+#locus_tag label name
+BC5071 transport tclX
+BC5072 transport tclW
+BC5075 immunity tclT
+BC5076 modifier tclS
+BC5078 immunity tclQ
+BC5079 modifier tclP
+BC5080 modifier tclO
+BC5081 modifier tclN
+BC5083 modifier tclL
+BC5084 modifier tclK
+BC5085 modifier tclJ
+BC5087 toxin tclH
+BC5088 toxin tclG
+BC5089 toxin tclF
+BC5090 toxin tclE
+BC5091 modifier tclD

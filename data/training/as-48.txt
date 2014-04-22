@@ -1,0 +1,13 @@
+#Organism: Y12234.1 (as-48A-D1) and AJ438950.1 (as-48E - H), Enterococcus faecalis subsp. liquefaciens plasmid submitted as separate sequences)
+#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf
+#locus_tag label name
+as-48 toxin
+as-48B modifier
+as-48C transport
+as-48C1 transport
+as-48D transport
+as-48D1 immunity
+as-48E transport
+as-48F transport
+as-48G transport
+as-48H transport
