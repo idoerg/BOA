@@ -1,14 +1,1 @@
-#Organism: NC_017486.1 Lactococcus lactis subsp. Lactis CV56
-#Reference: http://link.springer.com/article/10.1007%2Fs00018-007-7171-2
-#locus_tag label name
-CVCAS_0587 toxin nisA
-CVCAS_0588 modifier nisB
-CVCAS_0589 transport nisT
-CVCAS_0590 modifier nisC
-CVCAS_0591 immunity nisI
-CVCAS_0592 modifier nisP
-CVCAS_0593 regulator nisR
-CVCAS_0594 regulator nisK
-CVCAS_0595 immunity nisF
-CVCAS_0596 immunity nisF
-CVCAS_0597 immunity nisG
+#Organism: NC_017486.1 Lactococcus lactis subsp. Lactis CV56#Reference: http://link.springer.com/article/10.1007%2Fs00018-007-7171-2#locus_tag label nameCVCAS_0587 toxin nisACVCAS_0588 modifier nisBCVCAS_0589 transport nisTCVCAS_0590 modifier nisCCVCAS_0591 immunity nisICVCAS_0592 modifier nisPCVCAS_0593 regulator nisRCVCAS_0594 regulator nisKCVCAS_0595 immunity nisFCVCAS_0596 immunity nisFCVCAS_0597 immunity nisG
