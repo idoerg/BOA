@@ -8,84 +8,144 @@ import argparse
 import os, site, sys
 import itertools
 from Bio import SeqIO
+from Bio import Entrez
 
 """ Stores labels as keys and descriptions as values """
-accession_reg = re.compile("([A-Z]+_?\d+.\d)")
+accession_reg = re.compile("([A-Z]+_?\d+)")
+gi_reg = re.compile("GI:\s+(\d+)")
+
 class Labels(object):
     def __init__(self,labelfile):
         self.labels = defaultdict( dict )
         self.parseLabels(labelfile)
+    def getKeys(self):#returns filename basically
+        return self.labels.keys()
     def numSpecies(self):
         return len(self.labels)
     def getTrainingText(self):
         L =  self.labels.values()
-        print L
         K = [l.items() for l in L]
-        print K
         return list(itertools.chain(*K))
+    def __str__(self):
+        s = ""
+        for k,v in self.labels.iteritems():
+            s+= "Organism:%s\n%s\n"%(k,str(v))
+             
+        return s
     def parseLabels(self,labelfile):
         with open(labelfile,'r') as handle:            
-            headerCnt = 0
             for ln in handle:
                 ln = ln.rstrip()
-                if ln[0]=='#' and headerCnt==0:
-                    acc = accession_reg.findall(ln)
-                    key = accession_reg.findall(ln)[0]
-                    if key not in self.labels:
-                        self.labels[key] = {}
-                    else:
-                        print "Already in labels!!!"
-                    headerCnt+=1
-                elif ln[0]=="#": continue
+                if ln[0]=='#':
+                    #if "GI:" in ln:
+                    if "Organism:" in ln:
+                        key = accession_reg.findall(ln)[0]
+                        if key not in self.labels:
+                            self.labels[key] = {}
+                        else:
+                            print "Already in labels!!!"                        
                 else:
-                    headerCnt=0
-                    toks = re.split("\S+",ln)
+                    toks = re.split("\s+",ln)
                     locus,label = toks[0],toks[1]
+                    #print locus,label
                     #Each label has a dictionary
                     #locus:(label, description)                    
-                    self.labels[key]= {locus:(label,"")}    
+                    self.labels[key][locus]=(label,"")
+                    #print key,self.labels[key]
+    """ Look for descriptive fields """
+    def getDescription(self,feature):
+        description = ''
+        try:
+            description += " "+feature.qualifiers["note"][0]
+        except KeyError as k:
+            pass
+        try:
+            description += " "+feature.qualifiers["function"][0]
+        except KeyError as k:
+            pass
+        try:
+            description += " "+feature.qualifiers["product"][0]
+        except KeyError as k:
+            pass
+        return description
+    """ Retreive protein descriptions via Entrez """
+    def entrezProteinDescription(self,protid):
+        handle = Entrez.efetch(db="nucleotide", 
+                               id=protid, rettype="gb", retmode="text")
+        description = ""
+        seq_record = SeqIO.read(handle, "genbank")
+        
+        for feature in seq_record.features:
+            description+=" "+self.getDescription(feature)
+        return description
+        
     """Parses genbank record"""
     def parseRecord(self,seq_record):
             acc = seq_record.annotations['accessions'][0]
+            #print acc,self.labels[acc].keys()
             for feature in seq_record.features:
-                try:                         
-                    locus = feature.qualifiers["locus_tag"][0]
-                    note = feature.qualifiers["note"][0]
-                    if locus=="Spy49_0568": print locus
-                    if locus in self.labels[acc]:
-                        label,description = self.labels[acc][locus]
-                        description += note
-                        self.labels[acc]={[locus]:(label,description)}
+                try:
+                    
+                    locus = None                   
+                    if "locus_tag" in feature.qualifiers:
+                        locus = feature.qualifiers["locus_tag"][0]
+                        
+                    elif "gene" in feature.qualifiers:
+                        locus = feature.qualifiers["gene"][0]
                     else:
-                        description = note
-                        self.labels[acc]={[locus]:(label,description)}
-                    print locus,label,description
+                        continue
+                    if locus !=None and locus in self.labels[acc]:
+                        note = self.getDescription(feature)
+                        #print feature
+                        label,description = self.labels[acc][locus]
+                        if "protein_id" in feature.qualifiers:
+                            protid = feature.qualifiers["protein_id"][0]
+                            description+=" "+self.entrezProteinDescription(protid)
+                        
+                        description += " "+note
+                        self.labels[acc][locus]=(label,description)
+                        #print locus,label,description
                 except KeyError as k:
-                    #print "Exception",k                    
+                    print "Exception",k                    
                     continue
     "Parses genbank file"
-    def parseGenbank(self,genbank_file):
+    def parseGenbank(self,handle):
         try:
-            seq_record = SeqIO.read(open(genbank_file), "genbank")
+            seq_record = SeqIO.read(handle, "genbank")
             self.parseRecord(seq_record)  
         except Exception as e:
-            print "Exception at",genbank_file,e
+            print "Exception at",e
 
 """ Create a labels object """
-def setup(rootdir,labels):
+"""
+def setup(rootdir,labelFile):
     print rootdir
-    labs = Labels(labels)
+    labs = Labels(labelFile)
     #outHandle = open(out,'w')
     for root, subFolders, files in os.walk(rootdir):
         for fname in files:
             genome_files = []
             organism,ext = os.path.splitext(os.path.basename(fname))
             if ext==".gbk":
-                
                 absfile=os.path.join(root,fname)
                 print absfile
                 labs.parseGenbank(absfile)
     return labs
+"""
+def setup(labelFile):
+    labs = Labels(labelFile)
+    Entrez.email = "mortonjt@miamioh.edu"
+    for key in labs.getKeys():
+        handle = Entrez.efetch(db="nucleotide", 
+                               id=key, rettype="gbwithparts", retmode="text")
+        #if "NC_011375" in key: 
+        #    print(handle.read())
+        #print(handle.read())
+        labs.parseGenbank(handle)
+    print labs
+    return labs
+
+
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -101,8 +161,9 @@ if __name__=="__main__":
         help='Run the unittests')
     args = parser.parse_args()
     if not args.test:
-        root,labels,out = args.root_dir,args.training_labels,args.output_file
-        setup(root,labels,out)
+        labels = args.training_labels
+        #root,labels,out = args.root_dir,args.training_labels,args.output_file
+        setup(labels)
     else:
         del sys.argv[1:]
         import unittest
