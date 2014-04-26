@@ -12,9 +12,9 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 site.addsitedir(os.path.join(base_path, 'src'))
 import cdhit
 import fasttree
+import hypertree
 from fasttree import FastTree
 from fasttree import UnAlignedFastTree
-
 from  acc2species import AccessionToSpecies
 from accessionMap import GGAccession
 
@@ -110,7 +110,12 @@ def reorderHeatMap(heats,tree):
     newindex = sorted(heats.index, key=lambda x: neworder.index(x))[::-1]
     heats = heats.reindex(newindex)
     return heats
-    
+def normalizeTree(treeFile):
+    h = hypertree.HyperTree(treeFile,10,0.9)
+    tmpFile = "%s.%d"%(treeFile,os.getpid())
+    open(tmpFile,'w').write(str(h))
+    os.rename(tmpFile,treeFile)
+        
 """ Makes a heatmap with a phylotree for axes """
 def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     scoremap = DataFrame(heats).T.fillna(0)
@@ -119,6 +124,7 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     #if showX: pylab.xticks(xpos, xlabels,rotation=90)
     #if showY: pylab.yticks(ypos, ylabels)
     fig = plt.figure()
+    normalizeTree(treeFile)
     tree=Phylo.read(treeFile,"newick")
     tree = prune_tree(tree,ylabels)
     tree.ladderize()
@@ -136,7 +142,7 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     ylabels = list(scoremap.index)
     xpos = np.arange(len(xlabels))+0.5
     ypos = np.arange(len(ylabels))+0.5
-    plt.grid()
+    #plt.grid()
     
     ht_ax=plt.subplot(gs[1])
     ht_ax.set_xlim(0,len(xlabels))
@@ -162,7 +168,7 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
         tick.label1.set_horizontalalignment('right')
         
     heatmap = plt.pcolor(scoremap,norm=LogNorm())
-    plt.grid()
+    #plt.grid()
     plt.colorbar()
     #print plt.rcParams.keys()
     """
@@ -210,7 +216,7 @@ def bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable):
     heatMapTree(genomeHeats,tree,"Bacteriocins vs Species Genome Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
-    heatMapTree(plasmidHeats,tree,"Bacteriocins vs Specieso Plasmid Heatmap",
+    heatMapTree(plasmidHeats,tree,"Bacteriocins vs Species Plasmid Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
     
