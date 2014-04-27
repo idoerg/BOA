@@ -131,17 +131,18 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     scoremap = reorderHeatMap(scoremap,tree)
     
     phyloLabels = zip(map(str,tree.get_terminals()),scoremap.index)
-    
-    gs=gridspec.GridSpec(1, 2,hspace=0,wspace=0)
+    gs=gridspec.GridSpec(1, 2,
+                         wspace=0)
     
     phyl_ax=plt.subplot(gs[0])
     
     Phylo.draw(tree,axes=phyl_ax,do_show=False)
-    plt.rcParams['font.size']=8
+    plt.rcParams['font.size']=12
     xlabels = list(scoremap.columns)
     ylabels = list(scoremap.index)
-    xpos = np.arange(len(xlabels))+0.5
-    ypos = np.arange(len(ylabels))+0.5
+    print ylabels
+    xpos = np.arange(len(xlabels))
+    ypos = np.arange(len(ylabels)+1)
     #plt.grid()
     
     ht_ax=plt.subplot(gs[1])
@@ -157,18 +158,20 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     plt.setp(ht_ax.get_yticklines(),visible=True)
     ht_ax.set_xlim(0,len(xlabel))
     ht_ax.set_ylim(0,len(ylabel))
-    ht_ax.xaxis.set_ticks(xpos)
+    ht_ax.xaxis.set_ticks(xpos+0.5)
     ht_ax.yaxis.set_ticks(ypos)
     ht_ax.set_xticklabels(xlabels,rotation=45,fontsize=10)
     ht_ax.set_yticklabels(ylabels,fontsize=10,alpha=1.0)
     ht_ax.xaxis.set_tick_params(pad=4)
+    ht_ax.yaxis.set_tick_params(pad=4)
     
     pylab.yticks(ypos, ylabels)
     for tick in ht_ax.xaxis.get_major_ticks():
         tick.label1.set_horizontalalignment('right')
+
         
     heatmap = plt.pcolor(scoremap,norm=LogNorm())
-    #plt.grid()
+    plt.grid()
     plt.colorbar()
     #print plt.rcParams.keys()
     """
@@ -213,9 +216,9 @@ def bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable):
                 plasmidHeats[speciesName][bacID] += 1
             else:
                 genomeHeats[speciesName][bacID] += 1
-    heatMapTree(genomeHeats,tree,"Bacteriocins vs Species Genome Heatmap",
-            xlabel='Species',ylabel='Bacteriocin ID',
-            showX=True,showY=True)
+    #heatMapTree(genomeHeats,tree,"Bacteriocins vs Species Genome Heatmap",
+    #        xlabel='Species',ylabel='Bacteriocin ID',
+    #        showX=True,showY=True)
     heatMapTree(plasmidHeats,tree,"Bacteriocins vs Species Plasmid Heatmap",
             xlabel='Species',ylabel='Bacteriocin ID',
             showX=True,showY=True)
