@@ -9,11 +9,12 @@ import os, site, sys
 import itertools
 from Bio import SeqIO
 from Bio import Entrez
+import random
 
 """ Stores labels as keys and descriptions as values """
 accession_reg = re.compile("([A-Z]+_?\d+)")
 gi_reg = re.compile("GI:\s+(\d+)")
-
+word_reg = re.compile("[a-z]+")
 class Labels(object):
     def __init__(self,labelfile):
         self.labels = defaultdict( dict )
@@ -22,10 +23,26 @@ class Labels(object):
         return self.labels.keys()
     def numSpecies(self):
         return len(self.labels)
+    def filterWords(self,words):
+        #Remove all single letter words
+        return [w for w in words if len(w)>1]
+    def decomposeDocument(self,text):
+        words = [self.filterWords(word_reg.findall(t.lower()))
+                 for t in text]
+        
+        return words
     def getTrainingText(self):
         L =  self.labels.values()
         K = [l.items() for l in L]
-        return list(itertools.chain(*K))
+        trainset = list(itertools.chain(*K))
+        #print trainset
+        loci,labels = zip(*trainset)
+        labs,text = zip(*labels)
+        #print labs,list(text)
+        #Decompose text into words
+        words = self.decomposeDocument(list(text))
+        return zip(words,labs) 
+        
     def __str__(self):
         s = ""
         for k,v in self.labels.iteritems():
@@ -52,6 +69,17 @@ class Labels(object):
                     #locus:(label, description)                    
                     self.labels[key][locus]=(label,"")
                     #print key,self.labels[key]
+        """ Retreive protein descriptions via Entrez """
+    def entrezProteinDescription(self,protid):
+        handle = Entrez.efetch(db="nucleotide", 
+                               id=protid, rettype="gb", retmode="text")
+        description = ""
+        seq_record = SeqIO.read(handle, "genbank")
+        
+        for feature in seq_record.features:
+            description+=" "+self.getDescription(feature)
+        return description
+        
     """ Look for descriptive fields """
     def getDescription(self,feature):
         description = ''
@@ -67,25 +95,19 @@ class Labels(object):
             description += " "+feature.qualifiers["product"][0]
         except KeyError as k:
             pass
+        try:
+            protid = feature.qualifiers["protein_id"][0]
+            description+=" "+self.entrezProteinDescription(protid)
+        except KeyError as k:
+            pass
         return description
-    """ Retreive protein descriptions via Entrez """
-    def entrezProteinDescription(self,protid):
-        handle = Entrez.efetch(db="nucleotide", 
-                               id=protid, rettype="gb", retmode="text")
-        description = ""
-        seq_record = SeqIO.read(handle, "genbank")
-        
-        for feature in seq_record.features:
-            description+=" "+self.getDescription(feature)
-        return description
-        
+
     """Parses genbank record"""
     def parseRecord(self,seq_record):
             acc = seq_record.annotations['accessions'][0]
             #print acc,self.labels[acc].keys()
             for feature in seq_record.features:
-                try:
-                    
+                try:                    
                     locus = None                   
                     if "locus_tag" in feature.qualifiers:
                         locus = feature.qualifiers["locus_tag"][0]
@@ -94,17 +116,18 @@ class Labels(object):
                         locus = feature.qualifiers["gene"][0]
                     else:
                         continue
-                    if locus !=None and locus in self.labels[acc]:
-                        note = self.getDescription(feature)
-                        #print feature
-                        label,description = self.labels[acc][locus]
-                        if "protein_id" in feature.qualifiers:
-                            protid = feature.qualifiers["protein_id"][0]
-                            description+=" "+self.entrezProteinDescription(protid)
-                        
-                        description += " "+note
-                        self.labels[acc][locus]=(label,description)
+                    if locus !=None:
+                        if locus in self.labels[acc]:
+                            label,description = self.labels[acc][locus]
+                            description = self.getDescription(feature)
+                            self.labels[acc][locus]=(label,description)
+                        elif (random.random()<0.0007): #sample 1/1000 for null entries
+                            label,description = "null",''
+                            print "Null label"
+                            description = self.getDescription(feature)
+                            self.labels[acc][locus]=(label,description)
                         #print locus,label,description
+                    
                 except KeyError as k:
                     print "Exception",k                    
                     continue
@@ -136,13 +159,14 @@ def setup(labelFile):
     labs = Labels(labelFile)
     Entrez.email = "mortonjt@miamioh.edu"
     for key in labs.getKeys():
+        print key
         handle = Entrez.efetch(db="nucleotide", 
                                id=key, rettype="gbwithparts", retmode="text")
         #if "NC_011375" in key: 
         #    print(handle.read())
         #print(handle.read())
         labs.parseGenbank(handle)
-    print labs
+    
     return labs
 
 
@@ -192,7 +216,7 @@ if __name__=="__main__":
                 labs = Labels(self.test_file)
                 self.assertEquals(labs.numSpecies(),2)
             def testText(self):
-                labs = setup(self.genbankDir,self.test_file)
+                labs = setup(self.test_file)
                 trainingText = labs.getTrainingText()
-                print trainingText
+                print '\n'.join(map(str,trainingText))
         unittest.main()

@@ -84,9 +84,9 @@ def parseAnnotations(organism,genbank_file,outHandle):
 
     #SeqIO.write(sequences, outHandle, "fasta")    
 
-def go(args):
-    outHandle = open(args.output_file,'w')
-    for root, subFolders, files in os.walk(args.root_dir):
+def go(root_dir,training_labels,output_file):
+    outHandle = open(output_file,'w')
+    for root, subFolders, files in os.walk(root_dir):
         for fname in files:
             genome_files = []
             organism,ext = os.path.splitext(os.path.basename(fname))
@@ -101,6 +101,9 @@ if __name__=="__main__":
         '--root-dir', type=str,required=False,default="",
         help='Root directory of all of the files of interest')
     parser.add_argument(\
+        '--training-labels', type=str,required=False,default="",
+        help='Root directory of all of the files of interest')
+    parser.add_argument(\
         '--output-file', type=str, required=False,
         help='The output file containing the tab-delimited output')
     parser.add_argument(\
@@ -109,7 +112,7 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     if not args.test:
-        go(args)
+        go(rootdir,training_labels,out)
     else:
         del sys.argv[1:]
         import test_genbank
