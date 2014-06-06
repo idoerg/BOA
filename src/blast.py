@@ -9,7 +9,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from Bio.Alphabet import generic_dna
 from Bio.Blast import NCBIXML
-from Bio.Blast import NCBIStandalone
+    
 
 import sys
 import os

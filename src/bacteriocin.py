@@ -4,12 +4,11 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
 from Bio.Blast import NCBIXML
-from Bio.Blast import NCBIStandalone
 
 from collections import defaultdict
 
 import sys
-import os
+import os,shutil
 import site
 import argparse
 import string
@@ -91,7 +90,7 @@ def spatialFilter(queries,intervalDict,radius):
                
 
 """
-Filter out all annotations that are within the radius of a bacteriocin
+Filter out all annotations that are not within the radius of a bacteriocin
 """
 annot_reg = re.compile("([A-Z]+_[0-9]+).")
 def filterAnnotatedGenes(annots,bacteriocins,radius):
@@ -194,18 +193,20 @@ def writeAnnotatedGenes(annot_bact_pairs,outHandle):
                              annot_seq)        
         outHandle.write(result_str)
 
-def main(genome_files,bacteriocins,
+def main(genome_files,bacteriocin_file,
          geneFile,intergene_file,
          annotations_file,
          bacteriocinsOut,
-         filteredOut,
+         #filteredOut,
          annotationsOut,
          intermediate,
-         gene_evalue,bac_evalue,
+         gene_evalue,
+         bac_evalue,
          num_threads,formatdb,
-         gene_radius,
+         #gene_radius,
          bacteriocin_radius,
-         verbose,keep_tmp):
+         verbose,
+         keep_tmp):
     genes=None
     for gnome in genome_files:
         gnomehr = genome.GenomeHandler(gnome,
@@ -220,7 +221,7 @@ def main(genome_files,bacteriocins,
                                     num_threads,
                                     verbose,
                                     keep_tmp)
-        bacteriocins = bacthr.getAlignedBacteriocins(bacteriocins,
+        bacteriocins = bacthr.getAlignedBacteriocins(bacteriocin_file,
                                                      bac_evalue,
                                                      num_threads,
                                                      formatdb)
@@ -238,12 +239,14 @@ def main(genome_files,bacteriocins,
         annots,bacteriocinNeighborhoods = filterAnnotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
-        if genes!=None:
-            bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,genes,gene_radius)
-            if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
-            bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
-            intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
-            writeBacteriocins(bact_gene_pairs,intergeneDict, filteredOut,genes="True")
+        #=======================================================================
+        # if genes!=None:
+        #     bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,genes,gene_radius)
+        #     if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
+        #     bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
+        #     intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
+        #     writeBacteriocins(bact_gene_pairs,intergeneDict, filteredOut,genes="True")
+        #=======================================================================
 
         #pickle.dump(intergeneDict,open("intergene.dict",'w'))
 
@@ -265,9 +268,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--bacteriocins', type=str, required=False,
         help='The bacteriocin proteins that are to be blasted')
-    parser.add_argument(\
-        '--gene_radius', type=int, required=False, default=-1,
-        help='The search radius around every specified gene. By default, this filter option is off')
+    #parser.add_argument(\
+    #    '--gene_radius', type=int, required=False, default=-1,
+    #    help='The search radius around every specified gene. By default, this filter option is off')
     parser.add_argument(\
         '--bacteriocin-radius', type=int, required=False, default=5000,
         help='The search radius around every specified bacteriocin')
@@ -298,7 +301,7 @@ if __name__=="__main__":
     #outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
     if not args.test:
         bacteriocinsOut = open("%s.bacteriocins.txt"%(args.output),'w')
-        filteredOut = open("%s_filtered.txt"%(args.output),'w')
+        #filteredOut = open("%s_filtered.txt"%(args.output),'w')
         annotationsOut  = open("%s.annotated.txt"%(args.output),'w')
         main(args.genome_files,
              args.bacteriocins,
@@ -306,21 +309,80 @@ if __name__=="__main__":
              args.intergenes,
              args.annotated_genes,
              bacteriocinsOut,
-             filteredOut,
+             #filteredOut,
              annotationsOut,
              args.intermediate,
              args.gene_evalue,
              args.bac_evalue,
              args.num_threads,
              args.formatdb,
-             args.gene_radius,
+             #args.gene_radius,
              args.bacteriocin_radius,
              args.verbose,
              args.keep_tmp)
     else:
         del sys.argv[1:]
         import unittest
+        import test_modules
         import test_genbank
+        import annotated_genes
+        import intergene
+        class TestPipeline(unittest.TestCase):
+            def setUp(self):
+                self.root = ".."
+                self.exampledir = "%s/example"%self.root
+                self.bacdir = "%s/bacteriocins"%self.root
+                self.annotated_genes = "test_genes.fa"
+                annotated_genes.go(self.exampledir,self.annotated_genes) 
+                self.genome_files = test_modules.getFNA(self.exampledir)
+                self.bacteriocins = "%s/bagel.fa"%self.bacdir
+                self.genes = "%s/genes.fa"%self.bacdir
+                self.intergenes = "test_intergenes.fa"
+                intergene.go(self.root,self.intergenes)
+                self.bacteriocinsOut = "test_out_bacteriocins.txt"
+                #self.filteredOut,
+                self.annotationsOut = "neighbor_genes.txt"
+                self.intermediate = "intermediate"
+                shutil.rmtree(self.intermediate)
+                os.mkdir(self.intermediate)
+                self.gene_evalue = 0.000001
+                self.bac_evalue = 0.000001
+                self.num_threads = 1
+                self.formatdb = True
+                #self.gene_radius = 50000
+                self.bacteriocin_radius = 50000
+                self.verbose = True
+                self.keep_tmp = False
+                
+            def tearDown(self):
+                #os.remove(self.annotated_genes)
+                #os.remove(self.intergenes)
+                #os.remove(self.bacteriocinsOut)
+                #os.remove(self.annotationsOut)
+                #shutil.rmtree(self.intermediate)
+                pass
+            def testrun(self):
+                main(self.genome_files,
+                     self.bacteriocins,
+                     self.genes,
+                     self.intergenes,
+                     self.annotated_genes,
+                     open(self.bacteriocinsOut,'w'),
+                     open(self.annotationsOut,'w'),
+                     self.intermediate,
+                     self.gene_evalue,
+                     self.bac_evalue,
+                     self.num_threads,
+                     self.formatdb,
+                     #self.gene_radius,
+                     self.bacteriocin_radius,
+                     self.verbose,
+                     self.keep_tmp)
+                self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
+                self.assertTrue(os.path.getsize(self.intergenes) > 0)
+                self.assertTrue(os.path.getsize(self.bacteriocinsOut) > 0)
+                self.assertTrue(os.path.getsize(self.annotationsOut) > 0)
+            
         class TestFilters(unittest.TestCase):
             def setUp(self):
                 test_input = test_genbank.yeast

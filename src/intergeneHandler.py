@@ -27,7 +27,7 @@ import intergene
 
 from bx.intervals import *
 
-loc_reg = re.compile("(\S\S_\d+)-ign-\d+:(\d+)-(\d+)(\S)")
+loc_reg = re.compile("([A-Za-z0-9_]\d+)-ign-\d+:(\d+)-(\d+)(\S)")
 
 class IntergeneHandler:
     def __init__(self,intergene_file):

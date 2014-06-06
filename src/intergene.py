@@ -66,7 +66,18 @@ def get_interregions(genbank_path,output_file,intergene_length=1,write_flag = 'w
         print "Error at",genbank_path,e
 
 
-
+def go(root_dir,output_file):
+    outHandle = open(output_file,'w')
+    for root, subFolders, files in os.walk(root_dir):
+        for fname in files:
+            genome_files = []
+            ext = os.path.splitext(os.path.basename(fname))[1]
+            if ext==".gbk":
+                absfile=os.path.join(root,fname)
+                get_interregions(absfile,output_file,
+                                 intergene_length=1,
+                                 write_flag='a')
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=\
@@ -87,16 +98,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if not args.test:
-        outHandle = open(args.output_file,'w')
-        for root, subFolders, files in os.walk(args.root_dir):
-            for fname in files:
-                genome_files = []
-                ext = os.path.splitext(os.path.basename(fname))[1]
-                if ext==".gbk":
-                    absfile=os.path.join(root,fname)
-                    get_interregions(absfile,args.output_file,
-                                     intergene_length=1,
-                                     write_flag='a')
+        go(args.root_dir,args.output_file)
     else:
         del sys.argv[1:]
         import unittest

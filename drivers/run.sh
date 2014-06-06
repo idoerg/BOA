@@ -1,7 +1,7 @@
 ##User specified parameters
 GENOME=/data/genomes/Bacterial/all/all.fna       #File containing all of the bacterial genomes
 INTERGENES=/data/genomes/databases/intergenic.fa #File containing all of the intergenic regions in bacterial genomes
-ANNOTATIONS=/data/tmp/annotations.fa         #Location of the annotations
+ANNOTATIONS=/data/tmp/annotations.fa             #Location of the annotations
 
 ##TEST files
 #ANNOTATIONS=/data/tmp/test_annotations.fa

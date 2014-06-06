@@ -46,7 +46,7 @@ class NBayes(object):
         feature_sets = [(self.gene_features(d,all_words),c) for (d,c) in trainingText]
         self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)    
         
-    """ Make sure that the algorithm works on training data"""
+    """ Make sure that the algorithm works on training data """
     def crossvalidation(self):
         trainingText = self.labels.getTrainingText()
         random.shuffle(trainingText)
@@ -57,6 +57,10 @@ class NBayes(object):
         feature_sets = [(self.gene_features(d,all_words),c) for (d,c) in trainingText]
         p = nltk.classify.accuracy(self.classifier,feature_sets)
         return p
+    
+    """Classifies proteins based on its text"""
+    def classify(self):
+        pass
 def go():
     pass
 
@@ -109,11 +113,11 @@ if __name__=="__main__":
                 #Labs = training.setup(self.genbankDir,self.labelFile)
                 nb = NBayes(self.test_file)
                 nb.classifier.show_most_informative_features()
-                        
+                
         class TestTraining2(unittest.TestCase):
             def setUp(self):
                 #self.genbankDir = "../example/Streptococcus_pyogenes"
-                 #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
+                #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
                 self.labelFile = "../data/training/training.txt"                
                 #Obtain training labels
             def test1(self):

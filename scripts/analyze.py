@@ -124,6 +124,7 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     #if showX: pylab.xticks(xpos, xlabels,rotation=90)
     #if showY: pylab.yticks(ypos, ylabels)
     fig = plt.figure()
+    plt.suptitle(title,fontsize=22)
     normalizeTree(treeFile)
     tree=Phylo.read(treeFile,"newick")
     tree = prune_tree(tree,ylabels)
@@ -131,21 +132,22 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     scoremap = reorderHeatMap(scoremap,tree)
     
     phyloLabels = zip(map(str,tree.get_terminals()),scoremap.index)
-    gs=gridspec.GridSpec(1, 2,
+    gs=gridspec.GridSpec(1, 2,width_ratios=[1,1,-2,2],
                          wspace=0)
     
     phyl_ax=plt.subplot(gs[0])
-    
-    Phylo.draw(tree,axes=phyl_ax,do_show=False)
-    plt.rcParams['font.size']=12
+    phyl_ax.set_ylabel(ylabel)
+    Phylo.draw(tree,axes=phyl_ax,show_confidence=False,do_show=False)
+    plt.rcParams['font.size']=8
     xlabels = list(scoremap.columns)
     ylabels = list(scoremap.index)
-    print ylabels
-    xpos = np.arange(len(xlabels))
+    xpos = np.arange(len(xlabels))+1
+    xminorpos = np.arange(len(xlabels))+0.5
     ypos = np.arange(len(ylabels)+1)
     #plt.grid()
     
     ht_ax=plt.subplot(gs[1])
+    ht_ax.set_xlabel(xlabel)
     ht_ax.set_xlim(0,len(xlabels))
     ht_ax.set_ylim(0,len(ylabels))
     plt.setp(phyl_ax.get_xticklabels(),visible=False)
@@ -156,22 +158,21 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     plt.setp(phyl_ax.get_yticklines(),visible=True)
     plt.setp(ht_ax.get_xticklines(),visible=True)
     plt.setp(ht_ax.get_yticklines(),visible=True)
-    ht_ax.set_xlim(0,len(xlabel))
-    ht_ax.set_ylim(0,len(ylabel))
-    ht_ax.xaxis.set_ticks(xpos+0.5)
+    ht_ax.xaxis.set_ticks(xminorpos)
     ht_ax.yaxis.set_ticks(ypos)
     ht_ax.set_xticklabels(xlabels,rotation=45,fontsize=10)
     ht_ax.set_yticklabels(ylabels,fontsize=10,alpha=1.0)
     ht_ax.xaxis.set_tick_params(pad=4)
     ht_ax.yaxis.set_tick_params(pad=4)
     
+    pylab.xticks(xpos, xlabels)
     pylab.yticks(ypos, ylabels)
     for tick in ht_ax.xaxis.get_major_ticks():
         tick.label1.set_horizontalalignment('right')
-
+    
         
     heatmap = plt.pcolor(scoremap,norm=LogNorm())
-    plt.grid()
+    plt.grid(True)
     plt.colorbar()
     #print plt.rcParams.keys()
     """
@@ -216,11 +217,11 @@ def bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable):
                 plasmidHeats[speciesName][bacID] += 1
             else:
                 genomeHeats[speciesName][bacID] += 1
-    #heatMapTree(genomeHeats,tree,"Bacteriocins vs Species Genome Heatmap",
-    #        xlabel='Species',ylabel='Bacteriocin ID',
-    #        showX=True,showY=True)
+    heatMapTree(genomeHeats,tree,"Bacteriocins vs Species Genome Heatmap",
+            xlabel='Bacteriocin ID',ylabel='Species',
+            showX=True,showY=True)
     heatMapTree(plasmidHeats,tree,"Bacteriocins vs Species Plasmid Heatmap",
-            xlabel='Species',ylabel='Bacteriocin ID',
+            xlabel='Bacteriocin ID',ylabel='Species',
             showX=True,showY=True)
     
         
@@ -372,7 +373,7 @@ def anchorGeneDistanceHeatmap(cdhitProc):
     plt.ylabel("Cluster ID",fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title('Distance distribution of anchor genes per cluster',fontsize=22)
+    plt.title('Distance distribution of genes per cluster',fontsize=22)
     
 """Distance distribution of all clusters"""
 def anchorGenePosition(cdhitProc):
@@ -586,7 +587,7 @@ if __name__=="__main__":
    
     #bacteriocinHeatmap(cdhitProc,accTable)    
     #anchorGenePosition(cdhitProc)
-    #anchorGeneDistanceHeatmap(cdhitProc)
+    anchorGeneDistanceHeatmap(cdhitProc)
     #bacteriocinSpeciesHistogram(args.bacteriocins,accTable)
     plt.show()
         
