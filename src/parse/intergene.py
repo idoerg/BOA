@@ -1,19 +1,74 @@
 #!/usr/bin/env python
+"""
+Finds intergenic regions in a bacterial genome
+"""
 import sys
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 import os
 
+from Bio.Blast import NCBIXML
+from Bio.Blast import NCBIStandalone
+
+from collections import defaultdict
+
+import sys
+import os
 import site
 import argparse
 import string
 import numpy
 import re
+import subprocess
+#import intervals
+
+import genbank
+import blast
+import intergene
+
+from bx.intervals import *
+
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 for directory_name in ['test']:
     site.addsitedir(os.path.join(base_path, directory_name))
+
+loc_reg = re.compile("([A-Za-z0-9_]\d+)-ign-\d+:(\d+)-(\d+)(\S)")
+
+class IntergeneHandler:
+    def __init__(self,intergene_file):
+        self.pid = os.getpid() #Use current pid to name temporary files
+        self.intergene_file = intergene_file
+        
+    """
+    Retrieves intervals that can be used to determine if bacteriocin overlap any intergenic regions
+    """
+    def getIntervals(self):
+        self.intergeneDict = defaultdict( IntervalTree )
+        for record in SeqIO.parse(open(self.intergene_file,'r'),"fasta"):
+            match = loc_reg.findall(record.id)[0]
+            accession,start,end,strand = match
+            self.intergeneDict[(accession,strand)].add(int(start),int(end))
+            #self.intergeneDict[(accession,strand)].append( (int(start),int(end),strand) )            
+    """
+    Returns true if bacteriocin interval overlaps intergene region
+    Otherwise, returns false
+    """
+    def overlapIntergene(self,gene):
+        accession,start,end,strand = gene
+        tree = self.intergeneDict[(accession,strand)]
+        overlaps = tree.find(start,end)
+        return len(overlaps)>0
+        # #ints = self.intergeneDict[(accession,strand)]
+        # ints = intervals.Intervals()
+        # ints.setIntervals(self.intergeneDict[(accession,strand)])
+        # region = gene[1],gene[2]
+        # overlap = ints.search(region)
+        # print str(gene), str(overlap)
+        # return overlap!=None
+        
+
 
 # Copyright(C) 2009 Iddo Friedberg & Ian MC Fleming
 # Released under Biopython license. http://www.biopython.org/DIST/LICENSE
@@ -104,7 +159,7 @@ if __name__ == '__main__':
         import unittest
         import test_genbank
         print "Testing ..."
-        class TestIntegene(unittest.TestCase):
+        class TestIntergene(unittest.TestCase):
             def setUp(self):
                 test_input = test_genbank.yeast
                 self.test_file = "test.gbk"
@@ -125,4 +180,46 @@ if __name__ == '__main__':
                 accession,start,end,strand = descriptions[0]
                 self.assertEquals(int(start),207)
                 self.assertEquals(int(end),686)
+
+        class TestIntervals(unittest.TestCase):
+            def setUp(self):
+                input_reads = '>NC_014561-ign-0:4778-4951+ NC_014561 4778-4951 +\n'\
+                              'CGGCTCAGTTAATACCCTGAAATGTATTTCTGTGATAACCGGCCGTACAGTCACGTTAAA\n'\
+                              'AAAAATCTATTAAGCTACTTGAAAGCGGACAACCGATCCCTATTTTAGCGATGATCGGGA\n'\
+                              'ATATCATACCGGTCAGATGAACTTTTGGATGAACCTGTTCAGGAGATTATCACC\n'\
+                              '>NC_014561-ign-0:5778-5951+ NC_014561 5778-5951 +\n'\
+                              'CGGCTCAGTTAATACCCTGAAATGTATTTCTGTGATAACCGGCCGTACAGTCACGTTAAA\n'\
+                              'AAAAATCTATTAAGCTACTTGAAAGCGGACAACCGATCCCTATTTTAGCGATGATCGGGA\n'\
+                              'ATATCATACCGGTCAGATGAACTTTTGGATGAACCTGTTCAGGAGATTATCACC\n'
+                self.input_file = "test.fa"
+                read_handle = open(self.input_file,'w')
+                read_handle.write(input_reads)
+                read_handle.close()
+            def cleanUp(self):
+                os.remove(self.input_file)
+                            
+            # def testDictionary(self):
+            #     testHandler = IntergeneHandler(self.input_file)
+            #     testHandler.getIntervals()
+            #     self.assertEquals(len(testHandler.intergeneDict[('NC_014561',"+")]),2)
+                
+            def testContains(self):
+                testHandler = IntergeneHandler(self.input_file)
+                testHandler.getIntervals()
+                self.assertTrue(testHandler.overlapIntergene(
+                    ('NC_014561',4700,5000,"+")
+                    ))
+                self.assertTrue(testHandler.overlapIntergene(
+                    ('NC_014561',4800,4810,"+")
+                    ))
+                self.assertTrue(testHandler.overlapIntergene(
+                    ('NC_014561',4700,4810,"+")
+                    ))
+                self.assertFalse(testHandler.overlapIntergene(
+                    ('NC_014561',4700,4810,"-")
+                    ))
+                self.assertFalse(testHandler.overlapIntergene(
+                    ('NC_014561',4700,5000,"-")
+                    ))
+            
         unittest.main()

@@ -27,7 +27,7 @@ import intergene
 import genome
 #import intervals
 import annotated_genes
-import intergeneHandler
+
 
 from bx.intervals import *
 
@@ -62,7 +62,7 @@ def identifyIntergenic(bacteriocins,intergene_file):
     print "Building intergenic dictionary"
     print "filename",intergene_file
     print "Number of bacteriocins",len(bacteriocins)
-    intergeneObj = intergeneHandler.IntergeneHandler(intergene_file)    
+    intergeneObj = intergene.IntergeneHandler(intergene_file)    
     intergeneObj.getIntervals()
     intergeneDict = dict()
     for bact in bacteriocins:
@@ -350,7 +350,7 @@ if __name__=="__main__":
                 os.mkdir(self.intermediate)
                 self.gene_evalue = 0.000001
                 self.bac_evalue = 0.000001
-                self.num_threads = 1
+                self.num_threads = 4
                 self.formatdb = True
                 #self.gene_radius = 50000
                 self.bacteriocin_radius = 50000
