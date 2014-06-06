@@ -15,7 +15,12 @@ import string
 import numpy
 import re
 import subprocess
+import pickle
 
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+print base_path
 import genbank
 import blast
 import intergene
@@ -23,7 +28,6 @@ import genome
 #import intervals
 import annotated_genes
 import intergeneHandler
-import pickle
 
 from bx.intervals import *
 
@@ -329,7 +333,7 @@ if __name__=="__main__":
         import intergene
         class TestPipeline(unittest.TestCase):
             def setUp(self):
-                self.root = ".."
+                self.root = os.environ['BACFINDER_HOME']
                 self.exampledir = "%s/example"%self.root
                 self.bacdir = "%s/bacteriocins"%self.root
                 self.annotated_genes = "test_genes.fa"
@@ -343,7 +347,6 @@ if __name__=="__main__":
                 #self.filteredOut,
                 self.annotationsOut = "neighbor_genes.txt"
                 self.intermediate = "intermediate"
-                shutil.rmtree(self.intermediate)
                 os.mkdir(self.intermediate)
                 self.gene_evalue = 0.000001
                 self.bac_evalue = 0.000001
@@ -355,11 +358,11 @@ if __name__=="__main__":
                 self.keep_tmp = False
                 
             def tearDown(self):
-                #os.remove(self.annotated_genes)
-                #os.remove(self.intergenes)
-                #os.remove(self.bacteriocinsOut)
-                #os.remove(self.annotationsOut)
-                #shutil.rmtree(self.intermediate)
+                os.remove(self.annotated_genes)
+                os.remove(self.intergenes)
+                os.remove(self.bacteriocinsOut)
+                os.remove(self.annotationsOut)
+                shutil.rmtree(self.intermediate)
                 pass
             def testrun(self):
                 main(self.genome_files,

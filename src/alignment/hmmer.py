@@ -5,7 +5,9 @@ multiple alignment step using ClustalW
 
 import numpy
 import re
-import os,sys
+import os,sys, site
+
+
 from Bio import SeqIO
 from cdhit import CDHit
 from clustalw import ClustalW
