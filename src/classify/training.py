@@ -11,6 +11,11 @@ from Bio import SeqIO
 from Bio import Entrez
 import random
 
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import genbank
+
 """ Stores labels as keys and descriptions as values """
 accession_reg = re.compile("([A-Z]+_?\d+)")
 gi_reg = re.compile("GI:\s+(\d+)")
@@ -70,38 +75,7 @@ class Labels(object):
                     self.labels[key][locus]=(label,"")
                     #print key,self.labels[key]
         """ Retreive protein descriptions via Entrez """
-    def entrezProteinDescription(self,protid):
-        handle = Entrez.efetch(db="nucleotide", 
-                               id=protid, rettype="gb", retmode="text")
-        description = ""
-        seq_record = SeqIO.read(handle, "genbank")
-        
-        for feature in seq_record.features:
-            description+=" "+self.getDescription(feature)
-        return description
-        
-    """ Look for descriptive fields """
-    def getDescription(self,feature):
-        description = ''
-        try:
-            description += " "+feature.qualifiers["note"][0]
-        except KeyError as k:
-            pass
-        try:
-            description += " "+feature.qualifiers["function"][0]
-        except KeyError as k:
-            pass
-        try:
-            description += " "+feature.qualifiers["product"][0]
-        except KeyError as k:
-            pass
-        try:
-            protid = feature.qualifiers["protein_id"][0]
-            description+=" "+self.entrezProteinDescription(protid)
-        except KeyError as k:
-            pass
-        return description
-
+  
     """Parses genbank record"""
     def parseRecord(self,seq_record):
             acc = seq_record.annotations['accessions'][0]
@@ -119,12 +93,12 @@ class Labels(object):
                     if locus !=None:
                         if locus in self.labels[acc]:
                             label,description = self.labels[acc][locus]
-                            description = self.getDescription(feature)
+                            description = genbank.getDescription(feature)
                             self.labels[acc][locus]=(label,description)
-                        elif (random.random()<0.0007): #sample 1/1000 for null entries
+                        elif (random.random()<0.0007): #sample 7/1000 for null entries
                             label,description = "null",''
                             print "Null label"
-                            description = self.getDescription(feature)
+                            description = genbank.getDescription(feature)
                             self.labels[acc][locus]=(label,description)
                         #print locus,label,description
                     
@@ -193,8 +167,9 @@ if __name__=="__main__":
         import unittest
         class TestParser(unittest.TestCase):
             def setUp(self):
-                self.genbankDir = "../example/Streptococcus_pyogenes"
-                self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
+                self.root = os.environ['BACFINDER_HOME']
+                self.genbankDir = "%s/example/Streptococcus_pyogenes"%self.root
+                self.genbankFile = "%s/example/Streptococcus_pyogenes/NC_011375.gbk"%self.root
                 self.test_file = "test_labels.txt"
                 string = "\n".join(["#Organism: Y12234.1 (as-48A-D1) and AJ438950.1 (as-48E - H), Enterococcus faecalis subsp. liquefaciens plasmid submitted as separate sequences)",
                                     "#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf",

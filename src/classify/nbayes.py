@@ -1,3 +1,10 @@
+"""
+A couple of ways to improve classification
+
+stemming
+suffix removal
+
+"""
 import os,sys
 import nltk
 import itertools
@@ -9,6 +16,7 @@ import re
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 import training
+import genbank
 
 class NBayes(object):
     def __init__(self,labelFile):
@@ -18,7 +26,6 @@ class NBayes(object):
         self.train()
         #self.loci = dict() #classifcation of loci
         #self.uploadTable()
-        
     """
     def uploadTable(self):
         with open(self.tableFile,'r') as tableIn:
@@ -60,7 +67,9 @@ class NBayes(object):
     
     """Classifies proteins based on its text"""
     def classify(self):
+        
         pass
+    
 def go():
     pass
 
@@ -86,8 +95,9 @@ if __name__=="__main__":
         
         class TestTraining1(unittest.TestCase):
             def setUp(self):
-                self.genbankDir = "../example/Streptococcus_pyogenes"
-                self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
+                self.root = os.environ['BACFINDER_HOME']
+                self.genbankDir = "%s/example/Streptococcus_pyogenes"%self.root
+                self.genbankFile = "%s/example/Streptococcus_pyogenes/NC_011375.gbk"%self.root
                 self.test_file = "test_labels.txt"
                 string = "\n".join(["#Organism: Y12234.1 (as-48A-D1) and AJ438950.1 (as-48E - H), Enterococcus faecalis subsp. liquefaciens plasmid submitted as separate sequences)",
                                     "#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf",
@@ -118,7 +128,8 @@ if __name__=="__main__":
             def setUp(self):
                 #self.genbankDir = "../example/Streptococcus_pyogenes"
                 #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
-                self.labelFile = "../data/training/training.txt"                
+                self.root = os.environ['BACFINDER_HOME']
+                self.labelFile = "%s/data/training/training.txt"%self.root                
                 #Obtain training labels
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)

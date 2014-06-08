@@ -20,7 +20,13 @@ import intergene
 
 loc_reg = re.compile("(\d+):(\d+)\S\((\S)\)")
 class GenomeHandler:
-    def __init__(self,genome,intermediate,evalue,num_threads,verbose,keep_tmp):
+    def __init__(self,
+                 genome,
+                 intermediate,
+                 evalue,
+                 num_threads,
+                 verbose,
+                 keep_tmp):
         self.genome_file = genome
         self.evalue = evalue
         self.num_threads = num_threads

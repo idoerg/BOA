@@ -503,7 +503,7 @@ def preprocessFasta(blastTab,fastaout):
         for item in items:
             bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
             seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
-            handle.write(seqstr)
+            handle.write(seqstr) 
 def getTree(cdhitProc,rrnaFile):
     
     record_dict = SeqIO.to_dict(SeqIO.parse(open(rrnaFile,'r'), "fasta"))

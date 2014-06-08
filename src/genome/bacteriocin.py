@@ -198,27 +198,29 @@ def writeAnnotatedGenes(annot_bact_pairs,outHandle):
         outHandle.write(result_str)
 
 def main(genome_files,bacteriocin_file,
-         geneFile,intergene_file,
+         geneFile,
+         intergene_file,
          annotations_file,
          bacteriocinsOut,
          #filteredOut,
          annotationsOut,
          intermediate,
-         gene_evalue,
+         #gene_evalue,
          bac_evalue,
-         num_threads,formatdb,
+         num_threads,
+         formatdb,
          #gene_radius,
          bacteriocin_radius,
          verbose,
          keep_tmp):
     genes=None
     for gnome in genome_files:
-        gnomehr = genome.GenomeHandler(gnome,
-                                       intermediate,
-                                       gene_evalue,
-                                       num_threads,
-                                       verbose,
-                                       keep_tmp)
+#         gnomehr = genome.GenomeHandler(gnome,
+#                                        intermediate,
+#                                        gene_evalue,
+#                                        num_threads,
+#                                        verbose,
+#                                        keep_tmp)
         bacthr = BacteriocinHandler(gnome,
                                     intermediate,
                                     bac_evalue,
@@ -256,7 +258,7 @@ def main(genome_files,bacteriocin_file,
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
-        'Finds bacteriocins surrounding target genes')
+        'Finds bacteriocins')
     parser.add_argument(\
         '--genome-files', type=str, nargs="+", required=False,
         help='FASTA files containing bacterial genomes')

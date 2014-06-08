@@ -218,6 +218,7 @@ class BLAST(object):
         os.system("rm %s.*"%self.protein_db)
         os.remove(self.blastfile)
 
+    
     def parseBLAST(self,mode):
         if mode=="xml":
             return self.parseXML()
