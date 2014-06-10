@@ -20,7 +20,7 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 
 loc_reg = re.compile("(\d+):>?(\d+)\S\((\S)\)")
-annot_reg = re.compile("([A-Z]+_[0-9]+)\s(\d+)\s(\d+)\s(\S)\s(\S+)")
+annot_reg = re.compile("([A-Za-z0-9_]+)\s(\d+)\s(\d+)\s(\S)\s(\S+)")
 """
 A container to process fasta objects and obtain information for annotations
 """

@@ -197,30 +197,20 @@ def writeAnnotatedGenes(annot_bact_pairs,outHandle):
                              annot_seq)        
         outHandle.write(result_str)
 
-def main(genome_files,bacteriocin_file,
-         geneFile,
+def main(genome_files,
+         bacteriocin_file,
          intergene_file,
          annotations_file,
          bacteriocinsOut,
-         #filteredOut,
          annotationsOut,
          intermediate,
-         #gene_evalue,
          bac_evalue,
          num_threads,
          formatdb,
-         #gene_radius,
          bacteriocin_radius,
          verbose,
          keep_tmp):
-    genes=None
     for gnome in genome_files:
-#         gnomehr = genome.GenomeHandler(gnome,
-#                                        intermediate,
-#                                        gene_evalue,
-#                                        num_threads,
-#                                        verbose,
-#                                        keep_tmp)
         bacthr = BacteriocinHandler(gnome,
                                     intermediate,
                                     bac_evalue,
@@ -231,12 +221,8 @@ def main(genome_files,bacteriocin_file,
                                                      bac_evalue,
                                                      num_threads,
                                                      formatdb)
-        if geneFile!=None:
-            genes = gnomehr.getAlignedGenes(geneFile,gene_evalue,num_threads,formatdb)
-        if verbose and genes == None: print "No genes found"
         if verbose and bacteriocins == None: print "No bacteriocins found"
         if bacteriocins == None: continue
-        if verbose: print "Genes found\n","\n".join(map(str,genes))
         if verbose: print "Bacteriocins found\n","\n".join(map(str,bacteriocins))
         if verbose: print "Number of original bacteriocins",len(bacteriocins)
         intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
@@ -245,14 +231,6 @@ def main(genome_files,bacteriocin_file,
         annots,bacteriocinNeighborhoods = filterAnnotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
-        #=======================================================================
-        # if genes!=None:
-        #     bacteriocins,geneNeighborhoods = filterBacteriocins(bacteriocins,genes,gene_radius)
-        #     if verbose: print "Number of filtered bacteriocins",len(bacteriocins)
-        #     bact_gene_pairs = zip(bacteriocins,geneNeighborhoods)
-        #     intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
-        #     writeBacteriocins(bact_gene_pairs,intergeneDict, filteredOut,genes="True")
-        #=======================================================================
 
         #pickle.dump(intergeneDict,open("intergene.dict",'w'))
 
@@ -349,7 +327,8 @@ if __name__=="__main__":
                 #self.filteredOut,
                 self.annotationsOut = "neighbor_genes.txt"
                 self.intermediate = "intermediate"
-                os.mkdir(self.intermediate)
+                if not os.path.exists(self.intermediate):
+                    os.mkdir(self.intermediate)
                 self.gene_evalue = 0.000001
                 self.bac_evalue = 0.000001
                 self.num_threads = 4

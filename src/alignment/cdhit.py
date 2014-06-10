@@ -23,6 +23,7 @@ class Cluster(object):
         return len(self.seqs)
     def __str__(self):
         return '\n'.join(self.seqs)
+    
 class CDHit(object):
     def __init__(self,input_file,output_file,similarity):
         self.input = input_file
