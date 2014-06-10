@@ -17,15 +17,17 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 import training
 import genbank
+import cPickle
+import gzip
+import copy
 
 class NBayes(object):
     def __init__(self,labelFile):
         self.classifier = None
         self.labelFile = labelFile
         self.labels = training.setup(labelFile)
-        self.train()
-        #self.loci = dict() #classifcation of loci
-        #self.uploadTable()
+        #self.train()
+        
     """
     def uploadTable(self):
         with open(self.tableFile,'r') as tableIn:
@@ -65,10 +67,25 @@ class NBayes(object):
         p = nltk.classify.accuracy(self.classifier,feature_sets)
         return p
     
-    """Classifies proteins based on its text"""
-    def classify(self):
+    """ Classifies proteins based on its text """
+    def classify(self,fastin):
+        proIDs,features = [],[]
+        for seq_record in SeqIO.parse(fastain, "fasta"):
+            title = seq_record.id
+            toks = title.split("|")
+            proteinID = toks[5]
+            text = genbank.entrezProteinDescription(proteinID)
+            proIDs.append(proteinID)
+            features.append(text)
+        labels = self.classifier.batch_classify(features)
+        return zip(proIDs,labels)
         
-        pass
+    """ Dump object into pickle file """
+    def dump(self,outfile):
+        cPickle.dump(self.classifier,gzip.GzipFile(outfile,'wb'))
+    """ Load object from pickle file """
+    def load(self,infile):
+        self.classifier = cPickle.load(gzip.GzipFile(infile,'rb'))
     
 def go():
     pass
@@ -117,11 +134,13 @@ if __name__=="__main__":
                 os.remove(self.test_file)
             def testText(self):
                 nb = NBayes(self.test_file)
+                nb.train()
                 p = nb.crossvalidation()
                 print "Accuracy:",p
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
                 nb = NBayes(self.test_file)
+                nb.train()
                 nb.classifier.show_most_informative_features()
                 
         class TestTraining2(unittest.TestCase):
@@ -129,16 +148,24 @@ if __name__=="__main__":
                 #self.genbankDir = "../example/Streptococcus_pyogenes"
                 #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
                 self.root = os.environ['BACFINDER_HOME']
-                self.labelFile = "%s/data/training/training.txt"%self.root                
+                self.labelFile = "%s/data/training/training.txt"%self.root
+                self.zip = "test_serial.zip"                
                 #Obtain training labels
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
                 nb = NBayes(self.labelFile)
+                nb.train()
+                original = copy.deepcopy(nb)
                 nb.classifier.show_most_informative_features()
+                nb.dump(self.zip)
+                nb.load(self.zip)
+                self.assertEquals(nb.labelFile,original.labelFile)
+                
             def test2(self):
                 #Obtain training labels
                 #Labs = training.setup(self.genbankDir,self.labelFile)
                 nb = NBayes(self.labelFile)
+                nb.train()
                 p = nb.crossvalidation()
                 print "Accuracy:",p
                 self.assertTrue(p>0.5)

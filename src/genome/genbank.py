@@ -59,7 +59,6 @@ class GenBank(object):
             print >> sys.stderr,"No such protein"
 
 
-
 def entrezProteinDescription(protid):
     handle = Entrez.efetch(db="nucleotide", 
                            id=protid, rettype="gb", retmode="text")
