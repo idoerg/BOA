@@ -15,6 +15,7 @@ import Bio
 import re
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
+from Bio import Entrez
 import training
 import genbank
 import cPickle
@@ -25,7 +26,9 @@ class NBayes(object):
     def __init__(self,labelFile):
         self.classifier = None
         self.labelFile = labelFile
-        self.labels = training.setup(labelFile)
+        self.labels = None
+        self.all_words = None
+        #self.labels = training.setup(labelFile)
         #self.train()
         
     """
@@ -39,20 +42,21 @@ class NBayes(object):
                 locus,category = toks
                 self.loci[locus] = category
     """
-    def gene_features(self,gene_annotations,all_words):
+    def gene_features(self,gene_annotations):
         gene_words = set(gene_annotations)
         features = {}
-        for word in all_words:
+        for word in self.all_words:
             features['contains(%s)'%word] = (word in gene_words)
         return features
     def train(self):
+        self.labels = training.setup(self.labelFile)
         trainingText = self.labels.getTrainingText()
         random.shuffle(trainingText)
         text,labs = zip(*trainingText)
         all_words = list(itertools.chain(*text))
         #all_words = re.split("\S+"," ".join(map(str,text)))
         all_words = nltk.FreqDist(w.lower() for w in all_words).keys()[:2000]
-        feature_sets = [(self.gene_features(d,all_words),c) for (d,c) in trainingText]
+        feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
         self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)    
         
     """ Make sure that the algorithm works on training data """
@@ -60,33 +64,40 @@ class NBayes(object):
         trainingText = self.labels.getTrainingText()
         random.shuffle(trainingText)
         text,labs = zip(*trainingText)
-        all_words = list(itertools.chain(*text))
+        self.all_words = list(itertools.chain(*text))
         #all_words = re.split("\S+"," ".join(map(str,text)))
-        all_words = nltk.FreqDist(w.lower() for w in all_words).keys()[:2000]
-        feature_sets = [(self.gene_features(d,all_words),c) for (d,c) in trainingText]
+        self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
+        feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
         p = nltk.classify.accuracy(self.classifier,feature_sets)
         return p
     
     """ Classifies proteins based on its text """
-    def classify(self,fastin):
-        proIDs,features = [],[]
+    def classify(self,fastain):
+        proIDs,features,labels = [],[],[]
+        Entrez.email = "mortonjt@miamioh.edu"
         for seq_record in SeqIO.parse(fastain, "fasta"):
             title = seq_record.id
             toks = title.split("|")
             proteinID = toks[5]
+            #print "Protein ID",proteinID
             text = genbank.entrezProteinDescription(proteinID)
             proIDs.append(proteinID)
+            label = self.classifier.classify(self.gene_features(text))
+            labels.append(label)
             features.append(text)
+            
         labels = self.classifier.batch_classify(features)
+        print labels[0]
         return zip(proIDs,labels)
         
     """ Dump object into pickle file """
     def dump(self,outfile):
-        cPickle.dump(self.classifier,gzip.GzipFile(outfile,'wb'))
+        print "Dumped pickle file"
+        cPickle.dump( (self.classifier,self.all_words) ,gzip.GzipFile(outfile,'wb'))
     """ Load object from pickle file """
     def load(self,infile):
-        self.classifier = cPickle.load(gzip.GzipFile(infile,'rb'))
-    
+        self.classifier,self.all_words = cPickle.load(gzip.GzipFile(infile,'rb'))
+        
 def go():
     pass
 

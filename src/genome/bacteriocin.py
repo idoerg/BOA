@@ -289,14 +289,14 @@ if __name__=="__main__":
         annotationsOut  = open("%s.annotated.txt"%(args.output),'w')
         main(args.genome_files,
              args.bacteriocins,
-             args.genes,
+             
              args.intergenes,
              args.annotated_genes,
              bacteriocinsOut,
              #filteredOut,
              annotationsOut,
              args.intermediate,
-             args.gene_evalue,
+      
              args.bac_evalue,
              args.num_threads,
              args.formatdb,
@@ -348,13 +348,13 @@ if __name__=="__main__":
             def testrun(self):
                 main(self.genome_files,
                      self.bacteriocins,
-                     self.genes,
+                   
                      self.intergenes,
                      self.annotated_genes,
                      open(self.bacteriocinsOut,'w'),
                      open(self.annotationsOut,'w'),
                      self.intermediate,
-                     self.gene_evalue,
+                
                      self.bac_evalue,
                      self.num_threads,
                      self.formatdb,

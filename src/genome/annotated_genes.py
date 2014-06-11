@@ -48,7 +48,7 @@ def parseAnnotations(organism,genbank_file,outHandle):
         for feature in seq_record.features:
             if feature.type == 'CDS':
                 try: #because annotations are stupid
-                    locus = feature.qualifiers["locus_tag"][0]
+                    locus = feature.qualifiers["protein_id"][0]
                     note = feature.qualifiers["note"][0]
                     db_xref = feature.qualifiers["db_xref"][0]
                     protid = feature.qualifiers["protein_id"][0]
@@ -65,7 +65,7 @@ def parseAnnotations(organism,genbank_file,outHandle):
                 except KeyError as k:                    
                     #print "Exception",k
                     #print feature
-                    locus = feature.qualifiers["locus_tag"][0]
+                    locus = feature.qualifiers["protein_id"][0]
                     sequence  = feature.qualifiers["translation"][0]
                     st,end,strand = loc_reg.findall(str(feature.location))[0]
                     fasta_str = ">%d %s %s %s %s %s\n%s\n"%(index,

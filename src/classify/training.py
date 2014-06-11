@@ -105,6 +105,7 @@ class Labels(object):
                 except KeyError as k:
                     print "Exception",k                    
                     continue
+    
     "Parses genbank file"
     def parseGenbank(self,handle):
         try:
