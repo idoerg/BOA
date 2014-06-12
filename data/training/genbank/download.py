@@ -1,24 +1,24 @@
 from Bio import Entrez
+from Bio import SeqIO, SeqFeature
+from Bio.SeqRecord import SeqRecord
 
 Entrez.email = "mortonjt@miamioh.edu" 
 
-handle = Entrez.efetch(db="nucleotide", id="2664256", rettype="gb", retmode="text")
-open("Y12234.gbk",'w').write(str(handle.read()))
+GIs = ["2664256","19577293","239976949","4731431","385829589","209558587","30018278"]
+files = ["Y12234.gbk","AJ438950.gbk","GG688628.gbk","AJ438950.gbk","NC_017486.gbk","NC_011375.gbk","NC_004722.gbk"]
 
-handle = Entrez.efetch(db="nucleotide", id="19577293", rettype="gb", retmode="text")
-open("AJ438950.gbk",'w').write(str(handle.read()))
-
-handle = Entrez.efetch(db="nucleotide", id="239976949", rettype="gb", retmode="text")
-open("GG688628.gbk",'w').write(str(handle.read()))
-
-handle = Entrez.efetch(db="nucleotide", id="4731431", rettype="gb", retmode="text")
-open("AJ438950.gbk",'w').write(str(handle.read()))
-
-handle = Entrez.efetch(db="nucleotide", id="385829589", rettype="gb", retmode="text")
-open("NC_017486.gbk",'w').write(str(handle.read()))
-
-handle = Entrez.efetch(db="nucleotide", id="209558587", rettype="gb", retmode="text")
-open("NC_011375.gbk",'w').write(str(handle.read()))
-
-handle = Entrez.efetch(db="nucleotide", id="30018278", rettype="gb", retmode="text")
-open("NC_004722.gbk",'w').write(str(handle.read()))
+for i in range(len(GIs)):
+    handle = Entrez.efetch(db="nucleotide", id=GIs, rettype="gbwithparts", retmode="text")
+    
+    open(files[i],'w').write(str(handle.read()))
+    seq_record = SeqIO.parse(open(files[i]),"genbank")
+    #for feature in seq_record.features:
+    #    try:
+    #        protid = feature.qualifiers["protein_id"]
+    #        pfile = "%s.gbk"%protid
+    #        phandle = Entrez.efetch(db="nucleotide",
+    #                                id=protid,rettype="gbwithparts",retmode="text")
+    #        open(pfile,'w').write(str(phandle.read()))
+    #    except Exception as e:
+    #        continue
+            

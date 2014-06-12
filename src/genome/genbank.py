@@ -116,24 +116,41 @@ def loadTextDB(dbin):
             text = ' '.join(toks[1:])
             proteinDict[proteinID] = text
     return proteinDict
-""" Creates database"""
-def buildTextDB(genbank_files,dbout):
+
+""" Creates database whose primary key is the protein ID """
+def buildProteinTextDB(genbank_files,dbout):
+    proteinDict = {}        
+    for genbank_file in genbank_files:
+        seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
+        for feature in seq_record.features:
+            try:
+                proteinID = feature.qualifiers["proteinID"][0]
+                note = formatText(feature.qualifiers["note"][0])
+            except KeyError as k:
+                continue
+                
+            if proteinID not in proteinDict:
+                proteinDict[proteinID] = note
+            else:
+                proteinDict[proteinID]= "%s %s"%(proteinDict[proteinID],note)
+
+""" Creates database whose primary key is the locus tag"""
+def buildGeneTextDB(genbank_files,dbout):
     proteinDict = {}
         
     for genbank_file in genbank_files:
-        protIDs,blobs = [],[]
         seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
         for feature in seq_record.features:        
             
             try:
-                proteinID = feature.qualifiers["locus_tag"][0]
-                note = formatText(feature.qualifiers["note"][0])
-            except KeyError as k:
-                try:
-                    proteinID = feature.qualifiers["gene"]
-                    note = formatText(feature.qualifiers["note"][0])
-                except KeyError as e:
+                if "locus_tag" in feature.qualifiers:
+                    proteinID = feature.qualifiers["locus_tag"][0]
+                elif "gene" in feature.qualifiers:
+                    proteinID = features.qualifiers["gene"][0]
+                else:
                     continue
+            except KeyError as k:
+                continue
             
             if proteinID not in proteinDict:
                 proteinDict[proteinID] = note
