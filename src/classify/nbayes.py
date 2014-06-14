@@ -23,9 +23,10 @@ import gzip
 import copy
 
 class NBayes(object):
-    def __init__(self,labelFile):
+    def __init__(self,trainDir,labelFile):
         self.classifier = None
         self.labelFile = labelFile
+        self.trainingDir = trainDir
         self.labels = None
         self.all_words = None
         #self.labels = training.setup(labelFile)
@@ -49,13 +50,14 @@ class NBayes(object):
             features['contains(%s)'%word] = (word in gene_words)
         return features
     def train(self):
-        self.labels = training.setup(self.labelFile)
+        self.labels = training.Labels(self.trainingDir,self.labelFile)
         trainingText = self.labels.getTrainingText()
         random.shuffle(trainingText)
         text,labs = zip(*trainingText)
-        all_words = list(itertools.chain(*text))
+        self.all_words = list(itertools.chain(*text))
+        
         #all_words = re.split("\S+"," ".join(map(str,text)))
-        all_words = nltk.FreqDist(w.lower() for w in all_words).keys()[:2000]
+        self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
         feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
         self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)    
         
@@ -125,32 +127,33 @@ if __name__=="__main__":
             def setUp(self):
                 self.root = os.environ['BACFINDER_HOME']
                 self.genbankDir = "%s/example/Streptococcus_pyogenes"%self.root
+                self.trainDir = "%s/data/training/protein"%self.root
                 self.genbankFile = "%s/example/Streptococcus_pyogenes/NC_011375.gbk"%self.root
                 self.test_file = "test_labels.txt"
                 string = "\n".join(["#Organism: Y12234.1 (as-48A-D1) and AJ438950.1 (as-48E - H), Enterococcus faecalis subsp. liquefaciens plasmid submitted as separate sequences)",
                                     "#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf",
                                     "#locus_tag label name",
-                                    "as-48 toxin",
-                                    "as-48B modifier",
-                                    "as-48C transport",
+                                    "CAA72917.1 toxin",
+                                    "CAA72918.1 modifier",
+                                    "CAA72919.1 transport",
                                     '#Organism: AF061787.1, Escherichia coli plasmid pTUC100',
                                     '#Reference: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC93700',
                                     '#locus_tag label name',
-                                    'mcjA toxin',
-                                    'mcjB modifier',
-                                    'mcjC modifier',
-                                    'mcjD transport'])
+                                    'AAD28494.1 toxin',
+                                    'AAD28495.1 modifier',
+                                    'AAD28496.1 modifier',
+                                    'AAD28497.1 transport'])
                 open(self.test_file,'w').write("%s\n"%string)
             def tearDown(self):
                 os.remove(self.test_file)
             def testText(self):
-                nb = NBayes(self.test_file)
+                nb = NBayes(self.trainDir,self.test_file)
                 nb.train()
                 p = nb.crossvalidation()
                 print "Accuracy:",p
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
-                nb = NBayes(self.test_file)
+                nb = NBayes(self.trainDir,self.test_file)
                 nb.train()
                 nb.classifier.show_most_informative_features()
                 
@@ -159,12 +162,13 @@ if __name__=="__main__":
                 #self.genbankDir = "../example/Streptococcus_pyogenes"
                 #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
                 self.root = os.environ['BACFINDER_HOME']
-                self.labelFile = "%s/data/training/training.txt"%self.root
+                self.trainDir = "%s/data/training/protein"%self.root
+                self.labelFile = "%s/data/training/training_proteins.txt"%self.root
                 self.zip = "test_serial.zip"                
                 #Obtain training labels
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
-                nb = NBayes(self.labelFile)
+                nb = NBayes(self.trainDir,self.labelFile)
                 nb.train()
                 original = copy.deepcopy(nb)
                 nb.classifier.show_most_informative_features()
@@ -175,7 +179,7 @@ if __name__=="__main__":
             def test2(self):
                 #Obtain training labels
                 #Labs = training.setup(self.genbankDir,self.labelFile)
-                nb = NBayes(self.labelFile)
+                nb = NBayes(self.trainDir,self.labelFile)
                 nb.train()
                 p = nb.crossvalidation()
                 print "Accuracy:",p

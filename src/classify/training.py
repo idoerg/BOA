@@ -1,5 +1,8 @@
 """
 Obtains training dataset
+
+This assumes that all of the training genbank files 
+are organized in the same directory (trainingDir)
 """
 
 from collections import defaultdict
@@ -11,19 +14,21 @@ from Bio import SeqIO
 from Bio import Entrez
 import random
 
+
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import genbank
+import text
 
 """ Stores labels as keys and descriptions as values """
 accession_reg = re.compile("([A-Z]+_?\d+)")
 gi_reg = re.compile("GI:\s+(\d+)")
 word_reg = re.compile("[a-z]+")
 class Labels(object):
-    def __init__(self,labelfile):
+    def __init__(self,trainingDir,labelfile):
         self.labels = defaultdict( dict )
-        self.parseLabels(labelfile)
+        self.parseLabels(trainingDir,labelfile)
     def getKeys(self):#returns filename basically
         return self.labels.keys()
     def numSpecies(self):
@@ -54,7 +59,8 @@ class Labels(object):
             s+= "Organism:%s\n%s\n"%(k,str(v))
              
         return s
-    def parseLabels(self,labelfile):
+    """ Parses training text file """
+    def parseLabels(self,directory,labelfile):
         with open(labelfile,'r') as handle:            
             for ln in handle:
                 ln = ln.rstrip()
@@ -68,14 +74,33 @@ class Labels(object):
                             print "Already in labels!!!"                        
                 else:
                     toks = re.split("\s+",ln)
-                    locus,label = toks[0],toks[1]
-                    #print locus,label
+                    proteinID,label = toks[0],toks[1]
+                    #print proteinID,label
                     #Each label has a dictionary
-                    #locus:(label, description)                    
-                    self.labels[key][locus]=(label,"")
+                    #proteinID:(label, description)       
+                    note = self.parseProteinGenbank(directory,proteinID)  
+                             
+                    self.labels[key][proteinID]=(label,note)
                     #print key,self.labels[key]
-        """ Retreive protein descriptions via Entrez """
-  
+
+    """ Parses a genbank file for a particular protein """
+    def parseProteinGenbank(self,directory,proteinID):
+        fname = "%s/%s.gbk"%(directory,proteinID)
+        seq_record = SeqIO.parse(open(fname), "genbank").next()
+        note = ""
+        for feature in seq_record.features: 
+               
+            try:
+                if "note" in feature.qualifiers:
+                    note+= text.formatText(feature.qualifiers["note"][0])
+                if "function" in feature.qualifiers:
+                    note+= text.formatText(feature.qualifiers["function"][0])
+                if "product" in feature.qualifiers:
+                    note+= text.formatText(feature.qualifiers["product"][0])    
+            except KeyError as k:
+                continue
+        return note 
+    
     """Parses genbank record"""
     def parseRecord(self,seq_record):
             acc = seq_record.annotations['accessions'][0]
@@ -107,13 +132,14 @@ class Labels(object):
                     continue
     
     "Parses genbank file"
+    """
     def parseGenbank(self,handle):
         try:
             seq_record = SeqIO.read(handle, "genbank")
             self.parseRecord(seq_record)  
         except Exception as e:
             print "Exception at",e
-
+    """
 """ Create a labels object """
 """
 def setup(rootdir,labelFile):
@@ -172,27 +198,26 @@ if __name__=="__main__":
                 self.genbankDir = "%s/example/Streptococcus_pyogenes"%self.root
                 self.genbankFile = "%s/example/Streptococcus_pyogenes/NC_011375.gbk"%self.root
                 self.test_file = "test_labels.txt"
+                self.trainDir = "%s/data/training/protein"%self.root
                 string = "\n".join(["#Organism: Y12234.1 (as-48A-D1) and AJ438950.1 (as-48E - H), Enterococcus faecalis subsp. liquefaciens plasmid submitted as separate sequences)",
-                                    "#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf",
-                                    "#locus_tag label name",
-                                    "as-48 toxin",
-                                    "as-48B modifier",
-                                    "as-48C transport",
-                                    '#Organism: AF061787.1, Escherichia coli plasmid pTUC100',
-                                    '#Reference: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC93700',
-                                    '#locus_tag label name',
-                                    'mcjA toxin',
-                                    'mcjB modifier',
-                                    'mcjC modifier',
-                                    'mcjD transport'])
+                            "#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf",
+                            "#locus_tag label name",
+                            "CAA72917.1 toxin",
+                            "CAA72918.1 modifier",
+                            "CAA72919.1 transport",
+                            '#Organism: AF061787.1, Escherichia coli plasmid pTUC100',
+                            '#Reference: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC93700',
+                            '#locus_tag label name',
+                            'AAD28494.1 toxin',
+                            'AAD28495.1 modifier',
+                            'AAD28496.1 modifier',
+                            'AAD28497.1 transport'])
                 open(self.test_file,'w').write("%s\n"%string)
             def tearDown(self):
                 os.remove(self.test_file)
             def testParse(self):
-                labs = Labels(self.test_file)
+                labs = Labels(self.trainDir,self.test_file)
                 self.assertEquals(labs.numSpecies(),2)
-            def testText(self):
-                labs = setup(self.test_file)
                 trainingText = labs.getTrainingText()
                 print '\n'.join(map(str,trainingText))
         unittest.main()

@@ -144,7 +144,7 @@ def buildProteinTextDB(genbank_files,dbout):
                                     VALUES(?,?)''',(proteinID,note))
             except KeyError as k:
                 continue
-        db.commit
+        db.commit()
         
     """
     proteinDict = {}        
@@ -168,7 +168,7 @@ def buildGeneTextDB(genbank_files,dbout):
     db = splite3.connect(dbout)
     cursor = db.cursor()
     cursor.execute('''
-        CREATE TABLE coding_regions(locus_tag TEXT PRIMARY KEY,
+        CREATE TABLE coding_regions(locus_tag TEXT,
                                     protein_id TEXT)
     '''
     )

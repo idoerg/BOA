@@ -29,24 +29,29 @@ EEU81208.1 regulator
 #GI: 4731431
 #locus_tag label name
 AAD28494.1 toxin
-AAD28494.1 modifier
-AAD28494.1 modifier
-AAD28494.1 transport
+AAD28495.1 modifier
+AAD28496.1 modifier
+AAD28497.1 transport
 #Organism: NC_017486.1 Lactococcus lactis subsp. Lactis CV56
 #Reference: http://link.springer.com/article/10.1007%2Fs00018-007-7171-2
 #GI: 385829589
 #locus_tag label name
 ADZ63249.1 toxin nisA
-ADZ63249.1 modifier nisB
-ADZ63250.1 transport nisT
-ADZ63251.1 modifier nisC
-ADZ63252.1 immunity nisI
-ADZ63253.1 modifier nisP
-ADZ63254.1 regulator nisR
-ADZ63255.1 regulator nisK
-ADZ63256.1 immunity nisF
+ADZ63250.1 modifier nisB
+ADZ63251.1 transport nisT
+ADZ63252.1 modifier nisC
+ADZ63253.1 immunity nisI
+ADZ63254.1 modifier nisP
+ADZ63255.1 regulator nisR
+ADZ63256.1 regulator nisK
 ADZ63257.1 immunity nisF
-ADZ63258.1 immunity nisG
+ADZ63258.1 immunity nisF
+ADZ63259.1 immunity nisG
+#Null labels
+ADZ62681.1 null
+ADZ62682.1 null
+ADZ62684.1 null
+ADZ62685.1 null
 #Organism: NC_011375.1 Streptococcus pyogenes
 #Reference: http://www.jbc.org/content/284/19/13004.full
 #GI: 209558587
@@ -67,6 +72,12 @@ ACI61838.1 transport salX
 ACI61839.1 transport salT
 ACI61840.1 modifier  salB
 ACI61841.1 toxin     salA
+#Null labels
+ACI60365.1 null
+ACI60366.1 null
+ACI60368.1 null
+ACI60369.1 null
+ACI62064.1 null
 #Organism: NC_004722.1 Bacillus cereus ATCC 14579
 #Reference: http://www.pnas.org/content/106/8/2549.full
 #GI: 30018278 : Question?  Why are there genes in between?
@@ -87,3 +98,8 @@ AAP11957.1 toxin tclG
 AAP11958.1 toxin tclF
 AAP11959.1 toxin tclE
 AAP11960.1 modifier tclD
+#Null labels
+AAP12344.1 null
+AAP12343.1 null
+AAP12342.1 null
+AAP12341.1 null
