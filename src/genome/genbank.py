@@ -233,11 +233,11 @@ if __name__=="__main__":
                 #os.remove(self.protdb)
                 os.remove(self.db)
                 pass
-            #def testdb1(self):
-            #    buildLocusTable(self.genome_files,self.db)
-            #    self.assertTrue(os.path.getsize(self.db) > 0)
-            #    entries = locusQuery("Spy49_0568",self.db)
-            #    self.assertTrue(len(entries) > 0)
+            def testdb1(self):
+                buildLocusTable(self.genome_files,self.db)
+                self.assertTrue(os.path.getsize(self.db) > 0)
+                entries = locusQuery("Spy49_0568",self.db)
+                self.assertTrue(len(entries) > 0)
                     
             def testdb2(self):
                 buildProteinTable(self.genome_files,self.db)
