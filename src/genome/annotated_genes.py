@@ -13,8 +13,11 @@ import string
 import numpy
 import re
 import subprocess
-import intergene
 
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+    
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
@@ -33,9 +36,13 @@ class AnnotatedGenes(object):
     def next(self):
         try:
             record = next(self.iterator)
-            orgid,start,end,strand,locus = annot_reg.findall(record.description)[0]
+            toks = record.description.split('\t')
+            print toks
+            assert len(toks)==7
+            index,orgid,start,end,strand,locus,protid = toks
             start,end = int(start),int(end)
             sequence = str(record.seq)
+            #Ignore the protein id. Locus tag is more general
             return start,end,orgid,strand,locus,sequence
         except StopIteration as s:
             raise StopIteration()
@@ -48,34 +55,30 @@ def parseAnnotations(organism,genbank_file,outHandle):
         for feature in seq_record.features:
             if feature.type == 'CDS':
                 try: #because annotations are stupid
-                    locus = feature.qualifiers["protein_id"][0]
-                    note = feature.qualifiers["note"][0]
-                    db_xref = feature.qualifiers["db_xref"][0]
-                    protid = feature.qualifiers["protein_id"][0]
-                    sequence  = feature.qualifiers["translation"][0]
+                    if "locus_tag" in feature.qualifiers:
+                        locus = feature.qualifiers["locus_tag"][0]
+                    elif "gene" in feature.qualifiers:
+                        locus = feature.qualifiers["gene"][0]
+                    else:
+                        continue
+                    protid,sequence = "_","_"
+                    if "protein_id" in feature.qualifiers:
+                        protid = feature.qualifiers["protein_id"][0]
+                    if "translation" in feature.qualifiers:
+                        sequence  = feature.qualifiers["translation"][0]
                     st,end,strand = loc_reg.findall(str(feature.location))[0]
-                    description = "%s\t%s\t%s"%(protid,db_xref,note)
-                    fasta_str = ">%d %s %s %s %s %s %s\n%s\n"%(index,
-                                                               organism,
-                                                               st,end,strand,
-                                                               locus,
-                                                               description,
-                                                               sequence)
+                    fasta_str = ">%d\t%s\t%s\t%s\t%s\t%s\t%s\n%s\n"%(index,
+                                                                     organism,
+                                                                     st,end,strand,
+                                                                     locus,
+                                                                     protid,
+                                                                     sequence)
                     outHandle.write(fasta_str)
+                    index+=1
                 except KeyError as k:                    
-                    #print "Exception",k
-                    #print feature
-                    locus = feature.qualifiers["protein_id"][0]
-                    sequence  = feature.qualifiers["translation"][0]
-                    st,end,strand = loc_reg.findall(str(feature.location))[0]
-                    fasta_str = ">%d %s %s %s %s %s\n%s\n"%(index,
-                                                            organism,
-                                                            st,end,strand,
-                                                            locus,
-                                                            sequence)
-                    outHandle.write(fasta_str)
+                    continue
                 
-                index+=1
+                
         
         
     except Exception as e:

@@ -30,7 +30,7 @@ class GenBank(object):
 
     def buildProteinDictionary(self,fname):
         proteins = dict()
-        print fname
+        
         seq_record = SeqIO.parse(open(fname), "genbank").next()
         for feature in seq_record.features:
             if feature.type == 'CDS':
@@ -145,7 +145,7 @@ def proteinQuery(protID,dbfile):
     cursor.execute('''SELECT * FROM protein_text WHERE protein_id=?''',(protID,))
     #cursor.execute('''SELECT * FROM protein_text''')
     rows = cursor.fetchall()
-    print rows
+
     db.close()
     return rows
 """ Creates database whose primary key is the locus tag
@@ -163,7 +163,7 @@ def buildLocusTable(genbank_files,dbout):
                 if "locus_tag" in feature.qualifiers:
                     locus = feature.qualifiers["locus_tag"][0]
                 elif "gene" in feature.qualifiers:
-                    locus = features.qualifiers["gene"][0]
+                    locus = feature.qualifiers["gene"][0]
                 else:
                     continue
                 proteinID = feature.qualifiers["protein_id"][0]
@@ -191,7 +191,7 @@ if __name__=="__main__":
         'Finds intergenic regions from genback files')
     parser.add_argument(\
         '--genome-files', type=str, nargs="+", required=False,
-        help='FASTA files containing bacterial genomes')
+        help='Genbank files containing bacterial genomes')
     parser.add_argument(\
         '--output-db', type=str, required=False,
         help='The output file containing the tab-delimited output')
@@ -200,9 +200,9 @@ if __name__=="__main__":
         help='Run unittests')
     args = parser.parse_args()
     if not args.test:
-
-        buildTextDB(args.genome_files,args.output_db)
-
+        buildLocusTable(args.genome_files,args.output_db)
+        buildProteinTable(args.genome_files,args.output_db)
+        
     else:
         del sys.argv[1:]
         import unittest
@@ -218,7 +218,7 @@ if __name__=="__main__":
                                      'Streptomyces_avermitilis']
                 self.exampledir   = '%s/example'%self.root
                 self.genome_dirs  = ["%s/%s"%(self.exampledir,g) for g in self.genome_dirs]
-                print self.genome_dirs
+                
                 self.genome_files = []
                 for gdir in self.genome_dirs:
                     for file in os.listdir(gdir):
