@@ -11,6 +11,8 @@ import sys
 import os
 import argparse
 import glob
+import sqlite3
+
 class GenBank(object):
     def __init__(self,fname,dicttype="gene"):
         self.fname = fname
@@ -119,6 +121,32 @@ def loadTextDB(dbin):
 
 """ Creates database whose primary key is the protein ID """
 def buildProteinTextDB(genbank_files,dbout):
+    self.db = splite3.connect(dbout)
+    cursor = self.db.cursor()
+    cursor.execute('''
+            CREATE TABLE protein_text(protein_id TEXT , note TEXT)
+            ''')
+    db.commit()
+    for genbank_file in genbank_files:
+        seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
+        for feature in seq_record.features:
+            try:
+                proteinID = feature.qualifiers["proteinID"][0]
+                note = ""
+                if "note" in feature.qualifiers:
+                    note+= formatText(feature.qualifiers["note"][0])
+                if "function" in feature.qualifiers:
+                    note+= formatText(feature.qualifiers["function"][0])
+                if "product" in feature.qualifiers:
+                    note+= formatText(feature.qualifiers["function"][0])
+                 
+                cursor.execute('''INSERT INTO protein_text(protein_id,note)
+                                    VALUES(?,?)''',(proteinID,note))
+            except KeyError as k:
+                continue
+        db.commit
+        
+    """
     proteinDict = {}        
     for genbank_file in genbank_files:
         seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
@@ -133,30 +161,46 @@ def buildProteinTextDB(genbank_files,dbout):
                 proteinDict[proteinID] = note
             else:
                 proteinDict[proteinID]= "%s %s"%(proteinDict[proteinID],note)
-
+    """
+    
 """ Creates database whose primary key is the locus tag"""
 def buildGeneTextDB(genbank_files,dbout):
-    proteinDict = {}
-        
+    db = splite3.connect(dbout)
+    cursor = db.cursor()
+    cursor.execute('''
+        CREATE TABLE coding_regions(locus_tag TEXT PRIMARY KEY,
+                                    protein_id TEXT)
+    '''
+    )
+    self.db.commit()
+    
     for genbank_file in genbank_files:
         seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
         for feature in seq_record.features:        
             
             try:
                 if "locus_tag" in feature.qualifiers:
-                    proteinID = feature.qualifiers["locus_tag"][0]
+                    locus = feature.qualifiers["locus_tag"][0]
                 elif "gene" in feature.qualifiers:
-                    proteinID = features.qualifiers["gene"][0]
+                    locus = features.qualifiers["gene"][0]
                 else:
                     continue
+                proteinID,sequence = "",""
+                if "protein_id" in feature.qualifiers:
+                    proteinID = feature.qualifiers["protein_id"][0]
+                    
+                cursor.execute('''INSERT INTO coding_regions(locus_tag,protein_id)
+                              VALUES(?,?,?,?,?,?)''',(locus,seq,st,end,note,protid))
+                
             except KeyError as k:
                 continue
             
+            """
             if proteinID not in proteinDict:
                 proteinDict[proteinID] = note
             else:
                 proteinDict[proteinID]= "%s %s"%(proteinDict[proteinID],note)
-        
+            """
                 
     proteinIDs,textBlobs = proteinDict.keys(),proteinDict.values()
     handle = open(dbout,'w')

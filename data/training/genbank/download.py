@@ -11,7 +11,7 @@ for i in range(len(GIs)):
     handle = Entrez.efetch(db="nucleotide", id=GIs, rettype="gbwithparts", retmode="text")
     
     open(files[i],'w').write(str(handle.read()))
-    seq_record = SeqIO.parse(open(files[i]),"genbank")
+    #seq_record = SeqIO.parse(open(files[i]),"genbank")
     #for feature in seq_record.features:
     #    try:
     #        protid = feature.qualifiers["protein_id"]
