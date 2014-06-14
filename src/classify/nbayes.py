@@ -1,9 +1,5 @@
 """
-A couple of ways to improve classification
-
-stemming
-suffix removal
-
+Trys to assign a function to a gene based on its annotated text
 """
 import os,sys
 import nltk
