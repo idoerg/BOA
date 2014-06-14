@@ -8,10 +8,15 @@ from Bio.SeqRecord import SeqRecord
 from Bio import Entrez
 from nltk import PorterStemmer
 import sys
-import os
+import os,site
 import argparse
 import glob
 import sqlite3
+
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import text
 
 class GenBank(object):
     def __init__(self,fname,dicttype="gene"):
@@ -93,20 +98,7 @@ def getDescription(feature):
         pass
     return description
 
-"""Format the text to aid naive bayes"""
-def formatText(text):
-    text = text.lower()
-    text = text.replace('.',' ')
-    text = text.replace('\\',' ')
-    text = text.replace('/',' ')
-    text = text.replace('\"',' ')
-    text = text.replace('\'',' ')
-    text = text.replace(':',' ')
-    text = text.replace(';',' ')
-    text = text.replace('(',' ')
-    text = text.replace(')',' ')
-    porter = PorterStemmer()
-    return ' '.join([porter.stem(word) for word in text.split(' ')])
+
 """ Loads database into memory"""
 def loadTextDB(dbin):
     proteinDict = {}
@@ -119,65 +111,54 @@ def loadTextDB(dbin):
             proteinDict[proteinID] = text
     return proteinDict
 
-""" Creates database whose primary key is the protein ID """
-def buildProteinTextDB(genbank_files,dbout):
-    self.db = splite3.connect(dbout)
-    cursor = self.db.cursor()
-    cursor.execute('''
-            CREATE TABLE protein_text(protein_id TEXT , note TEXT)
-            ''')
+""" Creates database whose primary key is the protein ID 
+    that maps to annotation text"""
+def buildProteinTable(genbank_files,dbout):
+    db = sqlite3.connect(dbout)
+    cursor = db.cursor()
+    cursor.execute('''CREATE TABLE protein_text(protein_id TEXT , 
+                                                note TEXT)''')
     db.commit()
     for genbank_file in genbank_files:
         seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
         for feature in seq_record.features:
             try:
-                proteinID = feature.qualifiers["proteinID"][0]
+                proteinID = feature.qualifiers["protein_id"][0]
                 note = ""
                 if "note" in feature.qualifiers:
-                    note+= formatText(feature.qualifiers["note"][0])
+                    note+= text.formatText(feature.qualifiers["note"][0])
                 if "function" in feature.qualifiers:
-                    note+= formatText(feature.qualifiers["function"][0])
+                    note+= text.formatText(feature.qualifiers["function"][0])
                 if "product" in feature.qualifiers:
-                    note+= formatText(feature.qualifiers["function"][0])
+                    note+= text.formatText(feature.qualifiers["product"][0])
                  
                 cursor.execute('''INSERT INTO protein_text(protein_id,note)
                                     VALUES(?,?)''',(proteinID,note))
             except KeyError as k:
                 continue
         db.commit()
-        
-    """
-    proteinDict = {}        
-    for genbank_file in genbank_files:
-        seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
-        for feature in seq_record.features:
-            try:
-                proteinID = feature.qualifiers["proteinID"][0]
-                note = formatText(feature.qualifiers["note"][0])
-            except KeyError as k:
-                continue
-                
-            if proteinID not in proteinDict:
-                proteinDict[proteinID] = note
-            else:
-                proteinDict[proteinID]= "%s %s"%(proteinDict[proteinID],note)
-    """
-    
-""" Creates database whose primary key is the locus tag"""
-def buildGeneTextDB(genbank_files,dbout):
-    db = splite3.connect(dbout)
+    db.close()
+""" Returns rows with (proteinID, note) """
+def proteinQuery(protID,dbfile):
+    db = sqlite3.connect(dbfile)
     cursor = db.cursor()
-    cursor.execute('''
-        CREATE TABLE coding_regions(locus_tag TEXT,
-                                    protein_id TEXT)
-    '''
-    )
-    self.db.commit()
-    
+    cursor.execute('''SELECT * FROM protein_text WHERE protein_id=?''',(protID,))
+    #cursor.execute('''SELECT * FROM protein_text''')
+    rows = cursor.fetchall()
+    print rows
+    db.close()
+    return rows
+""" Creates database whose primary key is the locus tag
+    that maps to protein IDs"""
+def buildLocusTable(genbank_files,dbout):
+    db = sqlite3.connect(dbout)
+    cursor = db.cursor()
+    cursor.execute('''CREATE TABLE loci(locus_tag TEXT,
+                                       protein_id TEXT)''')
+    db.commit()
     for genbank_file in genbank_files:
         seq_record = SeqIO.parse(open(genbank_file), "genbank").next()
         for feature in seq_record.features:        
-            
             try:
                 if "locus_tag" in feature.qualifiers:
                     locus = feature.qualifiers["locus_tag"][0]
@@ -185,30 +166,25 @@ def buildGeneTextDB(genbank_files,dbout):
                     locus = features.qualifiers["gene"][0]
                 else:
                     continue
-                proteinID,sequence = "",""
-                if "protein_id" in feature.qualifiers:
-                    proteinID = feature.qualifiers["protein_id"][0]
-                    
-                cursor.execute('''INSERT INTO coding_regions(locus_tag,protein_id)
-                              VALUES(?,?,?,?,?,?)''',(locus,seq,st,end,note,protid))
-                
+                proteinID = feature.qualifiers["protein_id"][0]
+                cursor.execute('''INSERT INTO loci(locus_tag,protein_id)
+                              VALUES(?,?)''',(locus,proteinID))
             except KeyError as k:
                 continue
             
-            """
-            if proteinID not in proteinDict:
-                proteinDict[proteinID] = note
-            else:
-                proteinDict[proteinID]= "%s %s"%(proteinDict[proteinID],note)
-            """
-                
-    proteinIDs,textBlobs = proteinDict.keys(),proteinDict.values()
-    handle = open(dbout,'w')
-    textFeatures = zip(proteinIDs,textBlobs)
+        db.commit()
+    db.close()
     
-    handle.write( '\n'.join(["%s\t%s"%f for f in textFeatures]) )
-    handle.close()
-    
+""" Returns rows of (locus_tag,protein_id)"""    
+def locusQuery(locus,dbfile):
+    db = sqlite3.connect(dbfile)
+    cursor = db.cursor()
+    cursor.execute('''SELECT * FROM loci WHERE locus_tag=?''',(locus,))
+    #cursor.execute('''SELECT * FROM loci''')
+    rows = cursor.fetchall()
+    db.close()
+    return rows
+
 if __name__=="__main__":
     
     parser = argparse.ArgumentParser(description=\
@@ -232,6 +208,7 @@ if __name__=="__main__":
         import unittest
         class TestBuildDB(unittest.TestCase):
             def setUp(self):
+                self.root = os.environ['BACFINDER_HOME']
                 self.genome_dirs = [ 'Acetobacterium',
                                      'Butyrivibrio_fibrisolvens',
                                      'Catenulispora_acidiphila',
@@ -239,7 +216,7 @@ if __name__=="__main__":
                                      'Staphylococcus_aureus',
                                      'Streptococcus_pyogenes',
                                      'Streptomyces_avermitilis']
-                self.exampledir   = '/media/HD/Documents/Jamie/MiamiBio/Bacfinder/example'
+                self.exampledir   = '%s/example'%self.root
                 self.genome_dirs  = ["%s/%s"%(self.exampledir,g) for g in self.genome_dirs]
                 print self.genome_dirs
                 self.genome_files = []
@@ -247,10 +224,29 @@ if __name__=="__main__":
                     for file in os.listdir(gdir):
                         if file.endswith(".gbk"):
                             self.genome_files.append("%s/%s"%(gdir,file))
-                self.outdb = "testdb"
-            def testdb1(self):
-                buildTextDB(self.genome_files,self.outdb)
-                self.assertTrue(os.path.getsize(self.outdb) > 0)
+                self.db = "testdb"
+                if os.path.exists(self.db):
+                    os.remove(self.db)
+                
+            def tearDown(self):
+                #os.remove(self.locusdb)
+                #os.remove(self.protdb)
+                os.remove(self.db)
+                pass
+            #def testdb1(self):
+            #    buildLocusTable(self.genome_files,self.db)
+            #    self.assertTrue(os.path.getsize(self.db) > 0)
+            #    entries = locusQuery("Spy49_0568",self.db)
+            #    self.assertTrue(len(entries) > 0)
+                    
+            def testdb2(self):
+                buildProteinTable(self.genome_files,self.db)
+                self.assertTrue(os.path.getsize(self.db) > 0)
+        
+                entries = proteinQuery("NP_828769.1",self.db)
+                #entries = proteinQuery("ACI60894.1",self.db)
+                self.assertTrue(len(entries) > 0)
+             
         unittest.main()
         
         
