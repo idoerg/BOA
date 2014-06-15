@@ -13,11 +13,11 @@ Make sure that you have the following installed
 8.  hmmer
 9.  cdhit
 10. clustalw
-11. ftputil
+11. nltk
 
 If you are using ubuntu, most of these packages can be installed using the following command
 ```
-sudo apt-get install python python-biopython python-matplotlib python-panda python-numpy python-ftputil clustalw cd-hit hmmer
+sudo apt-get install python python-biopython python-matplotlib python-panda python-numpy nltk clustalw cd-hit hmmer
 ```
 bx-python can be installed through the following link: https://bitbucket.org/james_taylor/bx-python/wiki/Home
 
