@@ -32,9 +32,12 @@ class NBayesSim(object):
     def genLocusTags(self,numEntries):
         loci = set()
         for i in range(numEntries):
-            locus = random.choice(string.ascii_uppercase)
+            locus = ''.join([random.choice(string.ascii_uppercase) 
+                             for i in range(10)])
             while locus in loci:
-                locus = random.choice(string.ascii_uppercase)
+                locus = ''.join([random.choice(string.ascii_uppercase) 
+                                 for i in range(10)])
+                print "Locus",locus
             loci.add(locus)    
         loci = list(loci)
         return loci
@@ -42,9 +45,12 @@ class NBayesSim(object):
     def genProteinIDs(self,numEntries):
         proteinIDs = set()
         for i in range(numEntries):
-            proteinID = random.choice(string.ascii_uppercase)
+            proteinID = ''.join([random.choice(string.ascii_uppercase) 
+                                 for i in range(10)]+['.1'])
             while proteinID in proteinIDs:
-                proteinID = random.choice(string.ascii_uppercase)
+                proteinID = ''.join([random.choice(string.ascii_uppercase) 
+                                 for i in range(10)]+['.1'])
+                print "Protein",proteinID
             proteinIDs.add(proteinID)    
         proteinIDs = list(proteinIDs)
         return proteinIDs
@@ -66,8 +72,10 @@ class NBayesSim(object):
             genbank.insertProteinQuery(protID,note,outputDB)
             genbank.insertLocusQuery(locus,protID,outputDB)
             seqid = "%s|_|_|_|%s"%(locus,protID)
-            fastahandle.write(">%s\n%s"%(seqid,sequence))
+            fastahandle.write(">%s\n%s\n"%(seqid,sequence))
         fastahandle.close()
+        
+        
         
 class TextSim(object):
     def __init__(self,genbankDir,trainingFile):
@@ -177,9 +185,10 @@ if __name__=="__main__":
                 nsim = NBayesSim(self.trainDir,self.labelFile)
                 nsim.simulationOutput(10,self.db,self.fasta)
                 rows = genbank.proteinQueryAll(self.db)
+                print '\n'.join(map(str,rows))
                 self.assertEquals(10,len(rows))
                 rows = genbank.locusQueryAll(self.db)
-                print rows
+                print '\n'.join(map(str,rows))
                 self.assertEquals(10,len(rows))
                 self.assertTrue(os.path.getsize(self.fasta)>0)
                 
