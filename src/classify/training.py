@@ -35,7 +35,7 @@ class Labels(object):
         return len(self.labels)
     def filterWords(self,words):
         #Remove all single letter words
-        return [w for w in words if len(w)>1]
+        return [text.formatText(w) for w in words if len(w)>1]
     def decomposeDocument(self,text):
         words = [self.filterWords(word_reg.findall(t.lower()))
                  for t in text]
