@@ -35,6 +35,7 @@ import bacteriocin
 import nbayes
 import cdhit
 
+
 """ Remove duplicate entries"""
 def removeDuplicates(items):
     uniqueDict = {tuple(x[-5:-1]):x for x in items}
@@ -67,6 +68,7 @@ class PipelineHandler(object):
                  similarity,
                  bac_evalue,
                  training_labels,
+                 training_directory,
                  intermediate,
                  output,
                  numThreads,
@@ -82,6 +84,7 @@ class PipelineHandler(object):
         self.similarity	        =	  similarity			
         self.bac_evalue	        =	  bac_evalue
         self.training_labels    =     training_labels			
+        self.training_directory =     training_directory			
         self.intermediate   	=	  intermediate  		
         self.output	         	=	  output
         self.numThreads         =     numThreads
@@ -110,7 +113,8 @@ class PipelineHandler(object):
         self.clusterpickle = "cluster.zip"
         self.textout = "text_out.txt"
     def load(self):
-        self.textClassifier = nbayes.NBayes(self.training_labels)
+        self.textClassifier = nbayes.NBayes(self.training_directory,
+                                            self.training_labels)
         self.textClassifier.load(self.nbpickle)
         self.clusterer = cdhit.CDHit(self.cand_context_genes_fasta,
                                      self.cand_context_cluster,
@@ -120,11 +124,13 @@ class PipelineHandler(object):
         intergenic database
         annotated genes database 
         naive bayes model"""
-    def preprocess(self):
+    def preprocess(self,buildAnnotations=True):
         print "Preprocessing"
-        annotated_genes.go(self.rootdir,self.annotated_genes) 
-        intergene.go(self.rootdir,self.intergenes)
-        self.textClassifier = nbayes.NBayes(self.training_labels)
+        if buildAnnotations:
+            annotated_genes.go(self.rootdir,self.annotated_genes) 
+            intergene.go(self.rootdir,self.intergenes)
+        self.textClassifier = nbayes.NBayes(self.training_directory,
+                                            self.training_labels)
         self.textClassifier.train()
         self.textClassifier.dump(self.nbpickle)
         print "Dumped pickle file"
@@ -145,11 +151,12 @@ class PipelineHandler(object):
                          self.verbose,
                          False)
     """ Clusters bacteriocins and context genes together"""
-    def cluster(self):
+    def cluster(self,preprocess=True):
         print "Clustering"
-        preprocessFasta(self.cand_context_genes_tab,
-                        self.cand_context_genes_fasta)
-        
+        if preprocess:
+            preprocessFasta(self.cand_context_genes_tab,
+                            self.cand_context_genes_fasta)
+            
         
         self.clusterer = cdhit.CDHit(self.cand_context_genes_fasta,
                                      self.cand_context_cluster,
@@ -158,8 +165,8 @@ class PipelineHandler(object):
         self.clusterer.parseClusters()
         self.clusterer.dump(self.clusterpickle)
     """ Classifies individual bacteriocins and context genes based on their text"""
-    def naiveBayes(self):
-        sets = self.textClassifier.classify(self.cand_context_cluster)
+    def naiveBayes(self,db):
+        sets = self.textClassifier.classify(db,self.cand_context_cluster)
         titles,labels = zip(*sets)
         print sets
         open(self.textout,'w').write('\n'.join(map(str,sets)))
@@ -205,6 +212,10 @@ if __name__=="__main__":
         '--training-labels',type=str,required=False,default=None,
         help='Training labels for Naive Bayes')
     parser.add_argument(\
+        '--training-directory',type=str,required=False,default=None,
+        help='''Training directory containing all 
+                genbank files required for training the Naive Bayes model''')
+    parser.add_argument(\
         '--intermediate', type=str, required=False,default='.',
         help='Directory for storing intermediate files')
     parser.add_argument(\
@@ -234,6 +245,7 @@ if __name__=="__main__":
                                  args.similarity,
                                  args.bac_evalue,
                                  args.training_labels,
+                                 args.training_directory,
                                  args.intermediate,
                                  args.output,
                                  args.num_threads,
@@ -260,7 +272,9 @@ if __name__=="__main__":
                 self.intergenes = "test_intergenes.fa"
                 self.annotated_genes = "test_genes.fa"
                 self.intermediate = "intermediate"
-                self.training_labels = "%s/data/training/training.txt"%self.root
+                #self.training_labels = "%s/data/training/training.txt"%self.root
+                self.training_directory = "%s/data/training/protein"%self.root
+                self.training_labels = "%s/data/training/training_proteins.txt"%self.root
                 if not os.path.exists(self.intermediate):
                     os.mkdir(self.intermediate)
                 self.bac_evalue = 0.000001
@@ -283,6 +297,7 @@ if __name__=="__main__":
                                          self.similarity,
                                          self.bac_evalue,
                                          self.training_labels,
+                                         self.training_directory,
                                          self.intermediate,
                                          self.output,
                                          self.numThreads,

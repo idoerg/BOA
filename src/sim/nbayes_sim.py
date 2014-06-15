@@ -71,7 +71,7 @@ class NBayesSim(object):
             note = " ".join(words)
             genbank.insertProteinQuery(protID,note,outputDB)
             genbank.insertLocusQuery(locus,protID,outputDB)
-            seqid = "%s|_|_|_|%s"%(locus,protID)
+            seqid = "%s|_|_|_|_|%s"%(locus,protID)
             fastahandle.write(">%s\n%s\n"%(seqid,sequence))
         fastahandle.close()
         
@@ -164,6 +164,9 @@ if __name__=="__main__":
                     os.remove(self.db)
                 
                 self.fasta = "test.fa"
+            def tearDown(self):
+                os.remove(self.fasta)
+                os.remove(testdb)
             def testTextSim(self):
                 testsim = TextSim(self.trainDir,self.labelFile)
                 testsim.textBuild()
@@ -190,6 +193,5 @@ if __name__=="__main__":
                 rows = genbank.locusQueryAll(self.db)
                 print '\n'.join(map(str,rows))
                 self.assertEquals(10,len(rows))
-                self.assertTrue(os.path.getsize(self.fasta)>0)
-                
+                self.assertTrue(os.path.getsize(self.fasta)>0)                
         unittest.main()

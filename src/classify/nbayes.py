@@ -70,21 +70,25 @@ class NBayes(object):
         return p
     
     """ Classifies proteins based on its text """
-    def classify(self,fastain):
+    def classify(self,db,fastain):
         proIDs,features,labels = [],[],[]
-        Entrez.email = "mortonjt@miamioh.edu"
+        #Entrez.email = "mortonjt@miamioh.edu"
         for seq_record in SeqIO.parse(fastain, "fasta"):
             title = seq_record.id
             toks = title.split("|")
             proteinID = toks[5]
             #print "Protein ID",proteinID
-            text = genbank.entrezProteinDescription(proteinID)
+            #text = genbank.entrezProteinDescription(proteinID)
+            query_rows = genbank.proteinQuery(proteinID,db)
+            ids,text = zip(*query_rows)
+            text = ''.join(map(str,text))
+            print text
             proIDs.append(proteinID)
             label = self.classifier.classify(self.gene_features(text))
             labels.append(label)
             features.append(text)
-            
-        labels = self.classifier.batch_classify(features)
+        #print features
+        #labels = self.classifier.batch_classify(features)
         print labels[0]
         return zip(proIDs,labels)
         
