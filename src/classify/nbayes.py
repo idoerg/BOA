@@ -82,14 +82,13 @@ class NBayes(object):
             query_rows = genbank.proteinQuery(proteinID,db)
             ids,text = zip(*query_rows)
             text = ''.join(map(str,text))
-            print text
             proIDs.append(proteinID)
             label = self.classifier.classify(self.gene_features(text))
             labels.append(label)
             features.append(text)
         #print features
         #labels = self.classifier.batch_classify(features)
-        print labels[0]
+        
         return zip(proIDs,labels)
         
     """ Dump object into pickle file """

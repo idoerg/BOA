@@ -55,12 +55,13 @@ class NBayesSim(object):
         proteinIDs = list(proteinIDs)
         return proteinIDs
     """ Generate simulated text databases and fasta files"""
-    def simulationOutput(self,numEntries,outputDB,outputFASTA):
+    def simulationOutput(self,numEntries,outputFunction,outputDB,outputFASTA):
         loci    = self.genLocusTags(numEntries)
         protIDs = self.genProteinIDs(numEntries)
         fastahandle = open(outputFASTA,'w')
         genbank.buildLocusTable(outputDB)
         genbank.buildProteinTable(outputDB)
+        funcHandle = open(outputFunction,'w')
         for i in range(numEntries):
             locus,protID = loci[i],protIDs[i]
             function = random.choice(self.functions)
@@ -72,9 +73,10 @@ class NBayesSim(object):
             genbank.insertProteinQuery(protID,note,outputDB)
             genbank.insertLocusQuery(locus,protID,outputDB)
             seqid = "%s|_|_|_|_|%s"%(locus,protID)
+            funcHandle.write("%s\t%s\t%s\n"%(locus,protID,function) )
             fastahandle.write(">%s\n%s\n"%(seqid,sequence))
         fastahandle.close()
-        
+        funcHandle.close()
         
         
 class TextSim(object):
@@ -164,9 +166,11 @@ if __name__=="__main__":
                     os.remove(self.db)
                 
                 self.fasta = "test.fa"
+                self.function_check="correct_functions.txt"
             def tearDown(self):
                 os.remove(self.fasta)
                 os.remove(testdb)
+                os.remove(self.function_check)
             def testTextSim(self):
                 testsim = TextSim(self.trainDir,self.labelFile)
                 testsim.textBuild()
@@ -186,7 +190,7 @@ if __name__=="__main__":
                 self.assertFalse(toxin1==modifier)
             def testSim(self):
                 nsim = NBayesSim(self.trainDir,self.labelFile)
-                nsim.simulationOutput(10,self.db,self.fasta)
+                nsim.simulationOutput(10,self.function_check,self.db,self.fasta)
                 rows = genbank.proteinQueryAll(self.db)
                 print '\n'.join(map(str,rows))
                 self.assertEquals(10,len(rows))

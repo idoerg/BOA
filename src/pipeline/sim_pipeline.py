@@ -153,10 +153,10 @@ if __name__=="__main__":
                     os.remove(self.db)
                 
                 self.fasta = "test.fa"
-                
+                self.function_check = "correct_functions.txt"
             def testNBayes(self):
                 nsim = nbayes_sim.NBayesSim(self.trainDir,self.training_labels)
-                nsim.simulationOutput(100,self.db,self.fasta)
+                nsim.simulationOutput(100,self.function_check,self.db,self.fasta)
                 
                 print "Test Run"
                 proc = pipeline.PipelineHandler( self.root,
@@ -175,6 +175,7 @@ if __name__=="__main__":
                                                  self.formatdb,
                                                  self.verbose                
                                                 ) 
+
                 proc.cand_context_genes_fasta = self.fasta
                 proc.preprocess(buildAnnotations=False)
                 #self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
