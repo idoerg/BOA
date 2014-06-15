@@ -30,7 +30,7 @@ class GenBank(object):
 
     def buildProteinDictionary(self,fname):
         proteins = dict()
-        print fname
+        
         seq_record = SeqIO.parse(open(fname), "genbank").next()
         for feature in seq_record.features:
             if feature.type == 'CDS':
@@ -239,7 +239,7 @@ if __name__=="__main__":
         'Finds intergenic regions from genback files')
     parser.add_argument(\
         '--genome-files', type=str, nargs="+", required=False,
-        help='FASTA files containing bacterial genomes')
+        help='Genbank files containing bacterial genomes')
     parser.add_argument(\
         '--output-db', type=str, required=False,
         help='The output file containing the tab-delimited output')
