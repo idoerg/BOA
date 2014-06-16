@@ -17,7 +17,7 @@ import genbank
 import cPickle
 import gzip
 import copy
-
+word_reg = re.compile("[a-z]+")
 class NBayes(object):
     def __init__(self,trainDir,labelFile):
         self.classifier = None
@@ -51,7 +51,6 @@ class NBayes(object):
         random.shuffle(trainingText)
         text,labs = zip(*trainingText)
         self.all_words = list(itertools.chain(*text))
-        
         #all_words = re.split("\S+"," ".join(map(str,text)))
         self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
         feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
@@ -73,31 +72,42 @@ class NBayes(object):
     def classify(self,db,fastain):
         proIDs,features,labels = [],[],[]
         #Entrez.email = "mortonjt@miamioh.edu"
+        prevFeatureset = ''
+        prevText = ''
         for seq_record in SeqIO.parse(fastain, "fasta"):
             title = seq_record.id
             toks = title.split("|")
             proteinID = toks[5]
-            #print "Protein ID",proteinID
             #text = genbank.entrezProteinDescription(proteinID)
             query_rows = genbank.proteinQuery(proteinID,db)
             ids,text = zip(*query_rows)
             text = ''.join(map(str,text))
-            proIDs.append(proteinID)
-            label = self.classifier.classify(self.gene_features(text))
+            if text=='': 
+                label = 'na'
+            else:
+                text = word_reg.findall(text)
+                featureset = self.gene_features(text)
+                assert text!=prevText
+                assert featureset!=prevFeatureset
+                prevFeatureset = featureset
+                prevText = text
+                label = self.classifier.classify(featureset)    
+                pd = self.classifier.prob_classify(featureset)
+            
+            proIDs.append(proteinID)  
             labels.append(label)
             features.append(text)
         #print features
         #labels = self.classifier.batch_classify(features)
-        
         return zip(proIDs,labels)
         
     """ Dump object into pickle file """
     def dump(self,outfile):
         print "Dumped pickle file"
-        cPickle.dump( (self.classifier,self.all_words) ,gzip.GzipFile(outfile,'wb'))
+        cPickle.dump( (self.classifier,self.all_words,self.labels) ,gzip.GzipFile(outfile,'wb'))
     """ Load object from pickle file """
     def load(self,infile):
-        self.classifier,self.all_words = cPickle.load(gzip.GzipFile(infile,'rb'))
+        self.classifier,self.all_words,self.labels = cPickle.load(gzip.GzipFile(infile,'rb'))
         
 def go():
     pass

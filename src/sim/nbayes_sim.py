@@ -65,7 +65,7 @@ class NBayesSim(object):
         for i in range(numEntries):
             locus,protID = loci[i],protIDs[i]
             function = random.choice(self.functions)
-            numWords = 100
+            numWords = 20
             numMutations = 30
             words = self.textsim.textSample(function,numWords)
             sequence = self.seqsim.seqSample(function,numMutations)
@@ -86,6 +86,8 @@ class TextSim(object):
         self.distribution = defaultdict(list)
     """ Build a distribution of words based on genbank files and training labels"""
     def textBuild(self):
+        #nb = nbayes.NBayes(self.genbankDir,self.trainingFile)
+        #nb.train()
         labs = training.Labels(self.genbankDir,self.trainingFile)
         values =  labs.getTrainingText()
         text,functions = zip(*values)
@@ -94,6 +96,7 @@ class TextSim(object):
             self.distribution[function]+=words
     """ Given a function, sample a bunch of words"""
     def textSample(self,function,numWords):
+        #pd = nb.classifier.prob
         words = []
         if function not in self.distribution:
             return ['']
@@ -101,6 +104,7 @@ class TextSim(object):
             word = random.choice(self.distribution[function])
             words.append(word)
         return words
+        
 class SeqSim(object):
     def __init__(self):
         self.distribution = defaultdict(list)

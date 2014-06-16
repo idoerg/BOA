@@ -166,9 +166,9 @@ class PipelineHandler(object):
         self.clusterer.dump(self.clusterpickle)
     """ Classifies individual bacteriocins and context genes based on their text"""
     def naiveBayes(self,db):
-        sets = self.textClassifier.classify(db,self.cand_context_cluster)
+        sets = self.textClassifier.classify(db,self.cand_context_genes_fasta)
         titles,labels = zip(*sets)
-        print sets
+        
         open(self.textout,'w').write('\n'.join(map(str,sets)))
         pass
 
