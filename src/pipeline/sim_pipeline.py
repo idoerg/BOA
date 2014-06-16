@@ -156,7 +156,7 @@ if __name__=="__main__":
                 self.function_check = "correct_functions.txt"
             def testNBayes(self):
                 nsim = nbayes_sim.NBayesSim(self.trainDir,self.training_labels)
-                nsim.simulationOutput(10,self.function_check,self.db,self.fasta)
+                nsim.simulationOutput(100,self.function_check,self.db,self.fasta)
                 
                 print "Test Run"
                 proc = pipeline.PipelineHandler( self.root,
@@ -192,7 +192,7 @@ if __name__=="__main__":
                 #self.assertTrue(os.path.getsize(proc.cand_context_cluster) > 0)
                 
                 proc.load()
-                p = proc.textClassifier.crossvalidation()
+                p = proc.textClassifier.leaveOneOutCrossValidation()
                 print "Accuracy:",p
                 proc.naiveBayes(self.db)
                 self.assertTrue(os.path.getsize(proc.textout) > 0)

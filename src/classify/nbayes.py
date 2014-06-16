@@ -57,7 +57,21 @@ class NBayes(object):
         self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)    
         
     """ Make sure that the algorithm works on training data """
+    def twofoldcrossvalidation(self):
+        self.labels = training.Labels(self.trainingDir,self.labelFile)
+        trainingText = self.labels.getTrainingText()
+        random.shuffle(trainingText)
+        text,labs = zip(*trainingText)
+        self.all_words = list(itertools.chain(*text))
+        #all_words = re.split("\S+"," ".join(map(str,text)))
+        self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
+        feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
+        train_set,test_set = feature_sets[:70],feature_sets[70:]
+        self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+        p = nltk.classify.accuracy(self.classifier,test_set)
+        return p
     def crossvalidation(self):
+        self.labels = training.Labels(self.trainingDir,self.labelFile)
         trainingText = self.labels.getTrainingText()
         random.shuffle(trainingText)
         text,labs = zip(*trainingText)
@@ -67,7 +81,27 @@ class NBayes(object):
         feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
         p = nltk.classify.accuracy(self.classifier,feature_sets)
         return p
+    def leaveOneOutCrossValidation(self):
+        self.labels = training.Labels(self.trainingDir,self.labelFile)
+        trainingText = self.labels.getTrainingText()
+        random.shuffle(trainingText)
+        text,labs = zip(*trainingText)
+        self.all_words = list(itertools.chain(*text))
+        #all_words = re.split("\S+"," ".join(map(str,text)))
+        self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
+        feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
+        error = 0
+        N = len(feature_sets)
+        for i in range(N):
+            train_set1,test_set,train_set2 = feature_sets[:i],feature_sets[i],feature_sets[i+1:]
+            train_set = train_set1+train_set2
+            test_set = [test_set]
+            self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+            p = nltk.classify.accuracy(self.classifier,test_set)
+            error+=p
+        return error/N
     
+        
     """ Classifies proteins based on its text """
     def classify(self,db,fastain):
         proIDs,features,labels = [],[],[]
