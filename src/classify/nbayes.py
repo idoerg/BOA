@@ -3,6 +3,7 @@ Trys to assign a function to a gene based on its annotated text
 """
 import os,sys
 import nltk
+from nltk.metrics import ConfusionMatrix
 import itertools
 import argparse
 from collections import defaultdict
@@ -50,11 +51,12 @@ class NBayes(object):
         trainingText = self.labels.getTrainingText()
         random.shuffle(trainingText)
         text,labs = zip(*trainingText)
-        self.all_words = list(itertools.chain(*text))
+        self.all_words = list(set(itertools.chain(*text)))
         #all_words = re.split("\S+"," ".join(map(str,text)))
-        self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
+        #self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()
         feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
-        self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)    
+        #self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)
+        self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
         
     """ Make sure that the algorithm works on training data """
     def twofoldcrossvalidation(self):
@@ -67,7 +69,9 @@ class NBayes(object):
         self.all_words = nltk.FreqDist(w.lower() for w in self.all_words).keys()[:2000]
         feature_sets = [(self.gene_features(d),c) for (d,c) in trainingText]
         train_set,test_set = feature_sets[:70],feature_sets[70:]
-        self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+        #self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+        self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)
+        #self.classifier = nltk.MaxentClassifier.train(feature_sets,'megam',trace=0, max_iter=1000)  
         p = nltk.classify.accuracy(self.classifier,test_set)
         return p
     def crossvalidation(self):
@@ -96,11 +100,20 @@ class NBayes(object):
             train_set1,test_set,train_set2 = feature_sets[:i],feature_sets[i],feature_sets[i+1:]
             train_set = train_set1+train_set2
             test_set = [test_set]
-            self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+            #self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+            self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
             p = nltk.classify.accuracy(self.classifier,test_set)
             error+=p
         return error/N
     
+    def confusionMatrix(self,ref,test):
+        ref.sort(key=lambda x: x[0])
+        test.sort(key=lambda x: x[0])
+        _,ref_labels = zip(*ref)
+        _,test_labels = zip(*test)
+        cm = ConfusionMatrix(ref_labels, test_labels)
+        tp_fn =  sum([ref_labels[i]==test_labels[i] for i in range(len(ref_labels))])
+        print cm.pp()
         
     """ Classifies proteins based on its text """
     def classify(self,db,fastain):
@@ -126,7 +139,7 @@ class NBayes(object):
                 prevFeatureset = featureset
                 prevText = text
                 label = self.classifier.classify(featureset)    
-                pd = self.classifier.prob_classify(featureset)
+                #pd = self.classifier.prob_classify(featureset)
             
             proIDs.append(proteinID)  
             labels.append(label)
@@ -134,7 +147,16 @@ class NBayes(object):
         #print features
         #labels = self.classifier.batch_classify(features)
         return zip(proIDs,labels)
-        
+    def readOutput(self,fname):
+        protids,functions = [],[]
+        with open(fname,'r') as handle:
+            for ln in handle:
+                ln = ln.rstrip()
+                toks = ln.split('\t')
+                protid,function = toks[0],toks[1]
+                protids.append(protid)
+                functions.append(function)
+        return zip(protids,functions)
     """ Dump object into pickle file """
     def dump(self,outfile):
         print "Dumped pickle file"

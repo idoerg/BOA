@@ -170,9 +170,10 @@ class PipelineHandler(object):
         sets = self.textClassifier.classify(db,self.cand_context_genes_fasta)
         titles,labels = zip(*sets)
         
-        open(self.textout,'w').write('\n'.join(map(str,sets)))
-        pass
+        open(self.textout,'w').write('\n'.join(["%s\t%s"%x for x in sets]))
+        
 
+    
     """ Classifies entire clusters based on a majority vote"""
     def majorityVote(self):
         pass

@@ -76,7 +76,7 @@ class CDHit(object):
         for clr in self.clusters:
             handle.write("%d\n"%(len(clr)))
     def filterSize(self,n):
-        self.clusters = [clr for clr in self.clusters if len(clr)>n]
+        self.clusters = [ clr for clr in self.clusters if len(clr)>n ]
         
 def go(input_file,output_file,threshold):
     cdhitProc = CDHit(input_file,output_file,threshold)

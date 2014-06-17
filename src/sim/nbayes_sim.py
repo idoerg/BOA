@@ -77,8 +77,18 @@ class NBayesSim(object):
             fastahandle.write(">%s\n%s\n"%(seqid,sequence))
         fastahandle.close()
         funcHandle.close()
-        
-        
+    """Read simulated output"""
+    def readOutput(self,fname):
+        protids,functions = [],[]
+        with open(fname,'r') as handle:
+            for ln in handle:
+                ln = ln.rstrip()
+                toks = ln.split('\t')
+                protid,function = toks[1],toks[2]
+                protids.append(protid)
+                functions.append(function)
+        return zip(protids,functions)
+    
 class TextSim(object):
     def __init__(self,genbankDir,trainingFile):
         self.trainingFile = trainingFile
