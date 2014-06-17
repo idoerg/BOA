@@ -17,13 +17,22 @@ from collections import defaultdict
 class Cluster(object):
     def __init__(self):
         self.seqs = []
+        self.iterator = iter(self.seqs)
     def append(self,seq):
         self.seqs.append(seq)
     def __len__(self):
         return len(self.seqs)
     def __str__(self):
         return '\n'.join(self.seqs)
+    def __iter__(self):
+        return self
     
+    def next(self):
+        try:
+            record = next(self.iterator)
+            return record
+        except StopIteration as s:
+            raise StopIteration()
 class CDHit(object):
     def __init__(self,input_file,output_file,similarity):
         self.input = input_file

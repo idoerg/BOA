@@ -37,7 +37,7 @@ class AnnotatedGenes(object):
         try:
             record = next(self.iterator)
             toks = record.description.split('\t')
-            print toks
+            #print toks
             assert len(toks)==7
             index,orgid,start,end,strand,locus,protid = toks
             start,end = int(start),int(end)
