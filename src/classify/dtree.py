@@ -19,8 +19,9 @@ import cPickle
 import gzip
 import copy
 import text_classifier
+
 word_reg = re.compile("[a-z]+")
-class NBayes(text_classifier.TextClassifier):
+class DTree(text_classifier.TextClassifier):
     def __init__(self,trainDir,labelFile):
         self.classifier = None
         self.labelFile = labelFile
@@ -29,10 +30,11 @@ class NBayes(text_classifier.TextClassifier):
         self.all_words = None
         #self.labels = training.setup(labelFile)
         #self.train()
-    
+        
+   
     def train(self):
         feature_sets = self.getFeatures()
-        self.classifier = nltk.NaiveBayesClassifier.train(feature_sets)
+        self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
     
     """ Determines training error"""
     def trainingError(self):
@@ -52,7 +54,7 @@ class NBayes(text_classifier.TextClassifier):
             test_set   = feature_sets[n*i:n*(i+1)]
             train_set2 = feature_sets[i+1:]
             train_set = train_set1+train_set2
-            self.classifier = nltk.NaiveBayesClassifier.train(train_set)
+            self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
             p = nltk.classify.accuracy(self.classifier,test_set)
         return p
     """ Make sure that the algorithm works on training data using a leave one out 
@@ -65,8 +67,7 @@ class NBayes(text_classifier.TextClassifier):
             train_set1,test_set,train_set2 = feature_sets[:i],feature_sets[i],feature_sets[i+1:]
             train_set = train_set1+train_set2
             test_set = [test_set]
-            self.classifier = nltk.NaiveBayesClassifier.train(train_set)
-            #self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
+            self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
             p = nltk.classify.accuracy(self.classifier,test_set)
             error+=p
         return error/N
@@ -107,7 +108,6 @@ class NBayes(text_classifier.TextClassifier):
             features.append(text)
         return zip(proIDs,labels)
 
-    
 def go():
     pass
 
@@ -155,15 +155,15 @@ if __name__=="__main__":
             def tearDown(self):
                 os.remove(self.test_file)
             def testText(self):
-                nb = NBayes(self.trainDir,self.test_file)
+                nb = DTree(self.trainDir,self.test_file)
                 nb.train()
                 p = nb.trainingError()
                 print "Accuracy:",p
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
-                nb = NBayes(self.trainDir,self.test_file)
+                nb = DTree(self.trainDir,self.test_file)
                 nb.train()
-                nb.classifier.show_most_informative_features()
+                print nb.classifier.pp()
                 
         class TestTraining2(unittest.TestCase):
             def setUp(self):
@@ -176,10 +176,10 @@ if __name__=="__main__":
                 #Obtain training labels
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
-                nb = NBayes(self.trainDir,self.labelFile)
+                nb = DTree(self.trainDir,self.labelFile)
                 nb.train()
                 original = copy.deepcopy(nb)
-                nb.classifier.show_most_informative_features()
+                print nb.classifier.pp()
                 nb.dump(self.zip)
                 nb.load(self.zip)
                 self.assertEquals(nb.labelFile,original.labelFile)
@@ -187,7 +187,7 @@ if __name__=="__main__":
             def test2(self):
                 #Obtain training labels
                 #Labs = training.setup(self.genbankDir,self.labelFile)
-                nb = NBayes(self.trainDir,self.labelFile)
+                nb = DTree(self.trainDir,self.labelFile)
                 nb.train()
                 p = nb.trainingError()
                 print "Accuracy:",p

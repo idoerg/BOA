@@ -31,7 +31,7 @@ class MVote(object):
     def vote(self,cluster):
         funcCounts = Counter()
         assigned = 0
-        for seq_id in cluster:
+        for seq_id in cluster.seqs:
             title = cluster_reg.findall(seq_id)[0]
             toks = title.split('|')
             protid = toks[-1]

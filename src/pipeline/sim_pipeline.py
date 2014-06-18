@@ -34,7 +34,7 @@ import annotated_genes
 import bacteriocin
 import nbayes
 import cdhit
-import nbayes_sim
+import textseq_sim
 import pipeline
 
 if __name__=="__main__":
@@ -155,8 +155,8 @@ if __name__=="__main__":
                 self.fasta = "test.fa"
                 self.function_check = "correct_functions.txt"
             def testNBayes(self):
-                nsim = nbayes_sim.NBayesSim(self.trainDir,self.training_labels)
-                nsim.simulationOutput(10,self.function_check,self.db,self.fasta)
+                nsim = textseq_sim.TextSeqSim(self.trainDir,self.training_labels)
+                nsim.simulationOutput(1000,self.function_check,self.db,self.fasta)
                 
                 print "Test Run"
                 proc = pipeline.PipelineHandler( self.root,
@@ -198,7 +198,8 @@ if __name__=="__main__":
                 self.assertTrue(os.path.getsize(proc.textout) > 0)
                 ref = nsim.readOutput(self.function_check)
                 test = proc.textClassifier.readOutput(proc.textout)
-                proc.textClassifier.confusionMatrix(ref,test)
+                cm = proc.textClassifier.confusionMatrix(ref,test)
+                print cm.pp()
                 rows = genbank.proteinQueryAll(self.db)
                 open("testdb.txt",'w').write('\n'.join(map(str,rows)))
                 
