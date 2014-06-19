@@ -1,5 +1,7 @@
 """
 Code taken from pydoc.net
+
+Big note: The ROC curves expect a probability vector for the predicted values
 """
 import rpy2.robjects as robjects
 
@@ -13,7 +15,8 @@ def close():
 
 def transform(labels,refLabel):
     return [x==refLabel for x in labels]
-
+def transformDistribution(pds,refLabel):
+    return [ x.prob(refLabel) for x in pds ]
 def plot(ref_labels,pred_labels,title,y="tpr",x="fpr",diag=True):
     try:
         reference = robjects.IntVector(ref_labels)
@@ -21,7 +24,7 @@ def plot(ref_labels,pred_labels,title,y="tpr",x="fpr",diag=True):
         print "Problem with data",ref_labels
     else:
         try:
-            predictions= robjects.IntVector(pred_labels)
+            predictions= robjects.FloatVector(pred_labels)
         except:
             print "Problem with data",pred_labels
         else:

@@ -71,14 +71,16 @@ class DTree(text_classifier.TextClassifier):
             p = nltk.classify.accuracy(self.classifier,test_set)
             error+=p
         return error/N
+    
     """ nltk confusion matrix """
     def confusionMatrix(self,ref,test):
-        ref.sort(key=lambda x: x[0])
+        ref.sort( key=lambda x: x[0])
         test.sort(key=lambda x: x[0])
         _,ref_labels = zip(*ref)
         _,test_labels = zip(*test)
         cm = ConfusionMatrix(ref_labels, test_labels)
         return cm
+    
         """ Train on only k features and return training labels and predicted labels """
     def testClassify(self,k):
         feature_sets = self.getFeatures()

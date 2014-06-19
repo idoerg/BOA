@@ -75,9 +75,11 @@ class NBayes(text_classifier.TextClassifier):
         feature_sets = self.getFeatures()
         random.shuffle(feature_sets)
         self.classifier = nltk.NaiveBayesClassifier.train(feature_sets[:k])
-         
+        
         features,ref_labels = zip(*feature_sets)
-        pred_labels = [self.classifier.classify(f) for f in features]    
+        pred_labels = [self.classifier.prob_classify(f)
+                       for f in features]
+        #pred_labels = [self.classifier.classify(f) for f in features]    
         return ref_labels,pred_labels
     
     """ nltk confusion matrix """

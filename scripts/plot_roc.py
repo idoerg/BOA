@@ -19,10 +19,11 @@ nb.train()
 
 ref_labels,pred_labels = nb.testClassify(50)
 ref_labels  = [x for x in ref_labels if x!='na']
-pred_labels = [x for x in pred_labels if x!='na']
 
 ref_labels = roc.transform(ref_labels,'null')
-pred_labels = roc.transform(pred_labels,'null')
+pred_labels = roc.transformDistribution(pred_labels,'null')
+
+
 roc.device("null_nbayes_roc.pdf")
 roc.plot(ref_labels,pred_labels,'Null Class ROC curve')
 
