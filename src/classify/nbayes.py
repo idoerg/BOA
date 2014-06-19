@@ -69,6 +69,21 @@ class NBayes(text_classifier.TextClassifier):
             p = nltk.classify.accuracy(self.classifier,test_set)
             error+=p
         return error/N
+            
+    """ Construct a learning curve to see if there is overfitting"""
+    def learningCurve(self,numTrials=4):
+        accuracies = []
+        feature_sets = self.getFeatures()
+        for k in xrange(1,len(feature_sets)-1):
+            total = 0
+            for i in xrange(numTrials):
+                random.shuffle(feature_sets)
+                train_set,test_set = feature_sets[:k],feature_sets[k:]
+                self.classifier = nltk.NaiveBayesClassifier.train(train_set)    
+                p = nltk.classify.accuracy(self.classifier,test_set)
+                total+=p
+            accuracies.append(total/numTrials)
+        return accuracies
     
     """ Train on only k features and return training labels and predicted labels """
     def testClassify(self,k):

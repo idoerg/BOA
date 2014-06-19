@@ -24,7 +24,8 @@ class TextClassifier(object):
         gene_words = set(gene_annotations)
         features = {}
         for word in self.all_words:
-            features['contains(%s)'%word] = (word in gene_words)
+            #features['contains(%s)'%word] = (word in gene_words)
+            features[word] = (word in gene_words)
         return features
     def getFeatures(self):
         self.labels = training.Labels(self.trainingDir,self.labelFile)
@@ -46,6 +47,8 @@ class TextClassifier(object):
     def kfoldCrossValidation(self,k): pass
     @abc.abstractmethod
     def testClassify(self,k): pass
+    @abc.abstractmethod
+    def learningCurve(self): pass
     
     """ Reads classifier output"""
     def readOutput(self,fname):

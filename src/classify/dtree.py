@@ -47,7 +47,7 @@ class DTree(text_classifier.TextClassifier):
     def kfoldCrossValidation(self,k):
         feature_sets = self.getFeatures()
         error = 0
-        for i in range(k):
+        for i in xrange(k):
             n = len(feature_sets)/k
             test_set1 = feature_sets[:n*i]
             train_set   = feature_sets[n*i:n*(i+1)]
@@ -63,7 +63,7 @@ class DTree(text_classifier.TextClassifier):
         error = 0
         feature_sets = self.getFeatures()
         N = len(feature_sets)
-        for i in range(N):
+        for i in xrange(N):
             train_set1,test_set,train_set2 = feature_sets[:i],feature_sets[i],feature_sets[i+1:]
             train_set = train_set1+train_set2
             test_set = [test_set]
@@ -80,8 +80,22 @@ class DTree(text_classifier.TextClassifier):
         _,test_labels = zip(*test)
         cm = ConfusionMatrix(ref_labels, test_labels)
         return cm
-    
-        """ Train on only k features and return training labels and predicted labels """
+    """ Construct a learning curve to see if there is overfitting"""
+    def learningCurve(self,numTrials=4):
+        accuracies = []
+        feature_sets = self.getFeatures()
+        for k in xrange(1,len(feature_sets)-1):
+            total = 0
+            for i in xrange(numTrials):
+                random.shuffle(feature_sets)
+                train_set,test_set = feature_sets[:k],feature_sets[k:]
+                self.classifier = nltk.DecisionTreeClassifier.train(train_set)    
+                p = nltk.classify.accuracy(self.classifier,test_set)
+                total+=p
+            accuracies.append(total/numTrials)
+        return accuracies
+        
+    """ Train on only k features and return training labels and predicted labels """
     def testClassify(self,k):
         feature_sets = self.getFeatures()
         random.shuffle(feature_sets)
