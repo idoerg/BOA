@@ -20,7 +20,7 @@ for directory_name in os.listdir(base_path):
 import roc
 import dtree 
 import nbayes
-
+import mnbayes
 
 root = os.environ['BACFINDER_HOME']
 trainDir = "%s/data/training/protein"%root
@@ -39,7 +39,7 @@ pred_labels = roc.transformDistribution(pred_labels,'null')
 roc.device("null_nbayes_roc.pdf")
 roc.plot(ref_labels,pred_labels,'Null Class ROC curve')
 
-
+"""
 dt = dtree.DTree(trainDir,labelFile)
 dt.train()
 
@@ -51,14 +51,27 @@ ref_labels = roc.transform(ref_labels,'null')
 pred_labels = roc.transform(pred_labels,'null')
 roc.device("null_dtree_roc.pdf")
 roc.plot(ref_labels,pred_labels,'Null Class ROC curve')
+"""
 
-accs = nb.learningCurve(numTrials=10)
+#mnb = mnbayes.MNBayes(trainDir,labelFile)
+#mnb.rocCurve()
 
-plt.plot(xrange(len(accs)),accs)
-plt.xlabel("Training set size")
-plt.ylabel("Cross-Validation Accuracy")
-plt.title("Learning Curve")
-plt.show()
+#mnb.train()
+#ref_labels,pred_labels = mnb.testClassify(50)
+#ref_labels  = [x for x in ref_labels if x!='na']
+#ref_labels = roc.transform(ref_labels,'null')
+#pred_labels = roc.transformDistribution(pred_labels,'null')
+#roc.device("null_mnbayes_roc.pdf")
+#roc.plot(ref_labels,pred_labels,'Null Class ROC curve')
+
+
+#accs = nb.learningCurve(numTrials=10)
+
+#plt.plot(xrange(len(accs)),accs)
+#plt.xlabel("Training set size")
+#plt.ylabel("Cross-Validation Accuracy")
+#plt.title("Learning Curve")
+#plt.show()
 roc.close()
 
 
