@@ -3,7 +3,7 @@
 """
 1. Gather blasted bacteriocins and context genes
 2. Cluster bacteriocins and context genes
-3. Run naive bayes to classifiy individual bacteriocins/context genes
+3. Run naive bayes to classify individual bacteriocins/context genes
 4. Run majority vote to classify entire clustesr
 """
 import Bio

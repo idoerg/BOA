@@ -49,14 +49,14 @@ class DTree(text_classifier.TextClassifier):
         error = 0
         for i in range(k):
             n = len(feature_sets)/k
-            train_set,test_set = feature_sets[:n*i],feature_sets[n*i:]
-            train_set1 = feature_sets[:n*i]
-            test_set   = feature_sets[n*i:n*(i+1)]
-            train_set2 = feature_sets[i+1:]
-            train_set = train_set1+train_set2
-            self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
+            test_set1 = feature_sets[:n*i]
+            train_set   = feature_sets[n*i:n*(i+1)]
+            test_set2 = feature_sets[i+1:]
+            test_set = test_set1+test_set2
+            self.classifier = nltk.DecisionTreeClassifier.train(train_set)    
             p = nltk.classify.accuracy(self.classifier,test_set)
-        return p
+            error+=p
+        return error/k
     """ Make sure that the algorithm works on training data using a leave one out 
         cross validation scheme """
     def leave1OutCrossValidation(self):
@@ -67,7 +67,7 @@ class DTree(text_classifier.TextClassifier):
             train_set1,test_set,train_set2 = feature_sets[:i],feature_sets[i],feature_sets[i+1:]
             train_set = train_set1+train_set2
             test_set = [test_set]
-            self.classifier = nltk.DecisionTreeClassifier.train(feature_sets)    
+            self.classifier = nltk.DecisionTreeClassifier.train(train_set)    
             p = nltk.classify.accuracy(self.classifier,test_set)
             error+=p
         return error/N
@@ -78,8 +78,17 @@ class DTree(text_classifier.TextClassifier):
         _,ref_labels = zip(*ref)
         _,test_labels = zip(*test)
         cm = ConfusionMatrix(ref_labels, test_labels)
-        
         return cm
+        """ Train on only k features and return training labels and predicted labels """
+    def testClassify(self,k):
+        feature_sets = self.getFeatures()
+        random.shuffle(feature_sets)
+        self.classifier = nltk.DecisionTreeClassifier.train(feature_sets[:k])
+         
+        features,ref_labels = zip(*feature_sets)
+        pred_labels = [self.classifier.classify(f) for f in features]    
+        return ref_labels,pred_labels
+    
     """ Classifies proteins based on its text """
     def classify(self,db,fastain):
         proIDs,features,labels = [],[],[]
@@ -101,8 +110,7 @@ class DTree(text_classifier.TextClassifier):
                 assert featureset!=prevFeatureset
                 prevFeatureset = featureset
                 prevText = text
-                label = self.classifier.classify(featureset)    
-            
+                label = self.classifier.classify(featureset)
             proIDs.append(proteinID)  
             labels.append(label)
             features.append(text)

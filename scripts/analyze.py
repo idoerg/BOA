@@ -9,7 +9,12 @@ import numpy as np
 import numpy.random
 
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 site.addsitedir(os.path.join(base_path, 'src'))
+for root, dirs, files in os.walk(base_path):
+    for directory_name in dirs:
+        site.addsitedir(os.path.join(base_path, directory_name))
+
 import cdhit
 import fasttree
 import hypertree

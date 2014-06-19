@@ -44,6 +44,8 @@ class TextClassifier(object):
     def leave1OutCrossValidation(self,k): pass
     @abc.abstractmethod
     def kfoldCrossValidation(self,k): pass
+    @abc.abstractmethod
+    def testClassify(self,k): pass
     
     """ Reads classifier output"""
     def readOutput(self,fname):
@@ -56,7 +58,7 @@ class TextClassifier(object):
                 protids.append(protid)
                 functions.append(function)
         return zip(protids,functions)
-    
+    """ Dump object file into pickle file"""
     def dump(self,outfile):
         print "Dumped pickle file"
         cPickle.dump( (self.classifier,self.all_words,self.labels) ,gzip.GzipFile(outfile,'wb'))
