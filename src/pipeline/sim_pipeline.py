@@ -134,7 +134,7 @@ if __name__=="__main__":
                 #self.training_labels = "%s/data/training/training.txt"%self.root
                 
                 self.trainDir = "%s/data/training/protein"%self.root
-                self.training_labels = "%s/data/training/training_proteins.txt"%self.root
+                self.training_labels = "%s/data/training/training_proteins4.txt"%self.root
                 
                 if not os.path.exists(self.intermediate):
                     os.mkdir(self.intermediate)
@@ -155,8 +155,8 @@ if __name__=="__main__":
                 self.fasta = "test.fa"
                 self.function_check = "correct_functions.txt"
             def testNBayes(self):
-                nsim = textseq_sim.TextSeqSim(self.trainDir,self.training_labels)
-                nsim.simulationOutput(1000,self.function_check,self.db,self.fasta)
+                #nsim = textseq_sim.TextSeqSim(self.trainDir,self.training_labels)
+                #nsim.simulationOutput(1000,self.function_check,self.db,self.fasta)
                 
                 print "Test Run"
                 proc = pipeline.PipelineHandler( self.root,

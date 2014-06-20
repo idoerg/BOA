@@ -97,44 +97,20 @@ class MNBayes(text_classifier.TextClassifier):
                 total+=p
             accuracies.append(total/numTrials)
         return accuracies
-    
-    """ Train on only k features and plot a roc curve """
-    def rocCurve(self,k=40):
-        self.classifier = SklearnClassifier(MultinomialNB())
-        feature_sets = self.getFeatures()
-        random.shuffle(feature_sets)
-        train_set,test_set = feature_sets[:k],feature_sets[k:]
-        self.classifier.train(feature_sets)
-        X_train,Y_train = zip(*train_set)
-        X_test,Y_test = zip(*test_set)
-        probas_ = self.classifier._clf.fit(X_train, Y_train).predict_proba(X_test)
-        fpr, tpr, thresholds = roc_curve(Y_test, probas_[:, 1])
-        roc_auc = auc(fpr, tpr)
+
         
-        # Plot ROC curve
-        pl.clf()
-        pl.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-        pl.plot([0, 1], [0, 1], 'k--')
-        pl.xlim([0.0, 1.0])
-        pl.ylim([0.0, 1.0])
-        pl.xlabel('False Positive Rate')
-        pl.ylabel('True Positive Rate')
-        pl.title('Receiver operating characteristic example')
-        pl.legend(loc="lower right")
-        pl.show()
-            
-        
+
     """ Train on only k features and return training labels and predicted labels """
     def testClassify(self,k):
         feature_sets = self.getFeatures()
         random.shuffle(feature_sets)
         self.classifier = SklearnClassifier(MultinomialNB())
         
-        features,ref_labels = zip(*feature_sets)
-        pred_labels = self.classifier.batch_prob_classify(features)
-        #pred_labels = [self.classifier.classify(f) for f in features]    
+        self.classifier.train(feature_sets[k:])
+        features,ref_labels = zip(*feature_sets[:k])
+        pred_labels = self.classifier.classify_many(features)   
         return ref_labels,pred_labels
-    
+        
     """ nltk confusion matrix """
     def confusionMatrix(self,ref,test):
         ref.sort(key=lambda x: x[0])

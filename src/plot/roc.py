@@ -21,12 +21,12 @@ def plot(ref_labels,pred_labels,title,y="tpr",x="fpr",diag=True):
     try:
         reference = robjects.IntVector(ref_labels)
     except:
-        print "Problem with data",ref_labels
+        print "Problem with reference data"
     else:
         try:
             predictions= robjects.FloatVector(pred_labels)
         except:
-            print "Problem with data",pred_labels
+            print "Problem with predictive data"
         else:
             pred = robjects.r.prediction(predictions,reference)
             perf = robjects.r.performance(pred,y,x)

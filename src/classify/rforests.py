@@ -52,7 +52,7 @@ class RForests(text_classifier.TextClassifier):
         error = 0
         for i in range(k):
             self.classifier = SklearnClassifier(RandomForestClassifier(
-                                                n_estimators=self.numTrees,sparse=False))
+                                                n_estimators=self.numTrees),sparse=False)
             n = len(feature_sets)/k
             train_set,test_set = feature_sets[:n*i],feature_sets[n*i:]
             test_set1 = feature_sets[:n*i]
@@ -70,7 +70,7 @@ class RForests(text_classifier.TextClassifier):
         N = len(feature_sets)
         for i in range(N):
             self.classifier = SklearnClassifier(RandomForestClassifier(
-                                                n_estimators=self.numTrees,sparse=False))
+                                                n_estimators=self.numTrees),sparse=False)
             train_set1,test_set,train_set2 = feature_sets[:i],feature_sets[i],feature_sets[i+1:]
             train_set = train_set1+train_set2
             test_set = [test_set]
@@ -87,7 +87,7 @@ class RForests(text_classifier.TextClassifier):
             total = 0
             for i in xrange(numTrials):
                 self.classifier = SklearnClassifier(RandomForestClassifier(
-                                                    n_estimators=self.numTrees,sparse=False))
+                                                    n_estimators=self.numTrees),sparse=False)
                 random.shuffle(feature_sets)
                 train_set,test_set = feature_sets[:k],feature_sets[k:]
                 self.classifier.train(feature_sets)
@@ -101,11 +101,11 @@ class RForests(text_classifier.TextClassifier):
         feature_sets = self.getFeatures()
         random.shuffle(feature_sets)
         self.classifier = SklearnClassifier(RandomForestClassifier(
-                                            n_estimators=self.numTrees,sparse=False))
+                                            n_estimators=self.numTrees),sparse=False)
         
-        features,ref_labels = zip(*feature_sets)
-        pred_labels = self.classifier.batch_prob_classify(features)
-        #pred_labels = [self.classifier.classify(f) for f in features]    
+        self.classifier.train(feature_sets[k:])
+        features,ref_labels = zip(*feature_sets[:k])
+        pred_labels = self.classifier.prob_classify_many(features)   
         return ref_labels,pred_labels
     
     """ nltk confusion matrix """
@@ -138,7 +138,7 @@ class RForests(text_classifier.TextClassifier):
                 assert featureset!=prevFeatureset
                 prevFeatureset = featureset
                 prevText = text
-                label = self.classifier.batch_classify([featureset])    
+                label = self.classifier.classify_many([featureset])    
             
             proIDs.append(proteinID)  
             labels+=label
@@ -229,6 +229,21 @@ if __name__=="__main__":
                 p = nb.trainingError()
                 print "Accuracy:",p
                 self.assertTrue(p>0.5)
+        class TestClassify(unittest.TestCase):
+             def setUp(self):
+                #self.genbankDir = "../example/Streptococcus_pyogenes"
+                #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
+                self.root = os.environ['BACFINDER_HOME']
+                self.trainDir = "%s/data/training/protein"%self.root
+                self.labelFile = "%s/data/training/training_proteins.txt"%self.root
+                self.zip = "test_serial.zip"                
+                #Obtain training labels
+             def test1(self):
+                #Labs = training.setup(self.genbankDir,self.labelFile)
+                nb = RForests(self.trainDir,self.labelFile)
+                ref,pred = nb.testClassify(30)
+                self.assertTrue(len(ref)>0)
+                self.assertTrue(len(pred)>0)
                 
         unittest.main()
 

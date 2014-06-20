@@ -14,7 +14,7 @@ from collections import defaultdict
 
 class TextClassifier(object):
     __metaclass__ = abc.ABCMeta
-    def __init__(selfself,trainDir,labelFile):
+    def __init__(self,trainDir,labelFile):
         self.classifier = None
         self.labelFile = labelFile
         self.trainingDir = trainDir

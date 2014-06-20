@@ -33,6 +33,7 @@ import genome
 import annotated_genes
 import bacteriocin
 import nbayes
+import rforests
 import cdhit
 
 
@@ -129,8 +130,12 @@ class PipelineHandler(object):
         if buildAnnotations:
             annotated_genes.go(self.rootdir,self.annotated_genes) 
             intergene.go(self.rootdir,self.intergenes)
-        self.textClassifier = nbayes.NBayes(self.training_directory,
-                                            self.training_labels)
+        #self.textClassifier = nbayes.NBayes(self.training_directory,
+        #                                    self.training_labels)
+        self.textClassifier = rforests.RForests(self.training_directory,
+                                                self.training_labels,
+                                                numTrees=1000)
+        
         self.textClassifier.train()
         self.textClassifier.dump(self.nbpickle)
         print "Dumped pickle file"

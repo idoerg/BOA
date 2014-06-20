@@ -102,6 +102,7 @@ class DTree(text_classifier.TextClassifier):
         self.classifier = nltk.DecisionTreeClassifier.train(feature_sets[:k])
          
         features,ref_labels = zip(*feature_sets)
+        
         pred_labels = [self.classifier.classify(f) for f in features]    
         return ref_labels,pred_labels
     
