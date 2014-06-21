@@ -20,7 +20,7 @@ class TextClassifier(object):
         self.trainingDir = trainDir
         self.labels = None
         self.all_words = None
-    def gene_features(self,gene_annotations):
+    def gene_features(self,gene_annotations):   
         gene_words = set(gene_annotations)
         features = {}
         for word in self.all_words:

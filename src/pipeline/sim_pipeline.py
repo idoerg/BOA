@@ -36,6 +36,8 @@ import nbayes
 import cdhit
 import textseq_sim
 import pipeline
+import roc
+import rforests
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -186,10 +188,10 @@ if __name__=="__main__":
                 #self.assertTrue(os.path.getsize(proc.blasted_tab_bacteriocins) > 0)
                 #self.assertTrue(os.path.getsize(proc.cand_context_genes_tab) > 0)       
                 
-                proc.cluster(preprocess=False)
+                #proc.cluster(preprocess=False)
                 
-                self.assertTrue(os.path.getsize("%s"%(proc.cand_context_genes_fasta)) > 0)                
-                self.assertTrue(os.path.getsize(proc.cand_context_cluster) > 0)
+                #self.assertTrue(os.path.getsize("%s"%(proc.cand_context_genes_fasta)) > 0)                
+                #self.assertTrue(os.path.getsize(proc.cand_context_cluster) > 0)
                 
                 proc.load()
                 #p = proc.textClassifier.leaveOneOutCrossValidation()
@@ -202,6 +204,7 @@ if __name__=="__main__":
                 print cm.pp()
                 rows = genbank.proteinQueryAll(self.db)
                 open("testdb.txt",'w').write('\n'.join(map(str,rows)))
+                
                 
                 
         unittest.main()

@@ -16,7 +16,7 @@ def close():
 def transform(labels,refLabel):
     return [x==refLabel for x in labels]
 def transformDistribution(pds,refLabel):
-    return [ x.prob(refLabel) for x in pds ]
+    return [ x.prob(refLabel) for x in pds if x!=None]
 def plot(ref_labels,pred_labels,title,y="tpr",x="fpr",diag=True):
     try:
         reference = robjects.IntVector(ref_labels)
@@ -32,7 +32,7 @@ def plot(ref_labels,pred_labels,title,y="tpr",x="fpr",diag=True):
             perf = robjects.r.performance(pred,y,x)
             auc  = robjects.r.performance(pred,"auc").do_slot("y.values")[0][0]
             print "AUC",auc
-            title="%s (AUC=%f)"%(title,auc)
+            #title="%s (AUC=%f)"%(title,auc)
             try:
                 robjects.r.plot(perf,main=title,colorize=True)
             except:

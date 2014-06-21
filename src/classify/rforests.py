@@ -116,7 +116,38 @@ class RForests(text_classifier.TextClassifier):
         _,test_labels = zip(*test)
         cm = ConfusionMatrix(ref_labels, test_labels)
         return cm
-    
+
+    def prob_classify(self,db,fastain):
+        proIDs,pds,labels = [],[],[]
+        prevFeatureset = ''
+        prevText = ''
+        for seq_record in SeqIO.parse(fastain, "fasta"):
+            title = seq_record.id
+            toks = title.split("|")
+            proteinID = toks[5]
+            query_rows = genbank.proteinQuery(proteinID,db)
+            ids,text = zip(*query_rows)
+            text = ''.join(map(str,text))
+            if text=='': 
+                label = ['na']
+                pd = None
+            else:
+                text = word_reg.findall(text)
+                
+            
+                featureset = self.gene_features(text)
+                assert text!=prevText
+                assert featureset!=prevFeatureset
+                prevFeatureset = featureset
+                prevText = text
+                label = self.classifier.classify_many([featureset])    
+                pd = self.classifier.prob_classify_many([featureset])[0]
+                    
+            proIDs.append(proteinID)  
+            pds.append(pd)
+            labels+=label
+        return proIDs,labels,pds
+        
     """ Classifies proteins based on its text """
     def classify(self,db,fastain):
         proIDs,features,labels = [],[],[]
