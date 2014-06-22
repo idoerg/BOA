@@ -1,5 +1,14 @@
-
-
+###./imp.py deletedOrg /home/asmariyaz/Desktop/phylo_order /home/asmariyaz/Desktop/txtnames
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.cbook as cbook
+from matplotlib._png import read_png
+from matplotlib.offsetbox import OffsetImage 
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
+from Bio import Phylo
 
 import os
 import sys
@@ -8,12 +17,11 @@ import re
 import numpy as np
 import numpy.random
 
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-site.addsitedir(os.path.join(base_path, 'src'))
-for root, dirs, files in os.walk(base_path):
-    for directory_name in dirs:
-        site.addsitedir(os.path.join(base_path, directory_name))
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+
 
 import cdhit
 import fasttree
@@ -46,16 +54,8 @@ from collections import Counter
 from pandas import *
 
 
-bac_reg = re.compile(">(\d+.\d)")
-acc_reg = re.compile("([A-Z]+_\d+)")
-cluster_id_reg = re.compile(">(\S+)")
-
-def truncate(speciesName):
-    toks = speciesName.split(' ')    
-    return '_'.join(toks[:2])
-
-def produce_tree(treeFile):
-    tree=Phylo.read(treeFile,"newick")
+def produce_tree():
+    tree=Phylo.read("/home/asmariyaz/Desktop/reorder.nwk","newick")
     Phylo.draw(tree, axes=phyl_ax)
     tree_f=plt.gcf()
     print type(tree_f)
@@ -74,7 +74,7 @@ def lookup_by_names(tree):
 """ Remove all leaves that aren't contained in names """
 def prune_tree(tree,target_species):
     leafs = tree.get_terminals()
-    all_species = set(map(str,leafs))
+    all_species = set([l.code for l in leafs])
     target_species = set(target_species)
     outlier_species = all_species.difference(target_species)
     name_dict = lookup_by_names(tree)
@@ -82,45 +82,6 @@ def prune_tree(tree,target_species):
         tree.prune(name_dict[outlier])
     return tree
 
-def heatMap(heats,title,xlabel,ylabel,showX=False,showY=False):
-    scoremap = DataFrame(heats).T.fillna(0)
-    xlabels = list(scoremap.columns)
-    ylabels = list(scoremap.index)
-    fig, ax = plt.subplots()
-    xpos = np.arange(len(xlabels))+0.5
-    ypos = np.arange(len(ylabels))+0.5
-    if showX: pylab.xticks(xpos, xlabels,rotation=90)
-    if showY: pylab.yticks(ypos, ylabels)
-    heatmap = plt.pcolor(scoremap,norm=LogNorm())
-    plt.colorbar()
-    plt.title(title,fontsize=22)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.xlim(0,len(xlabels))
-    plt.ylim(0,len(ylabels))
-    fig.subplots_adjust(bottom=0.6)
-    
-""" Reorders heatmap according to tree ordering """
-def reorderHeatMap(heats,tree):
-    leaves = tree.get_terminals()
-    neworder = map(str,leaves) #New ordering of species names
-    #print neworder
-    #Remove species not contained in tree
-    inTree = map(str,list(
-                  set(map(str,heats.index)).intersection(set(neworder))
-                  ))
-    notInTree = map(str,list(set(map(str,heats.index)).difference(set(neworder))))
-    #print notInTree 
-    heats=heats.drop(notInTree)
-    newindex = sorted(heats.index, key=lambda x: neworder.index(x))[::-1]
-    heats = heats.reindex(newindex)
-    return heats
-def normalizeTree(treeFile):
-    h = hypertree.HyperTree(treeFile,10,0.9)
-    tmpFile = "%s.%d"%(treeFile,os.getpid())
-    open(tmpFile,'w').write(str(h))
-    os.rename(tmpFile,treeFile)
-        
 """ Makes a heatmap with a phylotree for axes """
 def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     scoremap = DataFrame(heats).T.fillna(0)
@@ -179,34 +140,7 @@ def heatMapTree(heats,treeFile,title,xlabel,ylabel,showX=False,showY=False):
     heatmap = plt.pcolor(scoremap,norm=LogNorm())
     plt.grid(True)
     plt.colorbar()
-    #print plt.rcParams.keys()
-    """
-    plt.colorbar()
-    plt.title(title,fontsize=22)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.xlim(0,len(xlabels))
-    plt.ylim(0,len(ylabels))
-    """
-     
-    """
-    if treeFile!="":
-        tree=Phylo.read(treeFile,"newick")
-        Phylo.draw(tree, axes=phyl_ax, do_show=False)
-        gs=gridspec.GridSpec(1, 2)
-        ht_ax=plt.subplot(gs[1])
-        img = ht_ax.imshow(data,origin='lower')
 
-    else:
-        heatmap = plt.pcolor(scoremap,norm=LogNorm())
-        plt.colorbar()
-        plt.title(title,fontsize=22)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.xlim(0,len(xlabels))
-        plt.ylim(0,len(ylabels))
-        fig.subplots_adjust(bottom=0.6)
-    """
 """Heatmap of bacteriocins versus species"""
 def bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable):
     genomeHeats = defaultdict( Counter )
@@ -228,8 +162,6 @@ def bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable):
     heatMapTree(plasmidHeats,tree,"Bacteriocins vs Species Plasmid Heatmap",
             xlabel='Bacteriocin ID',ylabel='Species',
             showX=True,showY=True)
-    
-        
 """
 Bacteriocins versus clusters
 """
@@ -263,8 +195,6 @@ def bacteriocinHeatmap(cdhitProc,accTable):
             xlabel='Cluster number',ylabel='Bacteriocin ID',
             showX=False,showY=True)
     
-    
-
 """
 Histogram of bacteriocin based on bacteriocin ID
 """
@@ -355,7 +285,7 @@ def overlap(bst,bend,ast,aend):
         return False
 
 """Distance distribution of each cluster """
-def anchorGeneDistanceHeatmap(cdhitProc):
+def contextGeneDistanceHeatmap(cdhitProc):
     clusterIDs = []
     dists = []
     for i,cluster in enumerate(cdhitProc.clusters):
@@ -491,7 +421,9 @@ def removeDuplicates(items):
     uniqueDict = {tuple(x[-5:-1]):x for x in items}
     return uniqueDict.values()
 
-""" Preprocess fasta file """
+"""
+Preprocess fasta file
+"""
 def preprocessFasta(blastTab,fastaout):
     items = []
     with open(blastTab,'r') as handle:
@@ -539,60 +471,3 @@ def getTree(cdhitProc,rrnaFile):
     ft.cleanUp() #Clean up!
     return tree
 
-if __name__=="__main__":
-    parser = argparse.ArgumentParser(description=\
-        'Format Blast output for iTOL visualization ')
-    parser.add_argument(\
-        '--accession-table', type=str, required=False,
-        help='A table that maps accession ids to species')
-    parser.add_argument(\
-        '--bacteriocins', type=str, required=False,
-        help='Bacteriocins in blast format')
-    parser.add_argument(\
-        '--anchor-genes', type=str, required=False,
-        help='Anchor genes from genbank files in blast format')
-    parser.add_argument(\
-        '--tree', type=str, required=False,default=None,
-        help='Newick tree')
-    parser.add_argument(\
-        '--rRNA', type=str, required=False,
-        help='16SRNA sequences')
-    
-    args = parser.parse_args()
-    directory = os.path.dirname(args.anchor_genes)    
-    cluster_file = "%s/anchor_gene_cluster"%directory
-    outfasta = "%s/anchor_gene_cluster.fa"%directory
-    threshold = 0.7
-    accTable = AccessionToSpecies(args.accession_table)
-    clusterFile = "cluster.pickle"
-    if os.path.exists(clusterFile):
-        cdhitProc = cPickle.load(open(clusterFile,'rb'))
-    else:
-        clrfasta = "anchorgenes.fa"
-        preprocessFasta(args.anchor_genes,clrfasta)
-        cdhitProc = cdhit.CDHit(clrfasta,cluster_file,threshold)
-        cdhitProc.run()
-        cdhitProc.parseClusters()
-        cdhitProc.countOut()
-        cPickle.dump(cdhitProc,open(clusterFile,'wb'))
-        os.remove(clrfasta)
-        
-    getFASTA(cluster_file,cdhitProc,outfasta)#writes clusters to FASTA
-    print "Before filtering",len(cdhitProc)
-    cdhitProc.filterSize(50)  #filter out everything less than n
-    print "After filtering",len(cdhitProc)
-    if args.tree == None:
-        tree = getTree(cdhitProc,args.rRNA)
-    else:
-        tree = args.tree
-    #anchorGeneClusterHistogram(cdhitProc)
-    bacteriocinSpeciesHeatmap(cdhitProc,tree,accTable)
-   
-    #bacteriocinHeatmap(cdhitProc,accTable)    
-    #anchorGenePosition(cdhitProc)
-    anchorGeneDistanceHeatmap(cdhitProc)
-    #bacteriocinSpeciesHistogram(args.bacteriocins,accTable)
-    plt.show()
-        
-    
-    

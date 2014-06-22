@@ -96,9 +96,9 @@ if os.path.exists(fasta):
     os.remove(fasta)
     
 nsim = textseq_sim.TextSeqSim(trainDir,labelFile)
-nsim.simulationOutput(1000,function_check,db,fasta)
+nsim.simulationOutput(10000,function_check,db,fasta)
 
-mnb = rforests.RForests(trainDir,labelFile,numTrees=1000)
+mnb = rforests.RForests(trainDir,labelFile,numTrees=500)
 mnb.train()
 ref = nsim.readOutput(function_check)
 
