@@ -129,15 +129,4 @@ def contextGeneDistances(cdhitProc):
     plotViolinFunc(heats_R)
     raw_input()
     
-    
-    """
-    plt.figure()
-    plt.hist2d(dists,clusterIDs,bins=30,norm=LogNorm())
-    plt.colorbar()
-    plt.xlabel('Distance from bacteriocin',fontsize=18)
-    plt.ylabel("Cluster ID",fontsize=18)
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    plt.title('Distance distribution of genes per cluster',fontsize=22)
-    """
-
+  
