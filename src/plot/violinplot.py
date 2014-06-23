@@ -55,7 +55,7 @@ import rpy2.robjects as robj
 #import rpy2.robjects.pandas2ri # for dataframe conversion
 import pandas.rpy.common as com
 from rpy2.robjects.packages import importr
-
+import rpy2.robjects.lib.ggplot2 as ggplot2
 import rpy2.robjects as robjects
 
 
@@ -96,26 +96,40 @@ def contextGeneDistances(cdhitProc):
             if overlap(bst,bend,ast,aend): continue                
             bmid = (bst+bend)/2
             int_st,int_end = ast-bmid,aend-bmid
-            heats[i][(int_st+int_end)/2]+=1
+            interval = xrange(int_st,int_end)
+            #heats[i][(int_st+int_end)/2]+=1
+            dists+=interval
+            clusterIDs+=[i]*len(interval)
+            #dists+= [(int_st+int_end)/2]
+            #clusterIDs+=[i]
             
-    heats = pd.DataFrame(heats)
-    heats = heats.fillna(0)
-    print heats
+            
+    #heats = pd.DataFrame(heats)
+    heats = pd.DataFrame({'clusters':clusterIDs,'distances':dists}) 
+    #heats = heats.fillna(0)
+    heats_R=com.convert_to_r_dataframe(heats)
+    #print heats_R
+    importr("ggplot2")
+    
     plotViolinFunc = robj.r("""
                             library(ggplot2)
                             function(df){
-                            p <- ggplot(df,aes(x = category, y = value))
-                            p + geom_violin()
+                            png(filename="violin.png")
+                            p <- ggplot(df,aes(x=as.character(clusters),
+                                               y=distances)) + 
+                                    geom_violin(aes(x=as.character(clusters),
+                                               y=distances)) + 
+                                    coord_flip()
+                            print(p)
+                            dev.off()
                             print(p)
                             }
                             """)
-    gr = importr('grDevices')
-    #robj.pandas2ri.activate()
-    heats_R=com.convert_to_r_dataframe(heats)
-    #heats_R = robj.conversion.py2ri(heats)
+    
     plotViolinFunc(heats_R)
     raw_input()
-    gr.dev_off() 
+    
+    
     """
     plt.figure()
     plt.hist2d(dists,clusterIDs,bins=30,norm=LogNorm())

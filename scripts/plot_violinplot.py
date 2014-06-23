@@ -68,5 +68,10 @@ if __name__=="__main__":
         cdhitProc.countOut()
         cPickle.dump(cdhitProc,open(clusterFile,'wb'))
         os.remove(clrfasta)
-    
+    cdhitProc.filterSize(55) 
     violinplot.contextGeneDistances(cdhitProc)
+
+
+
+
+
