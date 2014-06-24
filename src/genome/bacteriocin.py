@@ -1,4 +1,6 @@
-
+""" 
+TODO: Need to reorganize all regex commansd
+"""
 import Bio
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
@@ -84,6 +86,7 @@ def spatialFilter(queries,intervalDict,radius):
     for query in queries:
         header, query_obj = query
         start,end,orgid,strand = header
+        #print "Org id",orgid,orgid not in intervalDict
         if orgid not in intervalDict: continue
         nearTargets = intervalDict[orgid].find( start,end )
         if len(nearTargets)>0:
@@ -95,21 +98,28 @@ def spatialFilter(queries,intervalDict,radius):
 
 """
 Filter out all annotations that are not within the radius of a bacteriocin
+TODO: Need to reorganize all regex commands
 """
-annot_reg = re.compile("([A-Z]+_[0-9]+).")
+#annot_reg = re.compile("([A-Z0-9_]+_[0-9]+).")
+annot_reg = re.compile("([A-Z][A-Z0-9_]+).")
 def filterAnnotatedGenes(annots,bacteriocins,radius):
     intervalDict = defaultdict( IntervalTree )
     for bact in bacteriocins:
         start,end,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id,bact.strand
-        orgid = annot_reg.findall(orgid)[0]
+        #print start,end,orgid,strand
+        orgid = orgid.split('|')[3]
+        orgid = orgid.split('.')[0]
+        #orgid = annot_reg.findall(orgid)[0]
+        
         stBound,endBound = start-radius,end+radius
         intervalDict[orgid].add( stBound,endBound,bact )                                                 
     headers = []
     for a in annots: 
-        orgid,start,end,strand = a[0],a[1],a[2],a[3];
-        headers.append( (orgid,start,end,strand) )
+        start,end,orgid,strand = a[0],a[1],a[2],a[3];
+        headers.append( (start,end,orgid,strand) )
     queries = zip(headers,annots) 
-    filtered,annotNeighborhoods = spatialFilter(queries,intervalDict,radius)    
+    
+    filtered,annotNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,annotNeighborhoods
 
 """
@@ -176,6 +186,8 @@ def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
 
 
 def writeAnnotatedGenes(annot_bact_pairs,outHandle):
+    #print "Writing Annotated Genes"
+    #print "Annotations",annot_bact_pairs
     for annot_bact in annot_bact_pairs:
         annot,bacteriocin = annot_bact
         annot_st,annot_end,annot_org,annot_strand,annot_locus,annot_seq = annot
@@ -230,6 +242,7 @@ def main(genome_files,
         annots = [annot for annot in annotated_genes.AnnotatedGenes(annotations_file)]
         annots,bacteriocinNeighborhoods = filterAnnotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
+        
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
 
         #pickle.dump(intergeneDict,open("intergene.dict",'w'))
@@ -264,6 +277,9 @@ if __name__=="__main__":
     parser.add_argument(\
         '--bac-evalue', type=float, required=False, default=0.00001,
         help='The evalue for bacteriocin hits')
+    #parser.add_argument(\
+    #    '--num-threads', type=int, required=False, default=1,
+    #    help='The evalue for bacteriocin hits')
     parser.add_argument(\
         '--intermediate', type=str, required=False,default='.',
         help='Directory for storing intermediate files')
@@ -271,11 +287,14 @@ if __name__=="__main__":
         '--output', type=str, required=False,
         help='The output file basename for filtered annotationed regions and bacteriocins')
     parser.add_argument(\
-        '--verbose', action='store_const', const=True, default=False,
-        help='Messages for debugging')
-    parser.add_argument(\
         '--formatdb', action='store_const', const=True, default=False,
         help='Indicates if formatdb should be run')
+    parser.add_argument(\
+        '--verbose', action='store_const', const=True, default=False,
+        help='Messages for debugging')
+    #parser.add_argument(\
+    #    '--keep-tmp', action='store_const', const=True, default=False,
+    #    help='Indicates if formatdb should be run')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
@@ -311,10 +330,11 @@ if __name__=="__main__":
         import test_genbank
         import annotated_genes
         import intergene
+        """
         class TestPipeline(unittest.TestCase):
             def setUp(self):
                 self.root = os.environ['BACFINDER_HOME']
-                self.exampledir = "%s/example"%self.root
+                self.exampledir = "%s/example/Streptococcus_pyogenes"%self.root
                 self.bacdir = "%s/bacteriocins"%self.root
                 self.annotated_genes = "test_genes.fa"
                 annotated_genes.go(self.exampledir,self.annotated_genes) 
@@ -331,7 +351,7 @@ if __name__=="__main__":
                     os.mkdir(self.intermediate)
                 self.gene_evalue = 0.000001
                 self.bac_evalue = 0.000001
-                self.num_threads = 4
+                self.num_threads = 10
                 self.formatdb = True
                 #self.gene_radius = 50000
                 self.bacteriocin_radius = 50000
@@ -345,10 +365,10 @@ if __name__=="__main__":
                 os.remove(self.annotationsOut)
                 shutil.rmtree(self.intermediate)
                 pass
+        
             def testrun(self):
                 main(self.genome_files,
                      self.bacteriocins,
-                   
                      self.intergenes,
                      self.annotated_genes,
                      open(self.bacteriocinsOut,'w'),
@@ -366,7 +386,7 @@ if __name__=="__main__":
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.bacteriocinsOut) > 0)
                 self.assertTrue(os.path.getsize(self.annotationsOut) > 0)
-            
+        """
         class TestFilters(unittest.TestCase):
             def setUp(self):
                 test_input = test_genbank.yeast
@@ -376,6 +396,7 @@ if __name__=="__main__":
                 handle.write(test_input)
                 handle.close()
                 annotated_genes.parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
+            
             def test_filter_bacteriocins_1(self):
                 bacteriocins = [blast.XMLRecord(description="",
                                                 expected_value=0.00001,
@@ -511,12 +532,12 @@ if __name__=="__main__":
                                          strand = "-")]
                 radius = 10000
                 filtered,hoods = filterBacteriocins(bacteriocins,genes,radius)
-                print '\n'.join(map(str,filtered))
-                print '\n'.join(map(str,hoods))
+                #print '\n'.join(map(str,filtered))
+                #print '\n'.join(map(str,hoods))
                 self.assertEquals(3,len(filtered))
                 self.assertEquals(3,len(hoods))
                 self.assertTrue(bacteriocins[0] in filtered)
-
+            
             def test_filter_annotations_1(self):
                 bacteriocins = [blast.XMLRecord(description="",
                                                 expected_value=0.00001,
@@ -525,7 +546,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 250,
                                                 query_end   = 260,
-                                                sbjct_id = "NC_12345",
+                                                sbjct_id = "gi|123|gb|NC_12345.1",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 250,
                                                 sbjct_end   = 260,
@@ -537,7 +558,7 @@ if __name__=="__main__":
                                                 query="ACGTACGTTT",
                                                 query_start = 450,
                                                 query_end   = 460,
-                                                sbjct_id = "NC_12345",
+                                                sbjct_id = "gi|123|gb|NC_12345.1",
                                                 sbjct="ACGTACGTTT",
                                                 sbjct_start = 450,
                                                 sbjct_end   = 460,
@@ -545,13 +566,9 @@ if __name__=="__main__":
                 radius = 100
                 annots = [A for A in annotated_genes.AnnotatedGenes(self.out_file)]
                 filtered,hoods = filterAnnotatedGenes(annots,bacteriocins,radius)
-                # self.assertEquals(1,len(filtered))
-                # self.assertEquals(1,len(hoods))
-                # self.assertTrue(bacteriocins[0] in filtered)
-                # start,end,refid,gene = hoods[0]
-                # self.assertEquals(start,150)
-                # self.assertEquals(end,160)
-                # self.assertEquals(refid,"gene1")
+                self.assertEquals(1,len(filtered))
+                self.assertEquals(1,len(hoods)) 
+                self.assertTrue(bacteriocins[0] in hoods)
                 
-                
+                     
         unittest.main()
