@@ -244,7 +244,7 @@ def main(genome_files,
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
         
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
-
+        
         #pickle.dump(intergeneDict,open("intergene.dict",'w'))
 
 if __name__=="__main__":
@@ -330,7 +330,7 @@ if __name__=="__main__":
         import test_genbank
         import annotated_genes
         import intergene
-        """
+        
         class TestPipeline(unittest.TestCase):
             def setUp(self):
                 self.root = os.environ['BACFINDER_HOME']
@@ -386,7 +386,7 @@ if __name__=="__main__":
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.bacteriocinsOut) > 0)
                 self.assertTrue(os.path.getsize(self.annotationsOut) > 0)
-        """
+        
         class TestFilters(unittest.TestCase):
             def setUp(self):
                 test_input = test_genbank.yeast

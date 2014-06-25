@@ -34,7 +34,7 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 for directory_name in ['test']:
     site.addsitedir(os.path.join(base_path, directory_name))
 
-loc_reg = re.compile("([A-Za-z0-9_]\d+)-ign-\d+:(\d+)-(\d+)(\S)")
+loc_reg = re.compile("([A-Za-z0-9_]+)-ign-\d+:(\d+)-(\d+)(\S)")
 
 class IntergeneHandler:
     def __init__(self,intergene_file):
@@ -47,6 +47,9 @@ class IntergeneHandler:
     def getIntervals(self):
         self.intergeneDict = defaultdict( IntervalTree )
         for record in SeqIO.parse(open(self.intergene_file,'r'),"fasta"):
+            #print record.id
+            #print loc_reg.findall(record.id)
+            
             match = loc_reg.findall(record.id)[0]
             accession,start,end,strand = match
             self.intergeneDict[(accession,strand)].add(int(start),int(end))
@@ -89,7 +92,7 @@ def get_interregions(genbank_path,output_file,intergene_length=1,write_flag = 'w
                 elif feature.strand == 1:
                     cds_list_plus.append((mystart,myend,1))
                 else:
-                    sys.stderr.write("No strand indicated %d-%d. Assuming +\n" %
+                    sys.stde1rr.write("No strand indicated %d-%d. Assuming +\n" %
                                       (mystart, myend))
                     cds_list_plus.append((mystart,myend,1))
 
@@ -101,6 +104,7 @@ def get_interregions(genbank_path,output_file,intergene_length=1,write_flag = 'w
             if this_start - last_end >= intergene_length:
                 intergene_seq = seq_record.seq[last_end:this_start]
                 strand_string = "+"
+                
                 intergenic_records.append(
                       SeqRecord(intergene_seq,id="%s-ign-%d:%d-%d%s" % (seq_record.name,i,last_end+1,this_start,strand_string),
                       description="%s %d-%d %s" % (seq_record.name, last_end+1,
