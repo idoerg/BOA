@@ -202,7 +202,7 @@ class QuorumPipelineHandler(object):
         self.clusterer.dump(self.clusterpickle)
         
     """ Classifies individual bacteriocins and context genes based on their text"""
-    def textmine(self,njobs=1):
+    def textmine(self,njobs=1,dbtype="pickle",numTrees=1000):
         
         print "Classifying"
         """ First split up the main bacteriocin file into a bunch of smaller files"""
@@ -225,11 +225,12 @@ class QuorumPipelineHandler(object):
                                  """--training-directory=%s""",
                                  """--training-labels=%s""",
                                  """--text-database=%s""",
-                                 """--num-trees=1000""",
+                                 """--database-type=%s""",
+                                 """--num-trees=%d""",
                                  """--fasta=%s""",
                                  """--output=%s"""         
                                  ])    
-        print out_classes
+        
         
         """ Release jobs """
         jobs = []
@@ -238,6 +239,8 @@ class QuorumPipelineHandler(object):
                                 self.training_directory,
                                 self.training_labels,
                                 self.text_database,
+                                dbtype,
+                                numTrees,
                                 split_fastafiles[i],
                                 out_classes[i]
                                 )
@@ -351,6 +354,8 @@ if __name__=="__main__":
                 self.intergenes = "test_intergenes.fa"
                 self.annotated_genes = "test_genes.fa"
                 self.textdb = "%s/db/bacteria_database"%(self.root)
+                self.textpickle = "%s/db/bacteria_table.zip"%(self.root)
+                
                 #self.intergenes = "%s/db/intergenes.txt"%(self.root)
                 #self.annotated_genes = "%s/db/annotated_genes.txt"%(self.root)
                 self.intermediate = "intermediate"
@@ -385,7 +390,7 @@ if __name__=="__main__":
                                          self.bac_evalue,
                                          self.training_labels,
                                          self.training_directory,
-                                         self.textdb,
+                                         self.textpickle,
                                          self.intermediate,
                                          self.output,
                                          self.numThreads,
@@ -409,7 +414,7 @@ if __name__=="__main__":
                 
                 self.proc.textmine(njobs=7)
                 
-                self.assertTrue(os.path.getsize(self.proc.classifier_out ) > 0)
+                self.assertTrue(os.path.getsize( self.proc.classifier_out ) > 0)
                 self.proc.cleanup()
                 
         unittest.main()       

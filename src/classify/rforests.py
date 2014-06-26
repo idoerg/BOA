@@ -177,7 +177,7 @@ class RForests(text_classifier.TextClassifier):
             labels.append(label)
         return zip(proIDs,labels)
         
-    """ Classifies proteins based on its text from sqlite3 databse"""
+    """ Classifies proteins based on its text from sqlite3 database"""
     def classifyDB(self,db,fastain):
         proIDs,features,labels = [],[],[]
         prevFeatureset = ''
@@ -213,11 +213,11 @@ class RForests(text_classifier.TextClassifier):
             labels.append(label)
         return zip(proIDs,labels)
 
-    def classify(self,fin,fastain,type='db'):
-        if type=='db':
-            return self.classifyDB(fin,fastain)
+    def classify(self,dbin,fastain,type='sqlite3'):
+        if type=='sqlite3':
+            return self.classifyDB(dbin,fastain)
         else:
-            return self.classifyPickle(fin,fastain)
+            return self.classifyPickle(dbin,fastain)
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -230,7 +230,10 @@ if __name__=="__main__":
         help='A directory containing all of the genbank files required for training')
     parser.add_argument(\
         '--text-database', type=str, required=False,
-        help='SQL database containing text annotations')
+        help='Path to database containing text annotations')
+    parser.add_argument(\
+        '--database-type', type=str, required=False,default="sqlite3",
+        help='Type of database either "sqlite3" or "pickle"')
     parser.add_argument(\
         '--fasta', type=str, required=False,
         help='Fasta file of sequences to be classified')
@@ -258,7 +261,7 @@ if __name__=="__main__":
                               args.num_jobs)
         classifier.train()
         print "Trained"
-        sets = classifier.classify(args.text_database,args.fasta)
+        sets = classifier.classify(args.text_database,args.fasta,args.database_type)
         print "Classified"
         titles,labels = zip(*sets)
         open(args.output,'w').write('\n'.join(["%s\t%s"%x for x in sets])+"\n")
@@ -362,9 +365,9 @@ if __name__=="__main__":
                 gbk.dump(self.pickle)
                 
             def tearDown(self):
-                #os.remove(self.fasta)
-                #os.remove(self.pickle)
-                #os.remove(self.zip)
+                os.remove(self.fasta)
+                os.remove(self.pickle)
+                os.remove(self.zip)
                 pass
             def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)

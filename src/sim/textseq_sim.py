@@ -18,6 +18,7 @@ for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import training
 import genbank
+import genbank_sqlite3
 class TextSeqSim(object):
     """ This assumes that all of the genbank files associated with
         the training labels have already been downloaded"""
@@ -59,8 +60,8 @@ class TextSeqSim(object):
         loci    = self.genLocusTags(numEntries)
         protIDs = self.genProteinIDs(numEntries)
         fastahandle = open(outputFASTA,'w')
-        genbank.buildLocusTable(outputDB)
-        genbank.buildProteinTable(outputDB)
+        genbank_sqlite3.buildLocusTable(outputDB)
+        genbank_sqlite3.buildProteinTable(outputDB)
         funcHandle = open(outputFunction,'w')
         for i in range(numEntries):
             locus,protID = loci[i],protIDs[i]
@@ -70,8 +71,8 @@ class TextSeqSim(object):
             words = self.textsim.textSample(function,numWords)
             sequence = self.seqsim.seqSample(function,numMutations)
             note = " ".join(words)
-            genbank.insertProteinQuery(protID,note,outputDB)
-            genbank.insertLocusQuery(locus,protID,outputDB)
+            genbank_sqlite3.insertProteinQuery(protID,note,outputDB)
+            genbank_sqlite3.insertLocusQuery(locus,protID,outputDB)
             seqid = "%s|_|_|_|%s"%(locus,protID)
             funcHandle.write("%s\t%s\t%s\n"%(locus,protID,function) )
             fastahandle.write(">%s\n%s\n"%(seqid,sequence))

@@ -5,11 +5,11 @@
 CAA72917.1 toxin
 CAA72918.1 modifier
 CAA72919.1 null
-CAA72920.1 null
-CAA72921.1 null
+#CAA72920.1 null
+#CAA72921.1 null
 CAA72922.1 immunity
 CAD27714.1 null
-CAD27715.1 null
+#CAD27715.1 null
 #CAD27716.1 null
 #CAD27717.1 null
 #Organism: GG688628.1, Enterococcus faecalis D6

@@ -90,6 +90,7 @@ roc.plot(reft_labels,regulator_labels,'Regulator Class Random Forests ROC curve'
 #plt.show()
 
 #Create ROC curve with simulation data
+"""
 if os.path.exists(db):
     os.remove(db)
 if os.path.exists(fasta):
@@ -119,7 +120,16 @@ roc.plot(reft_labels,modifier_labels,'Modifier Class Random Forests ROC curve')
 reft_labels = roc.transform(ref_labels,'immunity')
 immunity_labels = roc.transformDistribution(pds,'immunity')
 roc.plot(reft_labels,immunity_labels,'Immunity Class Random Forests ROC curve')
+"""
+rf = rforests.RForests(trainDir,labelFile,numTrees=500)
+rf.train()
+accs = rf.learningCurve(numTrials=10)
 
+plt.plot(xrange(len(accs)),accs)
+plt.xlabel("Training set size")
+plt.ylabel("Cross-Validation Accuracy")
+plt.title("Learning Curve")
+plt.show()
 
 roc.close()
 
