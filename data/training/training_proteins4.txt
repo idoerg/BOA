@@ -1,0 +1,102 @@
+#Organism: Y12234.1 (as-48A-D1) and AJ438950.1 (as-48E - H), Enterococcus faecalis subsp. liquefaciens plasmid submitted as separate sequences)
+#Reference: http://jb.asm.org/content/190/1/240.full, http://aem.asm.org/content/69/2/1229.full.pdf
+#GI: 2664256
+#locus_tag label name
+CAA72917.1 toxin
+CAA72918.1 modifier
+CAA72919.1 null
+CAA72920.1 null
+CAA72921.1 null
+CAA72922.1 immunity
+CAD27714.1 null
+CAD27715.1 null
+CAD27716.1 null
+CAD27717.1 null
+#Organism: GG688628.1, Enterococcus faecalis D6
+#Reference: http://onlinelibrary.wiley.com/doi/10.1046/j.1462-5822.2003.00310.x/full
+#GI: 239976949
+#locus_tag label name
+EEU81215.1 immunity
+EEU81214.1 modifier
+EEU81213.1 null
+EEU81212.1 modifier
+EEU81211.1 toxin
+EEU81210.1 toxin
+EEU81209.1 null
+EEU81208.1 null
+#Organism: AF061787.1, Escherichia coli plasmid pTUC100
+#Reference: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC93700
+#GI: 4731431
+#locus_tag label name
+AAD28494.1 toxin
+AAD28495.1 modifier
+AAD28496.1 modifier
+AAD28497.1 null
+#Organism: NC_017486.1 Lactococcus lactis subsp. Lactis CV56
+#Reference: http://link.springer.com/article/10.1007%2Fs00018-007-7171-2
+#GI: 385829589
+#locus_tag label name
+ADZ63249.1 toxin nisA
+ADZ63250.1 modifier nisB
+ADZ63251.1 null nisT
+ADZ63252.1 modifier nisC
+ADZ63253.1 immunity nisI
+ADZ63254.1 modifier nisP
+ADZ63255.1 null nisR
+ADZ63256.1 null nisK
+ADZ63257.1 immunity nisF
+ADZ63258.1 immunity nisF
+ADZ63259.1 immunity nisG
+#Null labels
+ADZ62681.1 null
+ADZ62682.1 null
+ADZ62684.1 null
+#Organism: NC_011375.1 Streptococcus pyogenes
+#Reference: http://www.jbc.org/content/284/19/13004.full
+#GI: 209558587
+#locus_tag  label    #name(optional)
+ACI60894.1  toxin     sagA
+ACI60895.1  modifier  sagB
+ACI60896.1  modifier  sagC
+ACI60897.1  modifier  sagD
+ACI60898.1  immunity  sagE
+ACI60899.1  modifier  sagF
+ACI60900.1  null sagG
+ACI60901.1  null sagH
+ACI60902.1  null sagI
+ACI61835.1  null salR
+ACI61836.1  null salK
+ACI61837.1  null salY
+ACI61838.1  null salX
+ACI61839.1  null salT
+ACI61840.1  modifier  salB
+ACI61841.1  toxin     salA
+#Null labels
+ACI60365.1 null
+ACI60366.1 null
+ACI60368.1 null
+#Organism: NC_004722.1 Bacillus cereus ATCC 14579
+#Reference: http://www.pnas.org/content/106/8/2549.full
+#GI: 30018278 : Question?  Why are there genes in between?
+#locus_tag label name
+AAP11940.1 null tclX
+AAP11941.1 null tclW
+AAP11944.1 immunity tclT
+AAP11945.1 modifier tclS
+AAP11947.1 immunity tclQ
+AAP11948.1 modifier tclP
+AAP11949.1 modifier tclO
+AAP11950.1 modifier tclN
+AAP11952.1 modifier tclL
+AAP11953.1 modifier tclK
+AAP11954.1 modifier tclJ
+AAP11956.1 toxin tclH
+AAP11957.1 toxin tclG
+AAP11958.1 toxin tclF
+AAP11959.1 toxin tclE
+AAP11960.1 modifier tclD
+#Null labels
+AAP12344.1 null
+AAP12343.1 null
+AAP12342.1 null
+AAP12341.1 null
