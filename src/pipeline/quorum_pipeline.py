@@ -32,6 +32,7 @@ import bacteriocin
 import nbayes
 import rforests
 import cdhit
+import fasta
 from quorum import *
 
 class QuorumPipelineHandler(object):
@@ -46,6 +47,7 @@ class QuorumPipelineHandler(object):
                  bac_evalue,
                  training_labels,
                  training_directory,
+                 text_database,
                  intermediate,
                  output,
                  numThreads,
@@ -61,7 +63,8 @@ class QuorumPipelineHandler(object):
         self.similarity	        =	  similarity			
         self.bac_evalue	        =	  bac_evalue
         self.training_labels    =     training_labels			
-        self.training_directory =     training_directory			
+        self.training_directory =     training_directory
+        self.text_database      =     text_database			
         self.intermediate   	=	  intermediate  		
         self.output	         	=	  output
         self.numThreads         =     numThreads
@@ -83,6 +86,7 @@ class QuorumPipelineHandler(object):
         self.cand_context_genes_tab = "%s/cand_context_genes.txt"%self.intermediate
         self.cand_context_genes_fasta = "%s/cand_context_genes.fa"%self.intermediate
         self.cand_context_cluster = "%s/cand_context_cluster"%self.intermediate
+        self.classifier_out = "%s/classify"%self.intermediate
         #Declare object handlers
         self.clusterer = None                       
         self.textClassifier = None           
@@ -91,7 +95,9 @@ class QuorumPipelineHandler(object):
         self.textout = "text_out.txt"
         self.jobs  = []
         self.split_files = [] 
+        
     def cleanup(self):
+        print "Cleaning up"
         for job in self.jobs:
             job.erase_files()
         for fname in self.split_files:
@@ -105,15 +111,8 @@ class QuorumPipelineHandler(object):
         if buildAnnotations:
             annotated_genes.go(root,self.annotated_genes) 
             intergene.go(root,self.intergenes)
-        #self.textClassifier = nbayes.NBayes(self.training_directory,
-        #                                    self.training_labels)
-        self.textClassifier = rforests.RForests(self.training_directory,
-                                                self.training_labels,
-                                                numTrees=1000)
         
-        self.textClassifier.train()
-        self.textClassifier.dump(self.nbpickle)
-        print "Dumped pickle file"
+        
     """  Runs blast to identify bacteriocins and context genes"""
     def blast(self,njobs=1):
         print "Blasting"
@@ -164,16 +163,15 @@ class QuorumPipelineHandler(object):
                             self.intermediate,
                             out_fnames[i])
             
-            batch_file = "%    s/blast%i.%d.job"%(os.getcwd(),i,os.getpid())
-            
-            proc = Popen( cmd,shell=True,batch_file=batch_file,stdin=PIPE,stdout=PIPE )
+            batch_file = "%s/blast%i.%d.job"%(os.getcwd(),i,os.getpid())
+            proc = Popen(cmd,shell=True,batch_file=batch_file,
+                         stdin=PIPE,stdout=PIPE )
             proc.submit()
             #proc.output = out_fnames[i]
             jobs.append(proc)
             self.jobs.append(proc)
         
-        for job in jobs: job.wait()
-         
+        for job in jobs: job.wait() 
         
         """ Collect all of the results from the jobs"""
         bacteriocins_out = open(self.blasted_tab_bacteriocins,'w')
@@ -185,6 +183,80 @@ class QuorumPipelineHandler(object):
             shutil.copyfileobj(open(out_genes[i]),context_genes_out)
         bacteriocins_out.close()
         context_genes_out.close()
+        
+        
+    """ Clusters bacteriocins and context genes together"""
+    def cluster(self,preprocess=True,numThreads=8,mem=6000):
+        print "Clustering"
+        if preprocess:
+            fasta.preprocess(self.cand_context_genes_tab,
+                            self.cand_context_genes_fasta)
+            
+        
+        self.clusterer = cdhit.CDHit(self.cand_context_genes_fasta,
+                                     self.cand_context_cluster,
+                                     self.similarity,
+                                     numThreads,mem)
+        self.clusterer.run()
+        self.clusterer.parseClusters()
+        self.clusterer.dump(self.clusterpickle)
+        
+    """ Classifies individual bacteriocins and context genes based on their text"""
+    def textmine(self,njobs=1):
+        
+        print "Classifying"
+        """ First split up the main bacteriocin file into a bunch of smaller files"""
+        split_fastafiles = ["%s/cluster.%d"%(self.intermediate,i)
+                          for i in xrange(njobs)]
+        self.split_files += split_fastafiles
+        split_fastahandles = [open(f,'w') for f in split_fastafiles]
+        out_classes = ["%s/classify.%d"%(self.intermediate,i) for i in xrange(njobs)]
+        
+        index=0
+        for record in SeqIO.parse(self.cand_context_cluster,"fasta"):
+            split_fastahandles[index].write(">%s\n%s\n"%(str(record.id),
+                                                       str(record.seq)))
+            index=(index+1)%njobs
+        #Close files
+        for handle in split_fastahandles: handle.close()
+        classify_cmd = ' '.join([
+                                 """module load anaconda; module load blast;""",
+                                 """python %s/src/classify/rforests.py""",
+                                 """--training-directory=%s""",
+                                 """--training-labels=%s""",
+                                 """--text-database=%s""",
+                                 """--num-trees=1000""",
+                                 """--fasta=%s""",
+                                 """--output=%s"""         
+                                 ])    
+        print out_classes
+        
+        """ Release jobs """
+        jobs = []
+        for i in xrange(njobs):
+            cmd = classify_cmd%(self.rootdir,
+                                self.training_directory,
+                                self.training_labels,
+                                self.text_database,
+                                split_fastafiles[i],
+                                out_classes[i]
+                                )
+            
+            batch_file = "%s/classify%i.%d.job"%(os.getcwd(),i,os.getpid())
+            
+            proc = Popen( cmd,shell=True,batch_file=batch_file,stdin=PIPE,stdout=PIPE )
+            proc.submit()
+            #proc.output = out_classes[i]
+            jobs.append(proc)
+            self.jobs.append(proc)
+        
+        for job in jobs: job.wait()
+        
+        """ Collect all of the results from the jobs"""
+        classify_out = open(self.classifier_out,'w')
+        for i in xrange(njobs):
+            shutil.copyfileobj(open(out_classes[i]),classify_out)
+        classify_out.close()
         
         
         
@@ -226,6 +298,9 @@ if __name__=="__main__":
         help='''Training directory containing all 
                 genbank files required for training the Naive Bayes model''')
     parser.add_argument(\
+        '--text-database', type=str, required=False,
+        help='SQL database containing text annotations')
+    parser.add_argument(\
         '--intermediate', type=str, required=False,default='.',
         help='Directory for storing intermediate files')
     parser.add_argument(\
@@ -246,7 +321,7 @@ if __name__=="__main__":
     args = parser.parse_args()
     
     if not args.test:
-        proc = QuorumPipelineHandler(  args.root_dir,
+        proc = QuorumPipelineHandler(args.root_dir,
                                      args.genome_files,
                                      args.intergenes,
                                      args.annotated_genes,
@@ -275,6 +350,7 @@ if __name__=="__main__":
                 self.bacteriocins = "%s/bagel.fa"%self.bacdir
                 self.intergenes = "test_intergenes.fa"
                 self.annotated_genes = "test_genes.fa"
+                self.textdb = "%s/db/bacteria_database"%(self.root)
                 #self.intergenes = "%s/db/intergenes.txt"%(self.root)
                 #self.annotated_genes = "%s/db/annotated_genes.txt"%(self.root)
                 self.intermediate = "intermediate"
@@ -292,9 +368,13 @@ if __name__=="__main__":
                 self.numThreads = 1
                 self.output = "out"
                 self.keep_tmp = True
+                self.proc = None
+            def tearDown(self):
+                #self.proc.cleanup()
+                pass
             def testrun(self):
                 print "Test Run"
-                proc = QuorumPipelineHandler(  
+                self.proc = QuorumPipelineHandler(  
                                          self.root,
                                          self.genome_files,
                                          self.intergenes,
@@ -305,6 +385,7 @@ if __name__=="__main__":
                                          self.bac_evalue,
                                          self.training_labels,
                                          self.training_directory,
+                                         self.textdb,
                                          self.intermediate,
                                          self.output,
                                          self.numThreads,
@@ -312,15 +393,25 @@ if __name__=="__main__":
                                          self.verbose                
                                         ) 
                 
-                #proc.preprocess(root=self.exampledir,buildAnnotations=True)
+                #self.proc.preprocess(root=self.exampledir,buildAnnotations=True)
                 self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 
-                proc.blast(njobs=2)
+                self.proc.blast(njobs=2)
                 
-                self.assertTrue(os.path.getsize(proc.blasted_tab_bacteriocins) > 0)
-                self.assertTrue(os.path.getsize(proc.cand_context_genes_tab) > 0)       
-                proc.cleanup()        
+                self.assertTrue(os.path.getsize(self.proc.blasted_tab_bacteriocins) > 0)
+                self.assertTrue(os.path.getsize(self.proc.cand_context_genes_tab) > 0)
+                
+                self.proc.cluster()
+                
+                self.assertTrue(os.path.getsize("%s"%(self.proc.cand_context_genes_fasta)) > 0)                
+                self.assertTrue(os.path.getsize(self.proc.cand_context_cluster) > 0)
+                
+                self.proc.textmine(njobs=10)
+                
+                self.assertTrue(os.path.getsize(self.proc.classifier_out ) > 0)
+                self.proc.cleanup()
+                
         unittest.main()       
         
         

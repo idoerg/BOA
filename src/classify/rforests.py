@@ -105,7 +105,7 @@ class RForests(text_classifier.TextClassifier):
         
         self.classifier.train(feature_sets[k:])
         features,ref_labels = zip(*feature_sets[:k])
-        pred_labels = self.classifier.prob_classify_many(features)   
+        pred_labels = self.classifier.batch_classify(features)   
         return ref_labels,pred_labels
     
     """ nltk confusion matrix """
@@ -140,8 +140,8 @@ class RForests(text_classifier.TextClassifier):
                 assert featureset!=prevFeatureset
                 prevFeatureset = featureset
                 prevText = text
-                label = self.classifier.classify_many([featureset])    
-                pd = self.classifier.prob_classify_many([featureset])[0]
+                label = self.classifier.batch_classify(featureset)    
+                pd = self.classifier.prob_classify([featureset])[0]
                     
             proIDs.append(proteinID)  
             pds.append(pd)
@@ -156,28 +156,35 @@ class RForests(text_classifier.TextClassifier):
         for seq_record in SeqIO.parse(fastain, "fasta"):
             title = seq_record.id
             toks = title.split("|")
-            proteinID = toks[5]
-            query_rows = genbank.proteinQuery(proteinID,db)
-            ids,text = zip(*query_rows)
-            text = ''.join(map(str,text))
-            if text=='': 
-                label = ['na']
+            locus_tag = toks[5]
+            locus_rows = genbank.locusQuery(locus_tag,db)
+            protein_rows = []
+            for row in locus_rows:
+                locus,proteinID = row
+                query_rows = genbank.proteinQuery(proteinID,db)
+                protein_rows+=query_rows
+            print len(protein_rows),locus_tag
+            if len(protein_rows)==0:
+                label = 'na'
             else:
-                text = word_reg.findall(text)
-                featureset = self.gene_features(text)
-                assert text!=prevText
-                assert featureset!=prevFeatureset
-                prevFeatureset = featureset
-                prevText = text
-                label = self.classifier.classify_many([featureset])    
-            
-            proIDs.append(proteinID)  
-            labels+=label
+                ids,text = zip(*protein_rows)
+                text = ''.join(map(str,text))
+                if text=='': 
+                    label = 'na'
+                else:
+                    text = word_reg.findall(text)
+                    featureset = self.gene_features(text)
+                    #assert text!=prevText
+                    #assert featureset!=prevFeatureset
+                    prevFeatureset = featureset
+                    prevText = text
+                    label = self.classifier.classify(featureset)    
+                    print label,text
+            proIDs.append(locus_tag)  
+            labels.append(label)
         return zip(proIDs,labels)
 
 
-def go():
-    pass
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -186,15 +193,35 @@ if __name__=="__main__":
         '--training-labels', type=str, required=False,
         help='A training data set to serve as a template for categorizing context genes')
     parser.add_argument(\
-        '--genbank-files', type=str, nargs="+", required=False,
-        help='Genbank files containing annotations of bacterial genes')
+        '--training-directory', type=str, required=False,
+        help='A directory containing all of the genbank files required for training')
+    parser.add_argument(\
+        '--text-database', type=str, required=False,
+        help='SQL database containing text annotations')
+    parser.add_argument(\
+        '--fasta', type=str, required=False,
+        help='Fasta file of sequences to be classified')
+    parser.add_argument(\
+        '--num-trees', type=int, required=False,default=1000,
+        help='Number of trees to construct')
+    parser.add_argument(\
+        '--output', type=str, required=False,
+        help='Output file containing classifications')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
     args = parser.parse_args()
     
     if not args.test:
-        go()
+        classifier = RForests(args.training_directory,
+                              args.training_labels,
+                              numTrees=1000)
+        classifier.train()
+        print "Trained"
+        sets = classifier.classify(args.text_database,args.fasta)
+        print "Classified"
+        titles,labels = zip(*sets)
+        open(args.output,'w').write('\n'.join(["%s\t%s"%x for x in sets])+"\n")
     else:
         del sys.argv[1:]
         import unittest

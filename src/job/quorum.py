@@ -182,7 +182,6 @@ class pbsJobHandler:
             os.remove(self.batch_file_name) 
         t=re.split('\.',output)
         self.jobid=t[0]
-        print "Output Location2",self.output_location
         self.ofile = self.jobname + ".o" + str(self.jobid)
         self.efile = self.jobname + ".e" + str(self.jobid)
         self.rfile = self.jobname + ".r" + str(self.jobid)
@@ -334,21 +333,13 @@ class pbsJobHandler:
                                 
     def erase_files(self):
         """Erase the stdio and stderr files."""
-        try:
-            os.remove(self.ofile_name())
-        except:
-            pass
-
-        try:
-            os.remove(self.efile_name())
-        except:
-            pass
-
-        try:
-            os.remove(self.rfile_name())
-        except:
-            pass
-
+        if os.path.isfile(self.ofile):
+            os.remove(self.ofile)
+        if os.path.isfile(self.efile):
+            os.remove(self.efile)
+        if os.path.isfile(self.rfile):
+            os.remove(self.rfile)
+        
         return None
     
     def get_results(self, resources = False, cleanup=True):

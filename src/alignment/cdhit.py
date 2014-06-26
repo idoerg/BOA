@@ -34,13 +34,15 @@ class Cluster(object):
     #        raise StopIteration()
         
 class CDHit(object):
-    def __init__(self,input_file,output_file,similarity):
+    def __init__(self,input_file,output_file,similarity,numThreads=1,mem=800):
         self.input = input_file
         self.output = output_file
         self.similarity = similarity
         self.cluster_out = "%s.clstr"%(output_file)
         self.cluster_counts = "%s.count"%(output_file)
         self.clusters = list()
+        self.numThreads = numThreads
+        self.mem = mem
     def __len__(self):
         return len(self.clusters)    
     def __str__(self):
@@ -61,7 +63,8 @@ class CDHit(object):
     Runs CD hit script
     """
     def run(self):
-        cmd = "cdhit -i %s -o %s -d 150 -c %f" %(self.input,self.output,self.similarity)
+        cmd = "cdhit -i %s -o %s -d 150 -c %f -M %d -T %d" %(self.input,self.output,
+                                                             self.similarity,self.mem,self.numThreads)
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()
 
@@ -105,6 +108,12 @@ if __name__=="__main__":
     parser.add_argument(\
         '--threshold', type=float, required=False, default=0.9,
         help='Similarity threshold score for clustering')
+    parser.add_argument(\
+        '--memory', type=float, required=False, default=2000,
+        help='Maxinum memory to be used')
+    parser.add_argument(\
+        '--num-threads', type=float, required=False, default=1,
+        help='Number of threads to be used')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')

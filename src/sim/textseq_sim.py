@@ -72,7 +72,7 @@ class TextSeqSim(object):
             note = " ".join(words)
             genbank.insertProteinQuery(protID,note,outputDB)
             genbank.insertLocusQuery(locus,protID,outputDB)
-            seqid = "%s|_|_|_|_|%s"%(locus,protID)
+            seqid = "%s|_|_|_|%s"%(locus,protID)
             funcHandle.write("%s\t%s\t%s\n"%(locus,protID,function) )
             fastahandle.write(">%s\n%s\n"%(seqid,sequence))
         fastahandle.close()

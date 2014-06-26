@@ -35,28 +35,8 @@ import bacteriocin
 import nbayes
 import rforests
 import cdhit
+import fasta
 
-
-""" Remove duplicate entries"""
-def removeDuplicates(items):
-    uniqueDict = {tuple(x[-5:-1]):x for x in items}
-    return uniqueDict.values()
-""" Preprocess fasta file """
-def preprocessFasta(blastTab,fastaout):
-    items = []
-    with open(blastTab,'r') as handle:
-        for ln in handle:
-            ln = ln.rstrip()
-            toks = ln.split('\t')
-            assert len(toks)>=10
-            toks = [tok.replace(' ','') for tok in toks] #remove white space
-            items.append(tuple(toks))
-    items = removeDuplicates(items)
-    with open(fastaout,'w') as handle:
-        for item in items:
-            bacID,gi,bst,bend,bstrand,species,ast,aend,astrand,seq = item
-            seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
-            handle.write(seqstr)
 
 class PipelineHandler(object):
     def __init__(self,
@@ -159,7 +139,7 @@ class PipelineHandler(object):
     def cluster(self,preprocess=True):
         print "Clustering"
         if preprocess:
-            preprocessFasta(self.cand_context_genes_tab,
+            fasta.preprocess(self.cand_context_genes_tab,
                             self.cand_context_genes_fasta)
             
         
