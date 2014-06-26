@@ -1,5 +1,6 @@
 """
-Trys to assign a function to a gene based on its annotated text
+NOTE: OUT OF DATE
+Decision Trees classifier
 """
 import os,sys
 import nltk

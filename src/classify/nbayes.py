@@ -1,4 +1,5 @@
 """
+NOTE: OUT OF DATE
 Trys to assign a function to a gene based on its annotated text
 """
 import os,sys

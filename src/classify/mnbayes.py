@@ -1,7 +1,7 @@
 """ 
-Random forests classifier
+NOTE: OUT OF DATE
+Multinomial Naive Bayes classifier
 """
-#from sklearn.ensemble import RandomForestClassifier
 import nltk
 from nltk.classify.scikitlearn import SklearnClassifier
 from sklearn.naive_bayes import MultinomialNB

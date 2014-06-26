@@ -16,6 +16,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio import Entrez
 import training
 import genbank
+import genbank_sqlite3
 import cPickle
 import gzip
 import copy
@@ -23,15 +24,17 @@ import text_classifier
 
 word_reg = re.compile("[a-z]+")
 class RForests(text_classifier.TextClassifier):
-    def __init__(self,trainDir,labelFile,numTrees=10):
+    def __init__(self,trainDir,labelFile,numTrees=10,numJobs=1):
         self.classifier = None
         self.labelFile = labelFile
         self.trainingDir = trainDir
         self.labels = None
         self.all_words = None
         self.numTrees = numTrees
+        self.numJobs = numJobs
         self.classifier = SklearnClassifier(RandomForestClassifier(
-                                            n_estimators=self.numTrees),sparse=False)
+                                            n_estimators=self.numTrees,
+                                            n_jobs=numJobs),sparse=False)
         #self.labels = training.setup(labelFile)
         #self.train()
     
@@ -147,9 +150,35 @@ class RForests(text_classifier.TextClassifier):
             pds.append(pd)
             labels+=label
         return proIDs,labels,pds
+
+    def classifyPickle(self,pickle,fastain):
+        proIDs,features,labels = [],[],[]
+        prevFeatureset = ''
+        prevText = ''
+        gbkTable = genbank.GenBankTable()
+        gbkTable.load(pickle)
+        for seq_record in SeqIO.parse(fastain, "fasta"):
+            title = seq_record.id
+            toks = title.split("|")
+            locus_tag = toks[5]
+            text = gbkTable.getLocusText(locus_tag)
+            if text=='': 
+                label = 'na'
+            else:
+                text = word_reg.findall(text)
+                featureset = self.gene_features(text)
+                #assert text!=prevText
+                #assert featureset!=prevFeatureset
+                prevFeatureset = featureset
+                prevText = text
+                label = self.classifier.classify(featureset)    
+                #print label,text
+            proIDs.append(locus_tag)  
+            labels.append(label)
+        return zip(proIDs,labels)
         
-    """ Classifies proteins based on its text """
-    def classify(self,db,fastain):
+    """ Classifies proteins based on its text from sqlite3 databse"""
+    def classifyDB(self,db,fastain):
         proIDs,features,labels = [],[],[]
         prevFeatureset = ''
         prevText = ''
@@ -157,13 +186,13 @@ class RForests(text_classifier.TextClassifier):
             title = seq_record.id
             toks = title.split("|")
             locus_tag = toks[5]
-            locus_rows = genbank.locusQuery(locus_tag,db)
+            locus_rows = genbank_sqlite3.locusQuery(locus_tag,db)
             protein_rows = []
             for row in locus_rows:
                 locus,proteinID = row
-                query_rows = genbank.proteinQuery(proteinID,db)
+                query_rows = genbank_sqlite3.proteinQuery(proteinID,db)
                 protein_rows+=query_rows
-            print len(protein_rows),locus_tag
+            #print len(protein_rows),locus_tag
             if len(protein_rows)==0:
                 label = 'na'
             else:
@@ -179,12 +208,16 @@ class RForests(text_classifier.TextClassifier):
                     prevFeatureset = featureset
                     prevText = text
                     label = self.classifier.classify(featureset)    
-                    print label,text
+                    #print label,text
             proIDs.append(locus_tag)  
             labels.append(label)
         return zip(proIDs,labels)
 
-
+    def classify(self,fin,fastain,type='db'):
+        if type=='db':
+            return self.classifyDB(fin,fastain)
+        else:
+            return self.classifyPickle(fin,fastain)
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
@@ -202,20 +235,27 @@ if __name__=="__main__":
         '--fasta', type=str, required=False,
         help='Fasta file of sequences to be classified')
     parser.add_argument(\
-        '--num-trees', type=int, required=False,default=1000,
+        '--num-trees', type=int, required=False,default=100,
         help='Number of trees to construct')
+    parser.add_argument(\
+        '--num-jobs', type=int, required=False,default=3,
+        help='Number of jobs to run in parallel')
     parser.add_argument(\
         '--output', type=str, required=False,
         help='Output file containing classifications')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
+    parser.add_argument(\
+        '--profile', action='store_const', const=True, default=False,
+        help='Run speed tests')
     args = parser.parse_args()
     
-    if not args.test:
+    if not args.test and not args.profile:
         classifier = RForests(args.training_directory,
                               args.training_labels,
-                              numTrees=1000)
+                              args.num_trees,
+                              args.num_jobs)
         classifier.train()
         print "Trained"
         sets = classifier.classify(args.text_database,args.fasta)
@@ -224,8 +264,9 @@ if __name__=="__main__":
         open(args.output,'w').write('\n'.join(["%s\t%s"%x for x in sets])+"\n")
     else:
         del sys.argv[1:]
+        import cProfile
         import unittest
-        
+        import test_fasta
         class TestTraining1(unittest.TestCase):
             def setUp(self):
                 self.root = os.environ['BACFINDER_HOME']
@@ -266,7 +307,7 @@ if __name__=="__main__":
                 #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
                 self.root = os.environ['BACFINDER_HOME']
                 self.trainDir = "%s/data/training/protein"%self.root
-                self.labelFile = "%s/data/training/training_proteins.txt"%self.root
+                self.labelFile = "%s/data/training/training_proteins4.txt"%self.root
                 self.zip = "test_serial.zip"                
                 #Obtain training labels
             def test1(self):
@@ -288,20 +329,63 @@ if __name__=="__main__":
                 print "Accuracy:",p
                 self.assertTrue(p>0.5)
         class TestClassify(unittest.TestCase):
-             def setUp(self):
+            def setUp(self):
                 #self.genbankDir = "../example/Streptococcus_pyogenes"
                 #self.genbankFile = "../example/Streptococcus_pyogenes/NC_011375.gbk"
                 self.root = os.environ['BACFINDER_HOME']
                 self.trainDir = "%s/data/training/protein"%self.root
-                self.labelFile = "%s/data/training/training_proteins.txt"%self.root
-                self.zip = "test_serial.zip"                
-                #Obtain training labels
-             def test1(self):
+                self.labelFile = "%s/data/training/training_proteins4.txt"%self.root
+                self.db = "%s/db/bacteria_database"%(self.root,)
+                self.zip = "test_serial.zip"
+                self.pickle = "test_pickle.zip"
+                self.seqs = test_fasta.cluster
+                self.fasta = "test.fa"
+                open(self.fasta,'w').write(self.seqs)
+                self.genome_dirs = [ 'Acetobacterium',
+                                     'Butyrivibrio_fibrisolvens',
+                                     'Catenulispora_acidiphila',
+                                     'Saccharopolyspora_erythraea',
+                                     'Staphylococcus_aureus',
+                                     'Streptococcus_pyogenes',
+                                     'Streptomyces_avermitilis']
+                self.exampledir   = '%s/example'%self.root
+                self.genome_dirs  = ["%s/%s"%(self.exampledir,g) for g in self.genome_dirs]
+                print self.genome_dirs
+                self.genbank_files = []
+                for gdir in self.genome_dirs:
+                    for file in os.listdir(gdir):
+                        if file.endswith(".gbk"):
+                            self.genbank_files.append("%s/%s"%(gdir,file))
+                gbk = genbank.GenBankTable(self.genbank_files)
+                gbk.buildLocusTable()
+                gbk.buildProteinTable()
+                gbk.dump(self.pickle)
+                
+            def tearDown(self):
+                #os.remove(self.fasta)
+                #os.remove(self.pickle)
+                #os.remove(self.zip)
+                pass
+            def test1(self):
                 #Labs = training.setup(self.genbankDir,self.labelFile)
                 nb = RForests(self.trainDir,self.labelFile)
                 ref,pred = nb.testClassify(30)
                 self.assertTrue(len(ref)>0)
                 self.assertTrue(len(pred)>0)
-                
-        unittest.main()
-
+            """
+            def test2(self):
+                nb = RForests(self.trainDir,self.labelFile)
+                nb.train()
+                classes = nb.classify(self.db,self.fasta)
+                self.assertTrue(len(classes)>0)
+            """
+            def test3(self):
+                nb = RForests(self.trainDir,self.labelFile)
+                nb.train()
+                classes = nb.classify(self.pickle,self.fasta,type="pickle")
+                self.assertTrue(len(classes)>0)
+        if args.test:
+            unittest.main()
+        else:
+            cProfile.run('unittest.main()')
+            

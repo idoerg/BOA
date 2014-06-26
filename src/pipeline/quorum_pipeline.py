@@ -356,7 +356,7 @@ if __name__=="__main__":
                 self.intermediate = "intermediate"
                 #self.training_labels = "%s/data/training/training.txt"%self.root
                 self.training_directory = "%s/data/training/protein"%self.root
-                self.training_labels = "%s/data/training/training_proteins.txt"%self.root
+                self.training_labels = "%s/data/training/training_proteins4.txt"%self.root
                 if not os.path.exists(self.intermediate):
                     os.mkdir(self.intermediate)
                 self.bac_evalue = 0.000001
@@ -370,7 +370,7 @@ if __name__=="__main__":
                 self.keep_tmp = True
                 self.proc = None
             def tearDown(self):
-                #self.proc.cleanup()
+                self.proc.cleanup()
                 pass
             def testrun(self):
                 print "Test Run"
@@ -407,7 +407,7 @@ if __name__=="__main__":
                 self.assertTrue(os.path.getsize("%s"%(self.proc.cand_context_genes_fasta)) > 0)                
                 self.assertTrue(os.path.getsize(self.proc.cand_context_cluster) > 0)
                 
-                self.proc.textmine(njobs=10)
+                self.proc.textmine(njobs=7)
                 
                 self.assertTrue(os.path.getsize(self.proc.classifier_out ) > 0)
                 self.proc.cleanup()
