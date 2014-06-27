@@ -47,14 +47,6 @@ ADZ63256.1 regulator nisK
 ADZ63257.1 immunity nisF
 ADZ63258.1 immunity nisF
 ADZ63259.1 immunity nisG
-#Null labels
-ADZ62681.1 null
-ADZ62682.1 null
-ADZ62684.1 null
-ADZ62685.1 null
-ADZ62718.1 null
-ADZ62719.1 null
-ADZ62720.1 null
 #Organism: NC_011375.1 Streptococcus pyogenes
 #Reference: http://www.jbc.org/content/284/19/13004.full
 #GI: 209558587
@@ -75,18 +67,6 @@ ACI61838.1  transport salX
 ACI61839.1  transport salT
 ACI61840.1  modifier  salB
 ACI61841.1  toxin     salA
-#Null labels
-ACI60365.1 null
-ACI60366.1 null
-ACI60368.1 null
-ACI60369.1 null
-ACI61794.1 null
-ACI61795.1 null
-ACI61796.1 null
-ACI61804.1 null
-ACI61805.1 null
-ACI61806.1 null
-ACI62064.1 null
 #Organism: NC_004722.1 Bacillus cereus ATCC 14579
 #Reference: http://www.pnas.org/content/106/8/2549.full
 #GI: 30018278 : Question?  Why are there genes in between?
@@ -107,12 +87,3 @@ AAP11957.1 toxin tclG
 AAP11958.1 toxin tclF
 AAP11959.1 toxin tclE
 AAP11960.1 modifier tclD
-#Null labels
-AAP12344.1 null
-AAP12343.1 null
-AAP12342.1 null
-AAP12341.1 null
-AAP07413.1 null
-AAP07414.1 null
-AAP07415.1 null
-AAP07416.1 null

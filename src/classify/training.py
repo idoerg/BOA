@@ -28,6 +28,7 @@ word_reg = re.compile("[a-z]+")
 class Labels(object):
     def __init__(self,trainingDir,labelfile):
         self.labels = defaultdict( dict )
+        self.seqs = []
         self.parseLabels(trainingDir,labelfile)
     def getKeys(self):#returns filename basically
         return self.labels.keys()
@@ -39,8 +40,13 @@ class Labels(object):
     def decomposeDocument(self,text):
         words = [self.filterWords(word_reg.findall(t.lower()))
                  for t in text]
-        
         return words
+    """ Get training sequences sorted by label"""
+    def getTrainingSequences(self):
+        sorted(self.seqs,key=lambda x:x[2])
+        return self.seqs
+    
+    """ Get descriptions associated with training sequences"""
     def getTrainingText(self):
         L =  self.labels.values()
         K = [l.items() for l in L]
@@ -52,12 +58,10 @@ class Labels(object):
         #Decompose text into words
         words = self.decomposeDocument(list(text))
         return zip(words,labs) 
-        
     def __str__(self):
         s = ""
         for k,v in self.labels.iteritems():
             s+= "Organism:%s\n%s\n"%(k,str(v))
-             
         return s
     """ Parses training text file """
     def parseLabels(self,directory,labelfile):
@@ -78,18 +82,18 @@ class Labels(object):
                     #print proteinID,label
                     #Each label has a dictionary
                     #proteinID:(label, description)       
-                    note = self.parseProteinGenbank(directory,proteinID)  
-                             
+                    note = self.getProteinGenbankDescription(directory,proteinID)  
+                    seq  = self.getProteinGenbankSequence(directory,proteinID)  
                     self.labels[key][proteinID]=(label,note)
+                    self.seqs.append( (key,proteinID,label,seq) )
                     #print key,self.labels[key]
 
-    """ Parses a genbank file for a particular protein """
-    def parseProteinGenbank(self,directory,proteinID):
+    """ Parses a genbank file for a particular protein and returns its description"""
+    def getProteinGenbankDescription(self,directory,proteinID):
         fname = "%s/%s.gbk"%(directory,proteinID)
         seq_record = SeqIO.parse(open(fname), "genbank").next()
         note = ""
         for feature in seq_record.features: 
-               
             try:
                 if "note" in feature.qualifiers:
                     note+= text.formatText(feature.qualifiers["note"][0])
@@ -100,7 +104,13 @@ class Labels(object):
             except KeyError as k:
                 continue
         return note 
-    
+    """ Parses a genbank file for a particular protein and returns its description"""
+    def getProteinGenbankSequence(self,directory,proteinID):
+        fname = "%s/%s.gbk"%(directory,proteinID)
+        seq_record = SeqIO.parse(open(fname), "genbank").next()
+        return str(seq_record.seq)
+            
+        
     """Parses genbank record"""
     def parseRecord(self,seq_record):
             acc = seq_record.annotations['accessions'][0]

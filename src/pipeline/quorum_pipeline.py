@@ -202,7 +202,7 @@ class QuorumPipelineHandler(object):
         self.clusterer.dump(self.clusterpickle)
         
     """ Classifies individual bacteriocins and context genes based on their text"""
-    def textmine(self,njobs=1,dbtype="pickle",numTrees=1000):
+    def textmine(self,njobs=1,dbtype="sqlite3",numTrees=1000):
         
         print "Classifying"
         """ First split up the main bacteriocin file into a bunch of smaller files"""
@@ -231,7 +231,6 @@ class QuorumPipelineHandler(object):
                                  """--output=%s"""         
                                  ])    
         
-        
         """ Release jobs """
         jobs = []
         for i in xrange(njobs):
@@ -247,7 +246,8 @@ class QuorumPipelineHandler(object):
             
             batch_file = "%s/classify%i.%d.job"%(os.getcwd(),i,os.getpid())
             
-            proc = Popen( cmd,shell=True,batch_file=batch_file,stdin=PIPE,stdout=PIPE )
+            proc = Popen( cmd,shell=True,batch_file=batch_file,
+                          stdin=PIPE,stdout=PIPE ) 
             proc.submit()
             #proc.output = out_classes[i]
             jobs.append(proc)
@@ -390,7 +390,7 @@ if __name__=="__main__":
                                          self.bac_evalue,
                                          self.training_labels,
                                          self.training_directory,
-                                         self.textpickle,
+                                         self.textdb,
                                          self.intermediate,
                                          self.output,
                                          self.numThreads,

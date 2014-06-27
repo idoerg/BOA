@@ -308,14 +308,12 @@ if __name__=="__main__":
         annotationsOut  = open("%s.annotated.txt"%(args.output),'w')
         main(args.genome_files,
              args.bacteriocins,
-             
              args.intergenes,
              args.annotated_genes,
              bacteriocinsOut,
              #filteredOut,
              annotationsOut,
              args.intermediate,
-      
              args.bac_evalue,
              args.num_threads,
              args.formatdb,

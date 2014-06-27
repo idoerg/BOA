@@ -5,13 +5,13 @@
 CAA72917.1 toxin
 CAA72918.1 modifier
 CAA72919.1 null
-#CAA72920.1 null
-#CAA72921.1 null
+CAA72920.1 null
+CAA72921.1 null
 CAA72922.1 immunity
 CAD27714.1 null
-#CAD27715.1 null
-#CAD27716.1 null
-#CAD27717.1 null
+CAD27715.1 null
+CAD27716.1 null
+CAD27717.1 null
 #Organism: GG688628.1, Enterococcus faecalis D6
 #Reference: http://onlinelibrary.wiley.com/doi/10.1046/j.1462-5822.2003.00310.x/full
 #GI: 239976949
@@ -22,8 +22,8 @@ EEU81213.1 null
 EEU81212.1 modifier
 EEU81211.1 toxin
 EEU81210.1 toxin
-#EEU81209.1 null
-#EEU81208.1 null
+EEU81209.1 null
+EEU81208.1 null
 #Organism: AF061787.1, Escherichia coli plasmid pTUC100
 #Reference: http://www.ncbi.nlm.nih.gov/pmc/articles/PMC93700
 #GI: 4731431
@@ -48,9 +48,9 @@ ADZ63257.1 immunity nisF
 ADZ63258.1 immunity nisF
 ADZ63259.1 immunity nisG
 #Null labels
-#ADZ62681.1 null
-#ADZ62682.1 null
-#ADZ62684.1 null
+ADZ62681.1 null
+ADZ62682.1 null
+ADZ62684.1 null
 #Organism: NC_011375.1 Streptococcus pyogenes
 #Reference: http://www.jbc.org/content/284/19/13004.full
 #GI: 209558587
@@ -61,26 +61,26 @@ ACI60896.1  modifier  sagC
 ACI60897.1  modifier  sagD
 ACI60898.1  immunity  sagE
 ACI60899.1  modifier  sagF
-#ACI60900.1  null sagG
+ACI60900.1  null sagG
 ACI60901.1  null sagH
 ACI60902.1  null sagI
-#ACI61835.1  null salR
-#ACI61836.1  null salK
+ACI61835.1  null salR
+ACI61836.1  null salK
 ACI61837.1  null salY
-#ACI61838.1  null salX
+ACI61838.1  null salX
 ACI61839.1  null salT
 ACI61840.1  modifier  salB
 ACI61841.1  toxin     salA
 #Null labels
-#ACI60365.1 null
-#ACI60366.1 null
-#ACI60368.1 null
+ACI60365.1 null
+ACI60366.1 null
+ACI60368.1 null
 #Organism: NC_004722.1 Bacillus cereus ATCC 14579
 #Reference: http://www.pnas.org/content/106/8/2549.full
 #GI: 30018278 : Question?  Why are there genes in between?
 #locus_tag label name
 AAP11940.1 null tclX
-AAP11941.1 null tclW
+#AAP11941.1 null tclW
 AAP11944.1 immunity tclT
 AAP11945.1 modifier tclS
 AAP11947.1 immunity tclQ
@@ -96,7 +96,7 @@ AAP11958.1 toxin tclF
 AAP11959.1 toxin tclE
 AAP11960.1 modifier tclD
 #Null labels
-#AAP12344.1 null
-#AAP12343.1 null
-#AAP12342.1 null
-#AAP12341.1 null
+AAP12344.1 null
+AAP12343.1 null
+AAP12342.1 null
+AAP12341.1 null
