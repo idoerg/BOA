@@ -7,9 +7,23 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import blast
+import hmmer
 import training
 import argparse 
-class ContextGenes(object):
+"""Note: This is just a concept at the moment"""
+class ContextGeneHMMER(object):
+    def __init__(self,trainingDir,
+                 training_labels,
+                 intermediate,
+                 evalue=0.000001):                 
+        self.labels = training.Labels(trainingDir,training_labels)
+        self.hmmmer_proc = None
+        self.evalue = evalue
+        self.intermediate = intermediate
+        self.hmmerdb = "training_%d.fa"%os.getpid()
+    def getTrainingFasta(self):
+        pass
+class ContextGeneBLAST(object):
     def __init__(self,trainingDir,
                  training_labels,
                  intermediate,
@@ -73,18 +87,18 @@ if __name__=="__main__":
         help='Run unittests')
      args = parser.parse_args()
      if not args.test:
-         cg = ContextGenes(args.training_directory,
-                           args.training_labels,
-                           args.intermediate,
-                           args.evalue)
+         cg = ContextGeneBLAST(args.training_directory,
+                               args.training_labels,
+                               args.intermediate,
+                               args.evalue)
          hits = cg.find(args.query)
-         cg.write(hits)
+         cg.write(hits,args.output)
          cg.cleanup()
      else:
          del sys.argv[1:]
          import unittest
          import test_fasta
-         class TestContextGene(unittest.TestCase):
+         class TestContextGeneBLAST(unittest.TestCase):
              def setUp(self):
                  self.cluster = test_fasta.cluster
                  self.root = os.environ['BACFINDER_HOME']
@@ -97,10 +111,10 @@ if __name__=="__main__":
              def tearDown(self):
                  shutil.rmtree(self.intermediate)
              def test1(self):
-                 cg = ContextGenes(self.trainDir,
-                                   self.labelFile,
-                                   self.intermediate,
-                                   self.evalue)
+                 cg = ContextGeneBLAST(self.trainDir,
+                                       self.labelFile,
+                                       self.intermediate,
+                                       self.evalue)
                  hits = cg.find(cg.getTrainingFasta())
                  self.assertTrue(len(hits)>0)
                  cg.cleanup()

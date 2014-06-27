@@ -73,7 +73,6 @@ class QuorumPipelineHandler(object):
         if not os.path.exists(self.intermediate):
             #shutil.rmtree(self.intermediate)
             os.mkdir(self.intermediate)
-            
         if intergenes!=None and annotated_genes!=None: 
             self.intergenes	        =	  intergenes			
             self.annotated_genes    =	  annotated_genes   	
@@ -120,7 +119,7 @@ class QuorumPipelineHandler(object):
         """ First split up the main bacteriocin file into a bunch of smaller files"""
         split_bacfiles = ["%s/bacteriocin.%d"%(self.intermediate,i)
                           for i in xrange(njobs)]
-        self.split_files = split_bacfiles
+        #self.split_files = split_bacfiles
         split_bachandles = [open(f,'w') for f in split_bacfiles]
         out_fnames = ["%s/blasted.%d"%(self.intermediate,i) for i in xrange(njobs)]
         out_bac = ["%s.bacteriocins.txt"%(out) for out in out_fnames]
@@ -132,23 +131,38 @@ class QuorumPipelineHandler(object):
             index=(index+1)%njobs
         #Close files
         for handle in split_bachandles: handle.close()
+        if self.formatdb: 
+            blast_cmd = ' '.join([
+                        """module load anaconda; module load blast;module load blast+;"""
+                        """python %s/src/genome/bacteriocin.py  """,
+                        """ --genome-files %s        """,
+                        """ --annotated-genes=%s     """,
+                        """ --intergenes=%s          """,
+                        """ --bacteriocins=%s   	 """,
+                        """ --bacteriocin-radius=%d  """,
+                        """ --bac-evalue=%f 		 """,
+                        """ --num-threads=%d    	 """,
+                        """ --intermediate=%s   	 """,
+                        """ --output=%s     		 """,
+                        """ --formatdb               """,
+                        """ --verbose                """
+                        ])
+        else:
+            blast_cmd = ' '.join([
+                        """module load anaconda; module load blast;module load blast+;"""
+                        """python %s/src/genome/bacteriocin.py  """,
+                        """ --genome-files %s        """,
+                        """ --annotated-genes=%s     """,
+                        """ --intergenes=%s          """,
+                        """ --bacteriocins=%s   	 """,
+                        """ --bacteriocin-radius=%d  """,
+                        """ --bac-evalue=%f 		 """,
+                        """ --num-threads=%d    	 """,
+                        """ --intermediate=%s   	 """,
+                        """ --output=%s     		 """,
+                        """ --verbose                """
+                        ])
             
-        blast_cmd = ' '.join([
-                    """module load anaconda; module load blast;"""
-                    """python %s/src/genome/bacteriocin.py  """,
-                    """ --genome-files %s        """,
-                    """ --annotated-genes=%s     """,
-                    """ --intergenes=%s          """,
-                    """ --bacteriocins=%s   	 """,
-                    """ --bacteriocin-radius=%d  """,
-                    """ --bac-evalue=%f 		 """,
-                    """ --num-threads=%d    	 """,
-                    """ --intermediate=%s   	 """,
-                    """ --output=%s     		 """,
-                    """ --formatdb               """,
-                    """ --verbose                """
-                    ])
-        
         """ Release jobs """
         jobs = []
         for i in xrange(njobs):
@@ -174,8 +188,8 @@ class QuorumPipelineHandler(object):
         for job in jobs: job.wait() 
         
         """ Collect all of the results from the jobs"""
-        bacteriocins_out = open(self.blasted_tab_bacteriocins,'w')
-        context_genes_out = open(self.cand_context_genes_tab,'w')
+        bacteriocins_out = open(self.blasted_fasta_bacteriocins,'w')
+        context_genes_out = open(self.cand_context_genes_fasta,'w')
         out_bac = ["%s.bacteriocins.txt"%(out) for out in out_fnames]
         out_genes = ["%s.annotated.txt"%(out) for out in out_fnames]
         for i in xrange(njobs):
@@ -186,7 +200,7 @@ class QuorumPipelineHandler(object):
         
         
     """ Clusters bacteriocins and context genes together"""
-    def cluster(self,preprocess=True,numThreads=8,mem=6000):
+    def cluster(self,preprocess=False,numThreads=8,mem=6000):
         print "Clustering"
         if preprocess:
             fasta.preprocess(self.cand_context_genes_tab,
@@ -200,7 +214,62 @@ class QuorumPipelineHandler(object):
         self.clusterer.run()
         self.clusterer.parseClusters()
         self.clusterer.dump(self.clusterpickle)
+    """ Identifies context genes using BLAST"""
+    def blastContextGenes(self,njobs=2):
+        print "Blasting Context Genes"
+        """ First split up the main bacteriocin file into a bunch of smaller files"""
+        split_fastafiles = ["%s/context.%d"%(self.intermediate,i)
+                          for i in xrange(njobs)]
+        #self.split_files += split_fastafiles
+        split_fastahandles = [open(f,'w') for f in split_fastafiles]
+        out_classes = ["%s/contextout.%d"%(self.intermediate,i) for i in xrange(njobs)]
         
+        index=0
+        for record in SeqIO.parse(self.cand_context_cluster,"fasta"):
+            split_fastahandles[index].write(">%s\n%s\n"%(str(record.id),
+                                                       str(record.seq)))
+            index=(index+1)%njobs
+        #Close files
+        for handle in split_fastahandles: handle.close()
+        context_cmd = ' '.join([
+                                 """module load anaconda; module load blast;module load blast+;""",
+                                 """python %s/src/genome/context_gene.py""",
+                                 """--training-directory=%s""",
+                                 """--training-labels=%s""",
+                                 """--query=%s""",
+                                 """--intermediate=%s""",
+                                 """--output=%s"""         
+                                 ])    
+        
+        """ Release jobs """
+        jobs = []
+        for i in xrange(njobs):
+            cmd = context_cmd%(self.rootdir,
+                                self.training_directory,
+                                self.training_labels,
+                                split_fastafiles[i],
+                                self.intermediate,
+                                out_classes[i]
+                                )
+            
+            batch_file = "%s/context_blast%i.%d.job"%(os.getcwd(),i,os.getpid())
+            
+            proc = Popen( cmd,shell=True,batch_file=batch_file,
+                          stdin=PIPE,stdout=PIPE ) 
+            proc.submit()
+            #proc.output = out_classes[i]
+            jobs.append(proc)
+            self.jobs.append(proc)
+        
+        for job in jobs: job.wait()
+        
+        """ Collect all of the results from the jobs"""
+        context_out = open(self.classifier_out,'w')
+        for i in xrange(njobs):
+            shutil.copyfileobj(open(out_classes[i]),context_out)
+        context_out.close()
+        
+        pass
     """ Classifies individual bacteriocins and context genes based on their text"""
     def textmine(self,njobs=1,dbtype="sqlite3",numTrees=1000):
         
@@ -316,6 +385,9 @@ if __name__=="__main__":
         '--num-threads', type=int, required=False, default=1,
         help='The number of threads to be run by BLAST')
     parser.add_argument(\
+        '--num-jobs', type=int, required=False, default=1,
+        help='The number of parallel jobs to be run')
+    parser.add_argument(\
         '--verbose', action='store_const', const=True, default=False,
         help='Messages for debugging')
     parser.add_argument(\
@@ -324,6 +396,8 @@ if __name__=="__main__":
     args = parser.parse_args()
     
     if not args.test:
+        print "Bacteriocins: ",args.bacteriocins
+        print "Formatdb:",args.formatdb
         proc = QuorumPipelineHandler(args.root_dir,
                                      args.genome_files,
                                      args.intergenes,
@@ -334,12 +408,16 @@ if __name__=="__main__":
                                      args.bac_evalue,
                                      args.training_labels,
                                      args.training_directory,
+                                     args.text_database,
                                      args.intermediate,
                                      args.output,
                                      args.num_threads,
                                      args.formatdb,
                                      args.verbose                
                                     ) 
+        proc.blast(njobs=args.num_jobs)
+        proc.cluster()
+        proc.blastContextGenes(njobs=args.num_jobs)
     else:
         del sys.argv[1:]
         import unittest
@@ -361,7 +439,7 @@ if __name__=="__main__":
                 self.intermediate = "intermediate"
                 #self.training_labels = "%s/data/training/training.txt"%self.root
                 self.training_directory = "%s/data/training/protein"%self.root
-                self.training_labels = "%s/data/training/training_proteins4.txt"%self.root
+                self.training_labels = "%s/data/training/training_proteins.txt"%self.root
                 if not os.path.exists(self.intermediate):
                     os.mkdir(self.intermediate)
                 self.bac_evalue = 0.000001
@@ -398,24 +476,24 @@ if __name__=="__main__":
                                          self.verbose                
                                         ) 
                 
-                #self.proc.preprocess(root=self.exampledir,buildAnnotations=True)
+                self.proc.preprocess(root=self.exampledir,buildAnnotations=True)
                 self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 
                 self.proc.blast(njobs=2)
                 
-                self.assertTrue(os.path.getsize(self.proc.blasted_tab_bacteriocins) > 0)
-                self.assertTrue(os.path.getsize(self.proc.cand_context_genes_tab) > 0)
+                self.assertTrue(os.path.getsize(self.proc.blasted_fasta_bacteriocins) > 0)
+                self.assertTrue(os.path.getsize(self.proc.cand_context_genes_fasta) > 0)
                 
                 self.proc.cluster()
                 
                 self.assertTrue(os.path.getsize("%s"%(self.proc.cand_context_genes_fasta)) > 0)                
                 self.assertTrue(os.path.getsize(self.proc.cand_context_cluster) > 0)
                 
-                self.proc.textmine(njobs=7)
-                
+                #self.proc.textmine(njobs=7)
+                self.proc.blastContextGenes()
                 self.assertTrue(os.path.getsize( self.proc.classifier_out ) > 0)
-                self.proc.cleanup()
+                #self.proc.cleanup()
                 
         unittest.main()       
         

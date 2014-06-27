@@ -43,7 +43,7 @@ class AnnotatedGenes(object):
             start,end = int(start),int(end)
             sequence = str(record.seq)
             #Ignore the protein id. Locus tag is more general
-            return start,end,orgid,strand,locus,sequence
+            return start,end,orgid,strand,locus,protid,sequence
         except StopIteration as s:
             raise StopIteration()
         
@@ -78,9 +78,6 @@ def parseAnnotations(organism,genbank_file,outHandle):
                 except KeyError as k:                    
                     continue
                 
-                
-        
-        
     except Exception as e:
         print "Exception",e
         

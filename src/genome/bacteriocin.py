@@ -146,7 +146,7 @@ def filterBacteriocins(bacteriocins,genes,radius):
     queries = zip(headers,bacteriocins) 
     filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,geneNeighborhoods
-
+""" Write bacteriocins to a tab delimited file """
 def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
     for bacteriocin in bacteriocins:
         if genes:  bacteriocin,gene = bacteriocin
@@ -161,7 +161,7 @@ def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
         organism = bacteriocin.sbjct_id.split(' ')[0]
         if genes:
             geneStart,geneEnd,geneName = gene.sbjct_start,gene.sbjct_end,gene.query_id
-            argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s\t %s \n"
+            argstr   = ">%s|%s%s|%s|%s|%s|%d|%d|%s|%s\n%s\n"
             result_str = argstr%(bacID,
                                  organism,
                                  bacteriocin.sbjct_start,
@@ -174,7 +174,7 @@ def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
                                  regionType,
                                  bacteriocin.sbjct)
         else:
-            argstr   = "%s\t %s\t %d\t %d\t %s\t %s\t %s \n"
+            argstr   = ">%s|%s%d|%d|%s|%s\n%s\n"
             result_str = argstr%(bacID,
                                  organism,
                                  bacteriocin.sbjct_start,
@@ -190,19 +190,21 @@ def writeAnnotatedGenes(annot_bact_pairs,outHandle):
     #print "Annotations",annot_bact_pairs
     for annot_bact in annot_bact_pairs:
         annot,bacteriocin = annot_bact
-        annot_st,annot_end,annot_org,annot_strand,annot_locus,annot_seq = annot
+        annot_st,annot_end,annot_org,annot_strand,annot_locus,annot_protid,annot_seq = annot
         bacID    = bacteriocin.query_id
         organism = bacteriocin.sbjct_id
         bacID    = bacteriocin.query_id.split(' ')[0]
         organism = bacteriocin.sbjct_id.split(' ')[0]
-        organism+= annot_locus
-        argstr   = "%s\t %s\t %s\t %s\t %s\t %s\t %d\t %d\t %s\t %s \n"
+        #organism+= annot_locus
+        argstr   = ">%s|%s%s|%s|%s|%s|%s|%s|%d|%d|%s\n%s\n"
         result_str = argstr%(bacID,
                              organism,
                              bacteriocin.sbjct_start,
                              bacteriocin.sbjct_end,
                              bacteriocin.strand,
                              annot_org,
+                             annot_locus,
+                             annot_protid,
                              annot_st,
                              annot_end,
                              annot_strand,
@@ -242,7 +244,6 @@ def main(genome_files,
         annots = [annot for annot in annotated_genes.AnnotatedGenes(annotations_file)]
         annots,bacteriocinNeighborhoods = filterAnnotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
-        
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
         
         #pickle.dump(intergeneDict,open("intergene.dict",'w'))
@@ -372,7 +373,6 @@ if __name__=="__main__":
                      open(self.bacteriocinsOut,'w'),
                      open(self.annotationsOut,'w'),
                      self.intermediate,
-                
                      self.bac_evalue,
                      self.num_threads,
                      self.formatdb,
@@ -384,7 +384,7 @@ if __name__=="__main__":
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.bacteriocinsOut) > 0)
                 self.assertTrue(os.path.getsize(self.annotationsOut) > 0)
-        
+                
         class TestFilters(unittest.TestCase):
             def setUp(self):
                 test_input = test_genbank.yeast
@@ -394,7 +394,9 @@ if __name__=="__main__":
                 handle.write(test_input)
                 handle.close()
                 annotated_genes.parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
-            
+            def tearDown(self):
+                os.remove(self.test_file)
+                os.remove(self.out_file)
             def test_filter_bacteriocins_1(self):
                 bacteriocins = [blast.XMLRecord(description="",
                                                 expected_value=0.00001,

@@ -113,33 +113,33 @@ class Labels(object):
         
     """Parses genbank record"""
     def parseRecord(self,seq_record):
-            acc = seq_record.annotations['accessions'][0]
-            #print acc,self.labels[acc].keys()
-            for feature in seq_record.features:
-                try:                    
-                    locus = None                   
-                    if "locus_tag" in feature.qualifiers:
-                        locus = feature.qualifiers["locus_tag"][0]
-                        
-                    elif "gene" in feature.qualifiers:
-                        locus = feature.qualifiers["gene"][0]
-                    else:
-                        continue
-                    if locus !=None:
-                        if locus in self.labels[acc]:
-                            label,description = self.labels[acc][locus]
-                            description = genbank.getDescription(feature)
-                            self.labels[acc][locus]=(label,description)
-                        elif (random.random()<0.0007): #sample 7/1000 for null entries
-                            label,description = "null",''
-                            print "Null label"
-                            description = genbank.getDescription(feature)
-                            self.labels[acc][locus]=(label,description)
-                        #print locus,label,description
+        acc = seq_record.annotations['accessions'][0]
+        #print acc,self.labels[acc].keys()
+        for feature in seq_record.features:
+            try:                    
+                locus = None                   
+                if "locus_tag" in feature.qualifiers:
+                    locus = feature.qualifiers["locus_tag"][0]
                     
-                except KeyError as k:
-                    print "Exception",k                    
+                elif "gene" in feature.qualifiers:
+                    locus = feature.qualifiers["gene"][0]
+                else:
                     continue
+                if locus !=None:
+                    if locus in self.labels[acc]:
+                        label,description = self.labels[acc][locus]
+                        description = genbank.getDescription(feature)
+                        self.labels[acc][locus]=(label,description)
+                    elif (random.random()<0.0007): #sample 7/1000 for null entries
+                        label,description = "null",''
+                        print "Null label"
+                        description = genbank.getDescription(feature)
+                        self.labels[acc][locus]=(label,description)
+                    #print locus,label,description
+                
+            except KeyError as k:
+                print "Exception",k                    
+                continue
     
     "Parses genbank file"
     """
