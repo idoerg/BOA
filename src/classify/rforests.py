@@ -1,5 +1,6 @@
 """ 
 Random forests classifier
+Note: Need to fix unittest.  Need to check the version of sklearn
 """
 from sklearn.ensemble import RandomForestClassifier
 import nltk
@@ -90,11 +91,13 @@ class RForests(text_classifier.TextClassifier):
             total = 0
             for i in xrange(numTrials):
                 self.classifier = SklearnClassifier(RandomForestClassifier(
-                                                    n_estimators=self.numTrees),sparse=False)
+                                                    n_estimators=self.numTrees),
+                                                    sparse=False)
                 random.shuffle(feature_sets)
                 train_set,test_set = feature_sets[:k],feature_sets[k:]
-                self.classifier.train(feature_sets)
+                self.classifier.train(train_set)
                 p = nltk.classify.accuracy(self.classifier,test_set)
+                print len(train_set),len(test_set),p
                 total+=p
             accuracies.append(total/numTrials)
         return accuracies

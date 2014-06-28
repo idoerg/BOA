@@ -144,8 +144,8 @@ if __name__=="__main__":
                 annots = AnnotatedGenes(self.out_file)
                 objs = [A for A in annots]
                 self.assertEquals(len(objs),3)
-                start,end,orgid,strand,locus,seq = zip(*objs)
-                start,end,orgid,strand,locus,seq = list(start),list(end),list(orgid),list(strand),list(locus),list(seq)
+                start,end,orgid,strand,locus,protid,seq = zip(*objs)
+                start,end,orgid,strand,locus,protid,seq = list(start),list(end),list(orgid),list(strand),list(locus),list(protid),list(seq)
                 self.assertTrue(0 in start)
                 self.assertTrue("NC_12345" in orgid)
                 self.assertTrue("+" in strand)

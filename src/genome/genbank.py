@@ -165,12 +165,12 @@ if __name__=="__main__":
                 gbk = GenBankTable(self.genbank_files)
                 gbk.buildLocusTable()
                 gbk.buildProteinTable()
-                
+                testkey = gbk.proteinDict.keys()[0]
                 gbk2 = GenBankTable(self.genbank_files)
                 gbk.dump(self.pickle)
                 self.assertTrue(os.path.getsize(self.pickle) > 0)
                 gbk2.load(self.pickle)
-                self.assertTrue('BAC70490.1' in gbk2.proteinDict)
+                self.assertTrue(testkey in gbk2.proteinDict)
         unittest.main()
         
         

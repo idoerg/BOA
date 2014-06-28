@@ -86,7 +86,7 @@ def overlap(bst,bend,ast,aend):
 def contextGeneDistances(cdhitProc):
     clusterIDs = []
     dists = []
-    heats = defaultdict( Counter )
+    #heats = defaultdict( Counter )
     for i,cluster in enumerate(cdhitProc.clusters):
         members = cluster.seqs
         for mem in members:
@@ -100,12 +100,18 @@ def contextGeneDistances(cdhitProc):
             #heats[i][(int_st+int_end)/2]+=1
             dists+=interval
             clusterIDs+=[i]*len(interval)
+            #dists+=[(int_st+int_end)/2]
+            #clusterIDs+=[i]
             #dists+= [(int_st+int_end)/2]
             #clusterIDs+=[i]
             
-            
+    data = zip(clusterIDs,dists)
+    sorted(data,key=lambda x:x[0])
+    clusterIDs,dists = zip(*data)
     #heats = pd.DataFrame(heats)
-    heats = pd.DataFrame({'clusters':clusterIDs,'distances':dists}) 
+    heats = pd.DataFrame({'clusters':clusterIDs,'distances':dists})
+    
+    print heats 
     #heats = heats.fillna(0)
     heats_R=com.convert_to_r_dataframe(heats)
     #print heats_R
@@ -115,10 +121,15 @@ def contextGeneDistances(cdhitProc):
                             library(ggplot2)
                             function(df){
                             png(filename="violin.png")
+                            
                             p <- ggplot(df,aes(x=as.character(clusters),
                                                y=distances)) + 
                                     geom_violin(aes(x=as.character(clusters),
-                                               y=distances)) + 
+                                               y=distances),
+                                               stat="ydensity",
+                                               adjust=40,
+                                               trim=TRUE,
+                                               fill="red") + 
                                     coord_flip()
                             print(p)
                             dev.off()

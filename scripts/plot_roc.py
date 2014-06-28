@@ -124,14 +124,14 @@ roc.plot(reft_labels,immunity_labels,'Immunity Class Random Forests ROC curve')
 rf = rforests.RForests(trainDir,labelFile,numTrees=500)
 rf.train()
 accs = rf.learningCurve(numTrials=10)
-
+print accs
 plt.plot(xrange(len(accs)),accs)
 plt.xlabel("Training set size")
 plt.ylabel("Cross-Validation Accuracy")
 plt.title("Learning Curve")
 plt.show()
 
-roc.close()
+#roc.close()
 
 
 
