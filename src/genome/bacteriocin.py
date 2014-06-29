@@ -1,4 +1,28 @@
 """ 
+OUTPUT:
+Bacteriocins
+1. bacterion ID
+2. organism
+3. bacteriocin start
+4. bacteriocin end
+5. bacteriocin strand
+6. regionType
+
+
+Annotated Genes
+1.  bacteriocin ID 
+2.  organism 
+3.  bacteriocin start 
+4.  bacteriocin end 
+5.  bacteriocin strand  
+6.  annotated gene organism 
+7.  annotated gene locus 
+8.  annotated gene protein id 
+9.  annotated gene start 
+10. annotated gene end 
+11. annotated gene strand 
+12. annotated gene sequence
+
 TODO: Need to reorganize all regex commansd
 """
 import Bio

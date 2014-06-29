@@ -1,6 +1,22 @@
 """
 A module for finding context genes associated with bacteriocins
 using a training dataset and blast
+
+Output
+1.  bacteriocin ID 
+2.  organism 
+3.  bacteriocin start 
+4.  bacteriocin end 
+5.  bacteriocin strand  
+6.  annotated gene organism 
+7.  annotated gene locus 
+8.  annotated gene protein id 
+9.  annotated gene start 
+10. annotated gene end 
+11. annotated gene strand 
+12. context gene organism
+13. context gene protein id
+14. context gene class label
 """
 import os,sys,site,shutil
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
