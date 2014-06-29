@@ -10,15 +10,21 @@ import os,sys, site
 
 from Bio import SeqIO
 from cdhit import CDHit
-from clustalw import ClustalW
+#from clustalw import ClustalW
+from muscle import Muscle
 import argparse
 import subprocess
 cluster_id_reg = re.compile(">(\S+)")
 
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import quorum
 """Runs HMMER on a single cluster"""
 class HMM(object):
-    
-    def __init__(self,clusterfa):
+    """ Make import variable. Could either import subprocess or quorum """
+    def __init__(self,clusterfa,module=subprocess):
+        self.module=module
         directory = os.path.dirname(clusterfa)
         basename = os.path.splitext(os.path.basename(clusterfa))[0]
         self.clustal = None        
@@ -42,24 +48,27 @@ class HMM(object):
     """Runs Viterbi algorithm on an input fasta"""
     def hmmsearch(self,infasta):
         cmd = "hmmsearch --noali --domtblout %s %s %s"%(self.table,self.hmm,infasta)
-        proc = subprocess.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
+        proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
+        if self.module==quorum: proc.submit()
         proc.wait()
         
     """Builds an HMM for a cluster"""
-    def hmmbuild(self):
+    def hmmbuild(self,module=subprocess):
         cmd = "hmmbuild %s %s "%(self.hmm,self.sto)
-        proc = subprocess.Popen(cmd,stderr=open(self.logs[1],'w+'),shell=True)
+        proc = self.module.Popen(cmd,stderr=open(self.logs[1],'w+'),shell=True)
+        if self.module==quorum: proc.submit()
         proc.wait()
         
-    """Perform multiple alignment with ClustalW on a single cluster"""
-    def multipleAlignment(self):
-        cw = ClustalW(self.clusterfa,self.sto)
-        cw.run()
+    """Perform multiple alignment with Muscle on a single cluster"""
+    def multipleAlignment(self,module=subprocess):
+        cw = Muscle(self.clusterfa,self.sto)
+        cw.run(self.module)
         cw.outputSTO()
         self.clustal = cw
 """Performs clustering and runs HMMER on every cluster"""
 class HMMER(object):
-    def __init__(self,fasta,minClusters=2):
+    def __init__(self,fasta,module=subprocess,minClusters=2):
+        self.module = module
         directory = os.path.dirname(fasta)
         basename = os.path.splitext(os.path.basename(fasta))[0]
         self.clrreps = "%s/%s_cluster"%(directory,basename)
@@ -83,7 +92,7 @@ class HMMER(object):
     """Spawn hmms from each cluster"""
     def HMMspawn(self):
         for clrfa in self.clusterfas:
-            hmm = HMM(clrfa)
+            hmm = HMM(clrfa,self.module)
             self.hmms.append(hmm)
     """Performs HMMER using all clusters on infasta"""
     def search(self,infasta,out):
@@ -105,10 +114,13 @@ class HMMER(object):
         infasta = clusterProc.input    
         directory = os.path.dirname(infasta)
         record_dict = SeqIO.to_dict(SeqIO.parse(infasta,'fasta'))    
+        
         for cluster in clusterProc.clusters:
+            print "Cluster size",len(cluster.seqs),len(cluster.seqs)<self.minClusters,self.minClusters
             if len(cluster.seqs)<self.minClusters:#filter out small clusters
                 continue
             outfile = '%s/cluster%d.fa'%(directory,i)
+            print "Out file:",outfile
             self.clusterfas.append(outfile)
             handle = open(outfile,'w')
             for subc in cluster.seqs:
@@ -150,7 +162,7 @@ if __name__=="__main__":
     else:
         del sys.argv[1:]
         import unittest
-                
+        
         class TestHMM(unittest.TestCase):
             def setUp(self):
                 seqs = ['>20.1',
@@ -222,6 +234,46 @@ if __name__=="__main__":
                 os.remove(self.genome)
                 self.testhmm.cleanUp()
             
+            def testSearch(self):
+                self.testhmm.writeClusters()
+                self.assertTrue(os.path.exists("test_cluster"))
+                self.assertTrue(os.path.exists("test_cluster.clstr"))
+                self.assertTrue(os.path.exists("cluster0.fa"))
+                self.testhmm.HMMspawn()
+                self.assertTrue(os.path.exists("cluster0.hmm"))
+                self.testhmm.search(self.genome,"results.txt")
+                self.assertTrue(os.path.exists("cluster0.table"))
+                self.assertTrue(os.path.exists("results.txt"))
+        
+        class TestHMMERQuorum(unittest.TestCase):
+
+            def setUp(self):
+                seqs = ['>20.1',
+                        'CKQSCSFGPFTFVCDGNTK',
+                        '>21.1',
+                        'CRQSCSFGPLTFVCDGNTK',
+                        '>22.1', 
+                        'CANSCSYGPLTWSCDGNTK']
+                self.fasta = "./test.fa"
+                self.genome = "./testGenome.fa"
+                handle = open(self.fasta,'w')
+                handle.write('\n'.join(seqs))
+                handle.close()
+                genome = ['>genome',
+                          'CKQSCSFGPFTFVCDGNTK',
+                          'CRQSCSFGPLTFVCDGNTK',
+                          'CANSCSYGPLTWSCDGNTK']
+                handle = open(self.genome,'w')
+                handle.write('\n'.join(genome))
+                handle.close()
+                self.testhmm = HMMER(self.fasta,quorum)
+            
+            def tearDown(self):
+                os.remove(self.fasta)
+                os.remove(self.genome)
+                self.testhmm.cleanUp()
+                #os.remove("quorum_epilogue.py")
+                pass
             def testSearch(self):
                 self.testhmm.writeClusters()
                 self.assertTrue(os.path.exists("test_cluster"))

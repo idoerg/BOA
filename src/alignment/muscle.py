@@ -3,7 +3,11 @@ Perform clustalw multiple alignment on a single file
 """
 import sys,os, subprocess
 from Bio import AlignIO
-
+import os,site,sys
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import quorum
 class Muscle(object):
     def __init__(self,input_file,output_file):
         self.input = input_file #input fasta file
@@ -11,13 +15,14 @@ class Muscle(object):
         basename,_ = os.path.splitext(input_file)
         #output from clustalw
         self.aln = "%s.aln"%basename
-        self.dnd = "%s.dnd"%basename
-    def run(self):
+        
+    def run(self,module=subprocess):
         cline = "muscle -in %s -out %s -clw"%(self.input,self.aln)
         print cline
-        child = subprocess.Popen(str(cline),
-                                 #stdout=subprocess.PIPE,
-                                 shell=True)
+        child = module.Popen(str(cline),
+                             #stdout=subprocess.PIPE,
+                             shell=True)
+        if module==quorum: child.submit()
         child.wait()
     def outputSTO(self):
         handle = open(self.output, 'w+')
@@ -31,7 +36,7 @@ class Muscle(object):
         handle.close()
     def cleanUp(self):
         os.remove(self.aln)
-        os.remove(self.dnd)
+        
         
 if __name__=='__main__':
     import unittest
@@ -71,7 +76,17 @@ if __name__=='__main__':
            line1 = lines[0].rstrip()
            self.assertEquals(line1[0],">")
            os.remove(self.outfasta)
-                        
+           
+        def testQuorum(self):
+           cw = Muscle(self.infile,self.outfasta)
+           cw.run(quorum)
+           cw.outputFASTA()
+           handle = open(self.outfasta,'r')
+           lines = handle.readlines()
+           line1 = lines[0].rstrip()
+           self.assertEquals(line1[0],">")
+           os.remove(self.outfasta)
+         
     unittest.main()
     
     

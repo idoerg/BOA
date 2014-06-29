@@ -124,7 +124,6 @@ if __name__=="__main__":
     else:
         del sys.argv[1:]
         import unittest
-        import test
         class TestCluster(unittest.TestCase):
             def setUp(self):
                 seqs = [">test1",
