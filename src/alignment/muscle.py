@@ -16,27 +16,27 @@ class Muscle(object):
         #output from clustalw
         self.aln = "%s.aln"%basename
         
-    def run(self,module=subprocess):
-        cline = "muscle -in %s -out %s -clw"%(self.input,self.aln)
+        
+    def run(self,fasta=False,module=subprocess,maxiters=4):
+        if fasta:
+            cline = "muscle -in %s -out %s -maxiters %d"%(self.input,self.output,maxiters)
+        else:
+            cline = "muscle -in %s -out %s -maxiters %d -clw"%(self.input,self.aln,maxiters)
         print cline
         child = module.Popen(str(cline),
                              #stdout=subprocess.PIPE,
                              shell=True)
         if module==quorum: child.submit()
-        child.wait()
+        return child
+        #child.wait()
     def outputSTO(self):
         handle = open(self.output, 'w+')
         align = AlignIO.read(self.aln, "clustal")
         AlignIO.write([align], handle, 'stockholm')
         handle.close()
-    def outputFASTA(self):
-        handle = open(self.output, 'w+')
-        align = AlignIO.read(self.aln, "clustal")
-        AlignIO.write([align], handle, 'fasta')
-        handle.close()
     def cleanUp(self):
-        os.remove(self.aln)
-        
+        if os.path.exists(self.aln):
+            os.remove(self.aln)
         
 if __name__=='__main__':
     import unittest

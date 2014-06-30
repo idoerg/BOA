@@ -32,7 +32,7 @@ class Cluster(object):
     #        return record
     #    except StopIteration as s:
     #        raise StopIteration()
-        
+
 class CDHit(object):
     def __init__(self,input_file,output_file,similarity,numThreads=1,mem=800):
         self.input = input_file

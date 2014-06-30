@@ -20,13 +20,19 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import quorum
+import fasta
+
 """Runs HMMER on a single cluster"""
 class HMM(object):
     """ Make import variable. Could either import subprocess or quorum """
-    def __init__(self,clusterfa,module=subprocess):
+    def __init__(self,
+                 clusterfa,
+                 module=subprocess,
+                 reverseComplement=False):
         self.module=module
         directory = os.path.dirname(clusterfa)
-        basename = os.path.splitext(os.path.basename(clusterfa))[0]
+        #basename = os.path.splitext(os.path.basename(clusterfa))[0]
+        basename = os.path.basename(clusterfa)
         self.clustal = None        
         self.clusterfa = clusterfa
         self.sto = "%s/%s.sto"%(directory,basename)
@@ -34,44 +40,53 @@ class HMM(object):
         self.table = "%s/%s.table"%(directory,basename) #results from hmmsearch
         self.logs = ["%s/%s_hmmbuild.log"%(directory,basename),
                      "%s/%s_hmmsearch.log"%(directory,basename)]
-        self.multipleAlignment()
-        self.hmmbuild()
     """Clean up useless files"""        
     def cleanUp(self):
         self.clustal.cleanUp()
-        os.remove(self.clusterfa)
-        os.remove(self.sto)
-        os.remove(self.hmm)
-        os.remove(self.table)
+        if os.path.exists(self.clusterfa): os.remove(self.clusterfa)
+        if os.path.exists(self.sto): os.remove(self.sto)
+        if os.path.exists(self.hmm): os.remove(self.hmm)
+        if os.path.exists(self.table): os.remove(self.table)
         for log in self.logs:
-            os.remove(log)
-    """Runs Viterbi algorithm on an input fasta"""
+            if os.path.exists(log): os.remove(log)
+    """Runs Viterbi algorithm on an input protein fasta"""
     def hmmsearch(self,infasta):
-        cmd = "hmmsearch --noali --domtblout %s %s %s"%(self.table,self.hmm,infasta)
+        cmd = "hmmsearch --noali --notextw --max --domtblout %s %s %s"%(self.table,self.hmm,infasta)
+        print cmd
         proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
         if self.module==quorum: proc.submit()
-        proc.wait()
-        
+        return proc
+    """Runs Viterbi algorithm on an input nucleotide fasta"""
+    def nhmmsearch(self,infasta):
+        cmd = "nhmmer --noali --domtblout --max %s %s %s"%(self.table,self.hmm,infasta)
+        proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
+        if self.module==quorum: proc.submit()
+        return proc 
     """Builds an HMM for a cluster"""
     def hmmbuild(self,module=subprocess):
         cmd = "hmmbuild %s %s "%(self.hmm,self.sto)
         proc = self.module.Popen(cmd,stderr=open(self.logs[1],'w+'),shell=True)
         if self.module==quorum: proc.submit()
-        proc.wait()
-        
+        #proc.wait()
+        return proc
     """Perform multiple alignment with Muscle on a single cluster"""
     def multipleAlignment(self,module=subprocess):
         cw = Muscle(self.clusterfa,self.sto)
-        cw.run(self.module)
-        cw.outputSTO()
         self.clustal = cw
+        proc = cw.run(fasta=True,module=self.module)
+        #cw.outputSTO()
+        return proc
+        
 """Performs clustering and runs HMMER on every cluster"""
 class HMMER(object):
-    def __init__(self,fasta,module=subprocess,minClusters=2):
+    def __init__(self,fasta,
+                 module=subprocess,
+                 minClusters=2):
         self.module = module
         directory = os.path.dirname(fasta)
-        basename = os.path.splitext(os.path.basename(fasta))[0]
-        self.clrreps = "%s/%s_cluster"%(directory,basename)
+        #basename = os.path.splitext(os.path.basename(fasta))[0]
+        self.basename = os.path.basename(fasta)
+        self.clrreps = "%s/%s_cluster"%(directory,self.basename)
         self.cluster = "%s.clstr"%(self.clrreps)
         self.fasta = fasta
         self.clusterfas = []
@@ -83,31 +98,62 @@ class HMMER(object):
     def cleanUp(self):
         for hmm in self.hmms:
             hmm.cleanUp()
-        os.remove(self.clrreps)
-        os.remove(self.cluster)
+        if os.path.exists(self.clrreps): os.remove(self.clrreps)
+        if os.path.exists(self.cluster): os.remove(self.cluster)
         
     """Get file names for all of the cluster files"""
     def getClusters(self):
         return self.clusterfas
     """Spawn hmms from each cluster"""
-    def HMMspawn(self):
+    def HMMspawn(self,njobs=4):
+        procs = []
+        i = 0
         for clrfa in self.clusterfas:
             hmm = HMM(clrfa,self.module)
             self.hmms.append(hmm)
-    """Performs HMMER using all clusters on infasta"""
-    def search(self,infasta,out):
         for hmm in self.hmms:
-            hmm.hmmsearch(infasta)
+            proc = hmm.multipleAlignment()
+            procs.append(proc)
+            i+=1
+            if i==njobs: #make sure jobs don't overload
+                for p in procs: p.wait()
+                procs = []
+                i=0
+                p.erase_files()
+        for hmm in self.hmms:
+            proc = hmm.hmmbuild()
+            procs.append(proc)
+            i+=1
+            if i==njobs: #make sure jobs don't overload
+                for p in procs: p.wait()
+                procs = []
+                i=0
+                p.erase_files()
+        
+            
+    """Performs HMMER using all clusters on infasta"""
+    def search(self,infasta,out,njobs=4):
+        procs = []
+        i = 0
+        for hmm in self.hmms:
+            proc = hmm.hmmsearch(infasta)
             self.tables.append(hmm.table)
+            procs.append(proc)
+            i+=1
+            if i==njobs: #make sure jobs don't overload
+                for p in procs: p.wait()
+                procs = []
+                i=0
         with open(out, 'w') as outfile:
             for fname in self.tables:
-                with open(fname) as infile:
-                    for line in infile:
-                        outfile.write(line)
-                    
+                if os.path.exists(fname):
+                    with open(fname) as infile:
+                        for line in infile:
+                            outfile.write(line)
+                        
     """Obtains ids for all of the sequences and write them into separate cluster files"""
-    def writeClusters(self):
-        clusterProc = CDHit(self.fasta,self.clrreps,0.7)
+    def writeClusters(self,similarity,threads,memory):
+        clusterProc = CDHit(self.fasta,self.clrreps,similarity,threads,memory)
         clusterProc.run()
         clusterProc.parseClusters()    
         i = 0
@@ -116,11 +162,9 @@ class HMMER(object):
         record_dict = SeqIO.to_dict(SeqIO.parse(infasta,'fasta'))    
         
         for cluster in clusterProc.clusters:
-            print "Cluster size",len(cluster.seqs),len(cluster.seqs)<self.minClusters,self.minClusters
             if len(cluster.seqs)<self.minClusters:#filter out small clusters
                 continue
-            outfile = '%s/cluster%d.fa'%(directory,i)
-            print "Out file:",outfile
+            outfile = '%s/%s.cluster%d.fa'%(directory,self.basename,i)
             self.clusterfas.append(outfile)
             handle = open(outfile,'w')
             for subc in cluster.seqs:

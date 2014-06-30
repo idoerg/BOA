@@ -74,8 +74,9 @@ class ContextGeneBLAST(object):
     def write(self,hits,output):
         with open(output,'w') as handle:
             for hit in hits:
-                handle.write(">%s|%s\n"%(hit.query_id,
-                                         hit.sbjct_id))
+                handle.write(">%s|%s\n%s\n"%(hit.query_id,
+                                             hit.sbjct_id,
+                                             hit.sbjct))
 if __name__=="__main__":
      parser = argparse.ArgumentParser(description=\
         'Finds bacteriocins and context genes')

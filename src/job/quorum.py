@@ -333,11 +333,11 @@ class pbsJobHandler:
                                 
     def erase_files(self):
         """Erase the stdio and stderr files."""
-        if os.path.isfile(self.ofile):
+        if os.path.exists(self.ofile):
             os.remove(self.ofile)
-        if os.path.isfile(self.efile):
+        if os.path.exists(self.efile):
             os.remove(self.efile)
-        if os.path.isfile(self.rfile):
+        if os.path.exists(self.rfile):
             os.remove(self.rfile)
         
         return None
