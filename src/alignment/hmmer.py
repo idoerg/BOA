@@ -43,7 +43,7 @@ class HMM(object):
     """Clean up useless files"""        
     def cleanUp(self):
         self.clustal.cleanUp()
-        if os.path.exists(self.clusterfa): os.remove(self.clusterfa)
+        #if os.path.exists(self.clusterfa): os.remove(self.clusterfa)
         if os.path.exists(self.sto): os.remove(self.sto)
         if os.path.exists(self.hmm): os.remove(self.hmm)
         if os.path.exists(self.table): os.remove(self.table)

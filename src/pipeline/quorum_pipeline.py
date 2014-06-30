@@ -212,8 +212,10 @@ class QuorumPipelineHandler(object):
         out_bac = ["%s.bacteriocins.txt"%(out) for out in out_fnames]
         out_genes = ["%s.annotated.txt"%(out) for out in out_fnames]
         for i in xrange(njobs):
-            shutil.copyfileobj(open(out_bac[i]),bacteriocins_out)
-            shutil.copyfileobj(open(out_genes[i]),context_genes_out)
+            if os.path.exists(out_bac[i]):
+                shutil.copyfileobj(open(out_bac[i]),bacteriocins_out)
+            if os.path.exists(out_genes[i]):
+                shutil.copyfileobj(open(out_genes[i]),context_genes_out)
         bacteriocins_out.close()
         context_genes_out.close()
         
@@ -317,7 +319,8 @@ class QuorumPipelineHandler(object):
         """ Collect all of the results from the jobs"""
         context_out = open(self.classifier_out,'w')
         for i in xrange(njobs):
-            shutil.copyfileobj(open(out_classes[i]),context_out)
+            if os.path.exists(out_classes[i]):
+                shutil.copyfileobj(open(out_classes[i]),context_out)
         context_out.close()    
         pass
     
@@ -449,10 +452,8 @@ if __name__=="__main__":
         '--test', action='store_const', const=True, default=False,
         help='Run unittests')
     args = parser.parse_args()
-    
+    print "Intermediate",args.intermediate
     if not args.test:
-        print "Bacteriocins: ",args.bacteriocins
-        print "Formatdb:",args.formatdb
         proc = QuorumPipelineHandler(args.root_dir,
                                      args.genome_files,
                                      args.six_frame_genome,
@@ -470,8 +471,8 @@ if __name__=="__main__":
                                      args.num_threads,
                                      args.formatdb,
                                      args.verbose                
-                                    ) 
-        if args.pipeline_section=="blast":
+                                    )                                     
+        if args.pipeline_section=="blast" or args.pipeline_section=="all":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
@@ -480,6 +481,9 @@ if __name__=="__main__":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
         else:
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
+        from time import sleep
+        sleep(100)
+        proc.cleanup()
     else:
         del sys.argv[1:]
         import unittest
@@ -520,7 +524,7 @@ if __name__=="__main__":
                 
             def testrun(self):
                 print "Test Run"
-                self.proc = QuorumPipelineHandler(  
+                self.proc = QuorumPipelineHandler(                       
                                          self.root,
                                          self.genome_files,
                                          self.six_frame_genome,
