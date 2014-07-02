@@ -39,7 +39,14 @@ def remove_duplicates(fastain,fastaout):
             ids.add(ID)
             SeqIO.write(seq_record,out,"fasta")
     out.close() 
-    
+def format(seqin,width=60):
+    seq = []
+    j = 0
+    for i in xrange(width,len(seqin),width):
+        seq.append(seqin[j:i])
+        j = i
+    seq.append(seqin[j:])
+    return '\n'.join(seq)
 if __name__=="__main__":
     import unittest
     class TestFasta(unittest.TestCase):
@@ -55,8 +62,10 @@ if __name__=="__main__":
             self.revfasta = "rev.fa"
             open(self.fasta,'w').write('\n'.join(entries))
         def tearDown(self):
-            os.remove(self.fasta)
-            os.remove(self.revfasta)
+            if os.path.exists(self.fasta):
+                os.remove(self.fasta)
+            if os.path.exists(self.revfasta):
+                os.remove(self.revfasta)
         def test1(self):
             reverse_complement(self.fasta,self.revfasta)
             seqs = [s for s in SeqIO.parse(self.revfasta,"fasta")]
@@ -66,5 +75,17 @@ if __name__=="__main__":
             remove_duplicates(self.fasta,self.revfasta)
             seqs = [s for s in SeqIO.parse(self.revfasta,"fasta")]
             self.assertEquals(len(seqs),2)
-            
+        def test3(self):
+            seq = "ACACGCGACGCAGCGACGCAGCAGCAGCAGCA"
+            newseq = format(seq,5)
+            self.assertEquals(newseq,
+                              '\n'.join([
+                              "ACACG",
+                              "CGACG",
+                              "CAGCG",
+                              "ACGCA",
+                              "GCAGC",
+                              "AGCAG",
+                              "CA"])
+                              )
     unittest.main()

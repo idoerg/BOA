@@ -63,7 +63,7 @@ class CDHit(object):
     Runs CD hit script
     """
     def run(self):
-        cmd = "cdhit -i %s -o %s -d 150 -c %f -M %d -T %d" %(self.input,self.output,
+        cmd = "cdhit -i %s -o %s -d 200 -c %f -M %d -T %d" %(self.input,self.output,
                                                              self.similarity,self.mem,self.numThreads)
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()

@@ -26,29 +26,26 @@ import blast
 import hmmer
 import training
 import argparse 
-"""Note: This is just a concept at the moment"""
-class ContextGeneHMMER(object):
-    def __init__(self,trainingDir,
-                 training_labels,
-                 intermediate,
-                 evalue=0.000001):                 
-        self.labels = training.Labels(trainingDir,training_labels)
-        self.hmmmer_proc = None
-        self.evalue = evalue
-        self.intermediate = intermediate
-        self.hmmerdb = "training_%d.fa"%os.getpid()
-    def getTrainingFasta(self):
-        pass
+import fasta
+from Bio import Seq
+from Bio import SeqIO
+from Bio import SeqRecord
+from Bio.Alphabet import IUPAC
+from Bio.SeqRecord import SeqRecord
+
+
 class ContextGeneBLAST(object):
     def __init__(self,trainingDir,
                  training_labels,
                  intermediate,
-                 evalue=0.000001):                 
+                 evalue=0.000001,
+                 threads):                 
         self.labels = training.Labels(trainingDir,training_labels)
         self.blast_proc = None
         self.evalue = evalue
         self.intermediate = intermediate
         self.blastdb = "training_%d.fa"%os.getpid()
+        self.threads = threads
     def getTrainingFasta(self):
         return self.blastdb
     def cleanup(self):
@@ -57,26 +54,35 @@ class ContextGeneBLAST(object):
     """ Build blast database and find context genes"""
     def find(self,queryFile,formatdb=True):
         trainingEntries = self.labels.getTrainingSequences()
-        with open(self.blastdb,'w') as handle:
-            for entry in trainingEntries:
-                org,protID,label,seq = entry
-                handle.write(">%s|%s|%s\n%s\n"%
-                             (org,protID,label,seq))
+        handle = open(self.blastdb,'w')
+        #with open(self.blastdb,'w') as handle:
+        for entry in trainingEntries:
+            org,protID,label,seq = entry
+            handle.write(">%s|%s|%s\n%s\n"%
+                         (org,protID,label,seq))
+        handle.close()
         self.blast_proc = blast.BLAST(self.blastdb,
                                       queryFile,
                                       self.intermediate,
                                       self.evalue)
         if formatdb:
             self.blast_proc.buildDatabase(base="protein")
-        self.blast_proc.run(blast_cmd='blastp')
+        self.blast_proc.run(blast_cmd='blastp',mode='xml',
+                            num_threads=self.threads)
         hits = self.blast_proc.parseBLAST("xml")
         return hits
     def write(self,hits,output):
-        with open(output,'w') as handle:
-            for hit in hits:
-                handle.write(">%s|%s\n%s\n"%(hit.query_id,
-                                             hit.sbjct_id,
-                                             hit.sbjct))
+        #with open(output,'w') as handle:
+        handle = open(output,'w')
+        for hit in hits:
+            handle.write(">%s|%s\n%s\n"%(hit.query_id,
+                                         hit.sbjct_id,
+                                         hit.sbjct))
+            #print hit.sbjct
+            #record = SeqRecord(Seq(hit.sbjct,IUPAC.protein),id="%s|%s"%(hit.query_id,hit.sbjct_id))
+            #SeqIO.write(record,handle,"fasta")
+        handle.close()
+            
 if __name__=="__main__":
      parser = argparse.ArgumentParser(description=\
         'Finds bacteriocins and context genes')
@@ -89,7 +95,7 @@ if __name__=="__main__":
      parser.add_argument(\
         '--training-directory',type=str,required=False,default=None,
         help='''Training directory containing all 
-                genbank files required for training the Naive Bayes model''')
+                genbank files required for training''')
      parser.add_argument(\
         '--query', type=str, required=False,default='.',
         help='Query files used to find context genes')

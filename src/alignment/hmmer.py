@@ -51,7 +51,8 @@ class HMM(object):
             if os.path.exists(log): os.remove(log)
     """Runs Viterbi algorithm on an input protein fasta"""
     def hmmsearch(self,infasta):
-        cmd = "hmmsearch --noali --notextw --max --domtblout %s %s %s"%(self.table,self.hmm,infasta)
+        #cmd = "hmmsearch --noali --notextw --max --domtblout %s %s %s"%(self.table,self.hmm,infasta)
+        cmd = "hmmsearch --noali --notextw --domtblout %s %s %s"%(self.table,self.hmm,infasta)
         print cmd
         proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
         if self.module==quorum: proc.submit()
@@ -114,21 +115,28 @@ class HMMER(object):
         for hmm in self.hmms:
             proc = hmm.multipleAlignment()
             procs.append(proc)
-            i+=1
-            if i==njobs: #make sure jobs don't overload
-                for p in procs: p.wait()
-                procs = []
-                i=0
-                p.erase_files()
+        #    i+=1
+        #    if i==njobs: #make sure jobs don't overload
+        #        for p in procs: p.wait()
+        #        procs = []
+        #        i=0
+        #        p.erase_files()
+        for p in procs:
+            p.wait()
+            p.erase_files()
+        procs = []
         for hmm in self.hmms:
             proc = hmm.hmmbuild()
             procs.append(proc)
-            i+=1
-            if i==njobs: #make sure jobs don't overload
-                for p in procs: p.wait()
-                procs = []
-                i=0
-                p.erase_files()
+            #i+=1
+            #if i==njobs: #make sure jobs don't overload
+            #    for p in procs: p.wait()
+            #    procs = []
+            #    i=0
+            #    p.erase_files()
+        for p in procs:
+            p.wait()
+            p.erase_files()
         
             
     """Performs HMMER using all clusters on infasta"""
@@ -139,11 +147,15 @@ class HMMER(object):
             proc = hmm.hmmsearch(infasta)
             self.tables.append(hmm.table)
             procs.append(proc)
-            i+=1
-            if i==njobs: #make sure jobs don't overload
-                for p in procs: p.wait()
-                procs = []
-                i=0
+        #    i+=1
+        #    if i==njobs: #make sure jobs don't overload
+        #        for p in procs: p.wait()
+        #        procs = []
+        #        i=0
+        for p in procs:
+            p.wait()
+            p.erase_files()
+
         with open(out, 'w') as outfile:
             for fname in self.tables:
                 if os.path.exists(fname):
@@ -169,6 +181,7 @@ class HMMER(object):
             handle = open(outfile,'w')
             for subc in cluster.seqs:
                 subtitle = cluster_id_reg.findall(subc)[0][:-3]
+                print subtitle
                 record = record_dict[subtitle]
                 handle.write(">%s\n"%record.id)
                 handle.write("%s\n"%str(record.seq))

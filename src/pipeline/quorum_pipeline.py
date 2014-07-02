@@ -253,11 +253,16 @@ class QuorumPipelineHandler(object):
         shutil.copyfileobj(open(self.blasted_fasta_bacteriocins),
                            class_handles[0])
         for c in class_handles: c.close()
+        for fname in self.class_files:
+            assert os.path.getsize(fname)>0
         #Remove all duplicate ids from this files
         for fname in self.class_files:
             f = "%s.%d"%(fname,os.getpid())
             fasta.remove_duplicates(fname,f)
             os.rename(f,fname)
+        for fname in self.class_files:
+            assert os.path.getsize(fname)>0
+        self.class_files = self.class_files[::-1] #Reverse list for testing]
         # Run 6 instances of HMMER for each class
         self.hmmers = [HMMER(f,quorum,min_cluster) 
                        for f in self.class_files]
@@ -280,8 +285,9 @@ class QuorumPipelineHandler(object):
         
         index=0
         for record in SeqIO.parse(self.cand_context_genes_fasta,"fasta"):
+            if len(record.seq)<=1: continue #To weed out weird entries
             split_fastahandles[index].write(">%s\n%s\n"%(str(record.id),
-                                                       str(record.seq)))
+                                                         fasta.format(str(record.seq))))
             index=(index+1)%njobs
         #Close files
         for handle in split_fastahandles: handle.close()
@@ -299,12 +305,12 @@ class QuorumPipelineHandler(object):
         jobs = []
         for i in xrange(njobs):
             cmd = context_cmd%(self.rootdir,
-                                self.training_directory,
-                                self.training_labels,
-                                split_fastafiles[i],
-                                self.intermediate,
-                                out_classes[i]
-                                )
+                               self.training_directory,
+                               self.training_labels,
+                               split_fastafiles[i],
+                               self.intermediate,
+                               out_classes[i]
+                               )
             
             batch_file = "%s/context_blast%i.%d.job"%(os.getcwd(),i,os.getpid())
             self.batch_files.append(batch_file)
@@ -479,11 +485,11 @@ if __name__=="__main__":
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-        else:
+        elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-        from time import sleep
-        sleep(100)
-        proc.cleanup()
+        #from time import sleep
+        #sleep(100)
+        #proc.cleanup()
     else:
         del sys.argv[1:]
         import unittest
@@ -520,8 +526,8 @@ if __name__=="__main__":
                 self.keep_tmp = True
                 self.proc = None
             def tearDown(self):
-                self.proc.cleanup()
-                
+                #self.proc.cleanup()
+                pass
             def testrun(self):
                 print "Test Run"
                 self.proc = QuorumPipelineHandler(                       
@@ -565,7 +571,6 @@ if __name__=="__main__":
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 
-                #self.proc.cleanup()
                 
         unittest.main()       
         
