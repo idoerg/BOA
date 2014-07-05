@@ -39,6 +39,7 @@ def remove_duplicates(fastain,fastaout):
             ids.add(ID)
             SeqIO.write(seq_record,out,"fasta")
     out.close() 
+""" Make human readable fasta format """
 def format(seqin,width=60):
     seq = []
     j = 0
@@ -117,7 +118,7 @@ class Indexer():
             self.fasta_handle.seek(pos)
             while len(seq)<end-start:
                 line=self.fasta_handle.readline()
-                line=line.rstrip() #Remove newline symbols
+                line=line.rstrip() 
                 seq=seq+line
             self.fasta_handle.close()
             return seq[:end-start]

@@ -51,6 +51,7 @@ import genbank
 import blast
 import intergene
 import genome
+import filter
 #import intervals
 import annotated_genes
 
@@ -97,79 +98,6 @@ def identifyIntergenic(bacteriocins,intergene_file):
         intergeneDict[(bact.sbjct_id,bact.sbjct_start,bact.sbjct_end,bact.strand)] = overlaps
     return intergeneDict
 
-"""
-Filters out all query sequences that don't fall in one of the intervals
-Note: returns a list of all of the overlapping intervals
-intervalDict: A dictionary of intervals indexed by (organismID,strand)
-queries: A list of query objects with
-        (start,end,orgid,strand,query_obj)
-"""
-def spatialFilter(queries,intervalDict,radius):
-    filtered = []
-    geneNeighborhoods = []
-    for query in queries:
-        header, query_obj = query
-        start,end,orgid,strand = header
-        #print "Org id",orgid,orgid not in intervalDict
-        if orgid not in intervalDict: continue
-        nearTargets = intervalDict[orgid].find( start,end )
-        if len(nearTargets)>0:
-            for geneobj in nearTargets:
-                filtered.append(query_obj)
-                geneNeighborhoods.append(geneobj)
-    return filtered,geneNeighborhoods
-               
-
-"""
-Filter out all annotations that are not within the radius of a bacteriocin
-TODO: Need to reorganize all regex commands
-"""
-#annot_reg = re.compile("([A-Z0-9_]+_[0-9]+).")
-annot_reg = re.compile("([A-Z][A-Z0-9_]+).")
-def filterAnnotatedGenes(annots,bacteriocins,radius):
-    intervalDict = defaultdict( IntervalTree )
-    for bact in bacteriocins:
-        start,end,orgid,strand = bact.sbjct_start,bact.sbjct_end,bact.sbjct_id,bact.strand
-        #print start,end,orgid,strand
-        orgid = orgid.split('|')[3]
-        orgid = orgid.split('.')[0]
-        #orgid = annot_reg.findall(orgid)[0]
-        
-        stBound,endBound = start-radius,end+radius
-        intervalDict[orgid].add( stBound,endBound,bact )                                                 
-    headers = []
-    for a in annots: 
-        start,end,orgid,strand = a[0],a[1],a[2],a[3];
-        headers.append( (start,end,orgid,strand) )
-    queries = zip(headers,annots) 
-    
-    filtered,annotNeighborhoods = spatialFilter(queries,intervalDict,radius)
-    return filtered,annotNeighborhoods
-
-"""
-Filters out bacteriocins not contained in a gene neighborhood
-bacteriocins: list of bacteriocins blast hits
-genes: list of target genes blast hits 
-radius: radius around target gene
-filtered: list of target genes blast hits that make it
-          through the filtering criteria imposed by the radius
-geneNeighborhoods: a list of intervals with a radius surrounding the
-          target genes
-header = (orgid,start,end,strand)
-"""
-def filterBacteriocins(bacteriocins,genes,radius):
-    if radius<0: radius = 50000000 #largest bacterial genome
-    intervalDict = defaultdict( IntervalTree )
-    for gene in genes:    
-        start,end,refid,orgid,strand = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id,gene.strand
-        stBound,endBound = start-radius,end+radius
-        intervalDict[orgid].add( stBound,endBound,gene )
-    headers = []
-    for b in bacteriocins: 
-        headers.append( (b.sbjct_start,b.sbjct_end,b.sbjct_id,b.strand) )
-    queries = zip(headers,bacteriocins) 
-    filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
-    return filtered,geneNeighborhoods
 """ Write bacteriocins to a tab delimited file """
 def writeBacteriocins(bacteriocins,intergeneDict,outHandle,genes=False):
     for bacteriocin in bacteriocins:
@@ -266,7 +194,7 @@ def main(genome_files,
         intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
         writeBacteriocins(bacteriocins,intergeneDict,bacteriocinsOut)
         annots = [annot for annot in annotated_genes.AnnotatedGenes(annotations_file)]
-        annots,bacteriocinNeighborhoods = filterAnnotatedGenes(annots,bacteriocins,bacteriocin_radius)
+        annots,bacteriocinNeighborhoods = filter.annotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
         
@@ -483,7 +411,7 @@ if __name__=="__main__":
                                          sbjct_end   = 1060,
                                          strand = "-")]
                 radius = 100
-                filtered,hoods = filterBacteriocins(bacteriocins,genes,radius)
+                filtered,hoods = filter.bacteriocins(bacteriocins,genes,radius)
                 self.assertEquals(1,len(filtered))
                 self.assertEquals(1,len(hoods))
                 self.assertTrue(bacteriocins[0] in filtered)
@@ -555,7 +483,7 @@ if __name__=="__main__":
                                          sbjct_end   = 1060,
                                          strand = "-")]
                 radius = 10000
-                filtered,hoods = filterBacteriocins(bacteriocins,genes,radius)
+                filtered,hoods = filter.bacteriocins(bacteriocins,genes,radius)
                 #print '\n'.join(map(str,filtered))
                 #print '\n'.join(map(str,hoods))
                 self.assertEquals(3,len(filtered))
@@ -589,7 +517,7 @@ if __name__=="__main__":
                                                 strand = "-")]
                 radius = 100
                 annots = [A for A in annotated_genes.AnnotatedGenes(self.out_file)]
-                filtered,hoods = filterAnnotatedGenes(annots,bacteriocins,radius)
+                filtered,hoods = filter.annotatedGenes(annots,bacteriocins,radius)
                 self.assertEquals(1,len(filtered))
                 self.assertEquals(1,len(hoods)) 
                 self.assertTrue(bacteriocins[0] in hoods)

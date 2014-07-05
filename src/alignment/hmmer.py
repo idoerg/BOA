@@ -80,7 +80,7 @@ class HMM(object):
         
 """Performs clustering and runs HMMER on every cluster"""
 class HMMER(object):
-    def __init__(self,fasta,
+    def __init__(self,fasta="",
                  module=subprocess,
                  minClusters=2):
         self.module = module
@@ -187,8 +187,25 @@ class HMMER(object):
                 handle.write("%s\n"%str(record.seq))
             handle.close()
             i+=1
-            
-
+""" Parse the output of hmmsearch output"""            
+def parse(hmmerout):
+    entries = []
+    with open(hmmerout,'r') as handle:
+        for ln in handle:
+            if ln[0]=="#": continue
+            ln = ln.rstrip()
+            toks = re.split("\s+",ln)
+            target,query = toks[0],toks[3]
+            full_evalue,c_evalue,i_evalue = map(float, [ toks[6],toks[11],toks[12] ]) 
+            hmm_st,hmm_end,env_st,env_end = map(int,[ toks[15],toks[16],toks[19],toks[20] ]) 
+            description = ' '.join(toks[22:])
+            entries.append( (
+                   target,query,
+                   full_evalue,c_evalue,i_evalue, 
+                   hmm_st,hmm_end,env_st,env_end,
+                   description 
+                   ) )
+    return entries
 """First separate all of the sequences into clusters of 70%"""
 def go(trainingSet,genome,results):
     hmmer = HMMER(trainingSet)
