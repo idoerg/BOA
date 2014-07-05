@@ -51,7 +51,7 @@ import genbank
 import blast
 import intergene
 import genome
-import filter
+import interval_filter
 #import intervals
 import annotated_genes
 
@@ -194,7 +194,7 @@ def main(genome_files,
         intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
         writeBacteriocins(bacteriocins,intergeneDict,bacteriocinsOut)
         annots = [annot for annot in annotated_genes.AnnotatedGenes(annotations_file)]
-        annots,bacteriocinNeighborhoods = filter.annotatedGenes(annots,bacteriocins,bacteriocin_radius)
+        annots,bacteriocinNeighborhoods = interval_filter.annotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
         
@@ -411,7 +411,7 @@ if __name__=="__main__":
                                          sbjct_end   = 1060,
                                          strand = "-")]
                 radius = 100
-                filtered,hoods = filter.bacteriocins(bacteriocins,genes,radius)
+                filtered,hoods = interval_filter.bacteriocins(bacteriocins,genes,radius)
                 self.assertEquals(1,len(filtered))
                 self.assertEquals(1,len(hoods))
                 self.assertTrue(bacteriocins[0] in filtered)
@@ -483,7 +483,7 @@ if __name__=="__main__":
                                          sbjct_end   = 1060,
                                          strand = "-")]
                 radius = 10000
-                filtered,hoods = filter.bacteriocins(bacteriocins,genes,radius)
+                filtered,hoods = interval_filter.bacteriocins(bacteriocins,genes,radius)
                 #print '\n'.join(map(str,filtered))
                 #print '\n'.join(map(str,hoods))
                 self.assertEquals(3,len(filtered))
@@ -517,7 +517,7 @@ if __name__=="__main__":
                                                 strand = "-")]
                 radius = 100
                 annots = [A for A in annotated_genes.AnnotatedGenes(self.out_file)]
-                filtered,hoods = filter.annotatedGenes(annots,bacteriocins,radius)
+                filtered,hoods = interval_filter.annotatedGenes(annots,bacteriocins,radius)
                 self.assertEquals(1,len(filtered))
                 self.assertEquals(1,len(hoods)) 
                 self.assertTrue(bacteriocins[0] in hoods)
