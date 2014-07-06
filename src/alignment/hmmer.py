@@ -196,15 +196,19 @@ def parse(hmmerout):
             ln = ln.rstrip()
             toks = re.split("\s+",ln)
             target,query = toks[0],toks[3]
-            full_evalue,c_evalue,i_evalue = map(float, [ toks[6],toks[11],toks[12] ]) 
-            hmm_st,hmm_end,env_st,env_end = map(int,[ toks[15],toks[16],toks[19],toks[20] ]) 
-            description = ' '.join(toks[22:])
-            entries.append( (
-                   target,query,
-                   full_evalue,c_evalue,i_evalue, 
-                   hmm_st,hmm_end,env_st,env_end,
-                   description 
-                   ) )
+            try:
+                full_evalue = float(toks[6]) 
+                hmm_st,hmm_end,env_st,env_end = map(int,[ toks[15],toks[16],toks[19],toks[20] ]) 
+                description = ' '.join(toks[22:])
+                entries.append( (
+                       target,query,
+                       full_evalue,
+                       hmm_st,hmm_end,env_st,env_end,
+                       description 
+                       ) )
+            except Exception as e:
+                #Ignore HMMER dumbass parsing exceptions
+                continue
     return entries
 """First separate all of the sequences into clusters of 70%"""
 def go(trainingSet,genome,results):
