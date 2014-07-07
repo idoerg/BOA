@@ -70,7 +70,7 @@ if __name__=="__main__":
         os.remove(clrfasta)
     cdhitProc.filterSize(55) 
     violinplot.contextGeneDistances(cdhitProc)
-
+    
 
 
 

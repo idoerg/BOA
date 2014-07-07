@@ -63,11 +63,11 @@ class CliqueFilter():
 """
 Locate all context gene clusters
 """
-def findContextGeneClusters(hits,radius=50000):
+def findContextGeneClusters(hits,faidx,radius=50000):
     err_handle = open('error.log','w')
     prevGenome = None
     buf,clusters = [],[]
-    cfilter = CliqueFilter(radius)
+    cfilter = CliqueFilter(faidx,radius)
     for hit in hits:
         if prevGenome == None:      
             prevGenome = hit[-1]
