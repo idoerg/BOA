@@ -63,7 +63,7 @@ class AnnotationTree(object):
     CAREFUL: All trees are indexed by the first 3 words of the organism name
     This was the best way for indexing 
     """
-    def buildTree(self):
+    def build(self):
         with open(self.fname,'r') as handle:
             key = ""
             for ln in handle:
@@ -213,7 +213,7 @@ if __name__=="__main__":
                 
             def test1(self):
                 tree = AnnotationTree(self.ptt)
-                tree.buildTree()
+                tree.build()
                 genes = tree.find('Candidatus Liberibacter americanus',1947, 3122)
                 self.assertTrue(len(genes)==1)
                 self.assertEquals('Coproporphyrinogen III oxidase',genes[0])

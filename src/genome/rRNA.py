@@ -18,6 +18,8 @@ def parse16SRNA(organism,genbank_file,out):
             #print feature
             if feature.type == 'rRNA':
                 try: 
+                    
+                    
                     product = feature.qualifiers["product"][0]
                     if product.lower()=='16s ribosomal rna' and organism not in seq_set:
                         st,end,strand = loc_reg.findall(str(feature.location))[0]
@@ -59,7 +61,7 @@ if __name__=="__main__":
         help='Root directory of all of the files of interest')
     parser.add_argument(\
         '--output-file', type=str, required=False,
-        help='The output file containing the tab-delimited output')
+        help='The output file containing the fasta output')
     parser.add_argument(\
         '--test', action='store_const', const=True, default=False,
         help='Run the unittests')

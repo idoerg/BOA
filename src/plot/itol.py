@@ -73,8 +73,8 @@ class iTOL():
     """ Build fast tree """
     def buildTree(self,module=subprocess,iters=4,hours=12):
         ft = UnAlignedFastTree(self.rrnaFile,self.treeFile)
-        ft.align(module=quorum,iters=4,hours=12) #Run multiple sequence alignment and spit out aligned fasta file
-        proc=ft.run(module=quorum) #Run fasttree on multiple alignment and spit out newick tree
+        ft.align(module=module,iters=4,hours=12) #Run multiple sequence alignment and spit out aligned fasta file
+        proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
         ft.cleanUp() #Clean up!
         
@@ -148,8 +148,8 @@ if __name__=="__main__":
         def tearDown(self):
             os.remove(self.rrnaFile)
             os.remove(self.operonFile)
-            #if not self.itol==None:
-            #    self.itol.cleanUp()
+            if not self.itol==None:
+                self.itol.cleanUp()
         def testGetRRNAS(self):
             self.itol = iTOL(self.operonFile,self.rrnaFile)
             self.itol.getRRNAs()

@@ -17,11 +17,11 @@ class Muscle(object):
         self.aln = "%s.aln"%basename
         
         
-    def run(self,fasta=False,module=subprocess,maxiters=4):
+    def run(self,fasta=False,module=subprocess,maxiters=4,maxhours=12):
         if fasta:
-            cline = "muscle -in %s -out %s -maxiters %d"%(self.input,self.output,maxiters)
+            cline = "muscle -in %s -out %s -maxiters %d -maxhours %d"%(self.input,self.output,maxiters,maxhours)
         else:
-            cline = "muscle -in %s -out %s -maxiters %d -clw"%(self.input,self.aln,maxiters)
+            cline = "muscle -in %s -out %s -maxiters %d -maxhours %d -clw"%(self.input,self.aln,maxiters,maxhours)
         print cline
         child = module.Popen(str(cline),
                              #stdout=subprocess.PIPE,

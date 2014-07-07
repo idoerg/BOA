@@ -22,18 +22,23 @@ import subprocess
 import cdhit
 from accessionMap import GGAccession
 from clustalw import ClustalW
+from muscle import Muscle
 from  acc2species import AccessionToSpecies
 
-
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import quorum
 
 class FastTree(object):
     def __init__(self,algnFile,treeFile):
         self.algnFile = algnFile
         self.treeFile = treeFile
-    def run(self):
+    def run(self,module=subprocess):
         cmd = "fasttree -nt %s"%self.algnFile
-        proc = subprocess.Popen(cmd,stdout=open(self.treeFile,'w+'),shell=True)
-        proc.wait()
+        child = module.Popen(cmd,stdout=open(self.treeFile,'w+'),shell=True)
+        if module==quorum: child.submit()
+        return child
     
 class UnAlignedFastTree(FastTree):
     def __init__(self,rawSeqs,treeFile):
@@ -44,16 +49,18 @@ class UnAlignedFastTree(FastTree):
         #self.accSeqs = "%s.acc"%basename
         super(UnAlignedFastTree,self).__init__(algnFile,treeFile)
     """ Run fasta tree """
-    def run(self):
-        super(UnAlignedFastTree,self).run()
+    def run(self,module=subprocess):
+        proc = super(UnAlignedFastTree,self).run(module)
+        return proc
     """ Run multiple alignment """
-    def align(self):
+    def align(self,module=subprocess,iters=4,hours=12):
         #assert os.path.exists(self.accSeqs)
         #assert os.stat(self.accSeqs).st_size!=0 #assert not empty
-        cw = ClustalW(self.rawSeqs,self.algnFile)
-        cw.run()
+        #cw = ClustalW(self.rawSeqs,self.algnFile)
+        cw = Muscle(self.rawSeqs,self.algnFile)
+        proc = cw.run(fasta=True,module=module,maxiters=iters,maxhours=hours)
+        proc.wait()
         #print self.accSeqs
-        cw.outputFASTA()
         cw.cleanUp()
     def cleanUp(self):
         #os.remove(self.accSeqs)
