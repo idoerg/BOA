@@ -81,7 +81,28 @@ def overlap(bst,bend,ast,aend):
         return True
     else:
         return False
-
+    
+""" Distance distribution of functions within operons"""
+def operonDistributions(operonFile,clade="all"):
+    with open(operonFile,'r') as handle:
+        buf = []
+        for ln in handle:
+            if ln[0]=="-":
+                
+                buf = []
+            else:
+                ln = ln.rstrip()
+                toks = ln.split('|')
+                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
+                if clade=="all":
+                    buf.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
+                else:
+                    currentClade = description.split(' ')[0]
+                    if clade==currentClad:
+                        buf.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
+                
+                        
+    
 """Distance distribution of each cluster """
 def contextGeneDistances(cdhitProc):
     clusterIDs = []

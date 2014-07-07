@@ -48,7 +48,7 @@ def format(seqin,width=60):
         j = i
     seq.append(seqin[j:])
     return '\n'.join(seq)
-
+        
 class Indexer():
     def __init__(self,fasta,fastaidx):
         self.fasta = fasta       #Input fasta
@@ -103,37 +103,55 @@ class Indexer():
             for line in handle:
                 line=line.strip()
                 cols=line.split('\t')
+                
                 chrom = cols[0]
                 seqLen,byteOffset,lineLen,byteLen = map(int,cols[1:])
                 self.faidx[chrom]=(seqLen,byteOffset,lineLen,byteLen)
     """ Retrieve a sequence based on fasta index """
     def fetch(self, defn, start, end):
-            self.fasta_handle = open(self.fasta,'r')
-            seq=""
-            if not self.faidx.has_key(defn):
-                raise ValueError('Chromosome %s not found in reference' % defn)
-            seqLen,byteOffset,lineLen,byteLen=self.faidx[defn]
-            start = start-1
-            pos = byteOffset+start/lineLen*byteLen+start%lineLen
-            self.fasta_handle.seek(pos)
-            while len(seq)<end-start:
-                line=self.fasta_handle.readline()
-                line=line.rstrip() 
-                seq=seq+line
-            self.fasta_handle.close()
-            return seq[:end-start]
-    
+        self.fasta_handle = open(self.fasta,'r')
+        seq=""
+        if not self.faidx.has_key(defn):
+            raise ValueError('Chromosome %s not found in reference' % defn)
+        seqLen,byteOffset,lineLen,byteLen=self.faidx[defn]
+        start = start-1
+        pos = byteOffset+start/lineLen*byteLen+start%lineLen
+        self.fasta_handle.seek(pos)
+        while len(seq)<end-start:
+            line=self.fasta_handle.readline()
+            line=line.rstrip() 
+            seq=seq+line
+        self.fasta_handle.close()
+        return seq[:end-start]
+    """ Translate six frame translated positions into nucleotides """
+    def sixframe_to_nucleotide(self,seqname,aa_pos):
+        frame = seqname.split('_')[-1]
+        seqLen,byteOffset,lineLen,byteLen = self.faidx[seqname]
+        if frame=="1":
+            return (aa_pos*3,"+")
+        elif frame=="2":
+            return (aa_pos*3+1,"+")
+        elif frame=="3":
+            return (aa_pos*3+2,"+")
+        elif frame=="4":
+            return (seqLen-(aa_pos*3),"-")
+        elif frame=="5":
+            return (seqLen-(aa_pos*3+1),"-")
+        elif frame=="6":
+            return (seqLen-(aa_pos*3+2),"-")
+        else:
+            raise Exception
 if __name__=="__main__":
     import unittest
     class TestIndex(unittest.TestCase):
         def setUp(self):
-            entries = ['>testseq10',
+            entries = ['>testseq10_1',
                        'AGCTACT',
-                       '>testseq20',
+                       '>testseq10_2',
                        'AGCTAGCT',
-                       '>testseq30',
+                       '>testseq40_2',
                        'AAGCTAGCT',
-                       '>testseq40',
+                       '>testseq40_5',
                        'AAGCTAGCT\n'*100
                        ]
             self.fasta = "test.fa"
@@ -151,21 +169,21 @@ if __name__=="__main__":
             indexer = Indexer(self.fasta,self.fastaidx)
             indexer.index()
             indexer.load()
-            print indexer.faidx
-            self.assertEquals(indexer.faidx,
-                              {'testseq10':(7,11,7,8),
-                               'testseq20':(8,30,8,9),
-                               'testseq30':(9,50,9,10),
-                               'testseq40':(900,71,9,10)
-                               }
-                              )
-            seq = indexer.fetch("testseq10",1,4)
+  
+            seq = indexer.fetch("testseq10_1",1,4)
             self.assertEquals("AGCT",seq)
-            seq = indexer.fetch("testseq40",1,13)
+            seq = indexer.fetch("testseq40_5",1,13)
             self.assertEquals("AAGCTAGCTAAGC",seq)
-            seq = indexer.fetch("testseq40",1,900)
+            seq = indexer.fetch("testseq40_5",1,900)
             self.assertEquals("AAGCTAGCT"*100,seq)
-            
+        def testTransform(self):
+            indexer = Indexer(self.fasta,self.fastaidx)
+            indexer.index()
+            indexer.load()
+            pos,_ = indexer.sixframe_to_nucleotide("testseq40_2", 5)
+            self.assertEquals(pos,16)
+            pos,_ = indexer.sixframe_to_nucleotide("testseq40_5", 5)
+            self.assertEquals(pos,884)
     class TestFasta(unittest.TestCase):
         def setUp(self):
             entries = ['>testseq1',

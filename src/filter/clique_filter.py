@@ -6,11 +6,17 @@ Edges are created when two genes are within a specified radius of each other.
 Colors are assigned according to function (toxin, modifier, immunity, transport, regulator)
 
 """
+import os,sys,site
 import numpy
 import networkx as nx
-
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import fasta
 class CliqueFilter():
-    def __init__(self,radius=50000):
+    def __init__(self,fasta_index,radius=50000):
+        self.faidx = fasta.Indexer("",fasta_index)
+        self.faidx.load()
         self.radius = radius
         self.functions = ["toxin","modifier","immunity","transport","regulator"]
     def createGraph(self,hits):
@@ -20,9 +26,14 @@ class CliqueFilter():
             for j in xrange(0,i):
                 hiti = hits[i]
                 hitj = hits[j]
-                
-                ienv_st,ienv_end = int(hiti[5]),int(hiti[6])
-                jenv_st,jenv_end = int(hitj[5]),int(hitj[6])
+                iname,ienv_st,ienv_end = hiti[0],int(hiti[5]),int(hiti[6])
+                jname,jenv_st,jenv_end = hitj[0],int(hitj[5]),int(hitj[6])
+                # Translate the six-frame translated coordinates
+                # into nucleotide reference coordinates
+                ienv_st,_ = self.faidx.sixframe_to_nucleotide(iname,ienv_st)
+                ienv_end,_= self.faidx.sixframe_to_nucleotide(iname,ienv_end)
+                jenv_st,_ = self.faidx.sixframe_to_nucleotide(jname,jenv_st)
+                jenv_end,_= self.faidx.sixframe_to_nucleotide(jname,jenv_end)
                 midi = (ienv_st+ienv_end)/2
                 midj = (jenv_st+jenv_end)/2
                 if abs(midi-midj)<self.radius:
@@ -115,6 +126,14 @@ if __name__=="__main__":
     import unittest
     class TestCase(unittest.TestCase):
         def setUp(self):
+            indexes = [ '\t'.join(map(str,('CP002279.1_1',2294815, 185896721,60,61))),
+                        '\t'.join(map(str,('CP002279.1_2',2294815, 188229850,60,61))),
+                        '\t'.join(map(str,('CP002279.1_3',2294814, 190562979,60,61))),
+                        '\t'.join(map(str,('CP002279.1_4',2294814, 192896107,60,61))),
+                        '\t'.join(map(str,('CP002279.1_5',2294815, 195229235,60,61))),
+                        '\t'.join(map(str,('CP002279.1_6',2294815, 197562364,60,61)))]
+            self.testfai = "test.fai"
+            open(self.testfai,'w').write('\n'.join(indexes))
             self.queries   = [('CP002279.1_3','toxin.fa.cluster2.fa',0,0,100,25000,25100,
                                'Mesorhizobium opportunistum WSM2075, complete genome'),
                               ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,25200,25300,
@@ -133,8 +152,11 @@ if __name__=="__main__":
                                'Mesorhizobium opportunistum WSM2075, complete genome')]              
 
             self.maxDiff=1000
+        def tearDown(self):
+            if os.path.exists(self.testfai):
+                os.remove(self.testfai)
         def test1(self):
-            cfilter = CliqueFilter(radius=2000)
+            cfilter = CliqueFilter(self.testfai,radius=6000)
             cfilter.createGraph(self.queries)
             clusters = cfilter.fullcolorFilter()
             self.assertTrue(len(clusters)>0)
