@@ -141,6 +141,17 @@ class Indexer():
             return (seqLen-(aa_pos*3+2),"-")
         else:
             raise Exception
+""" Get frame number for EMBOSS transeq output"""
+def getFrame(seqname):
+    frame = seqname.split('_')[-1]
+    return frame
+def strand(frame):
+    if int(frame)>=1 and int(frame)<=3:
+        return '+'
+    elif int(frame)>=4 and int(frame)<=6:
+        return '-'
+    else:
+        raise Exception 
 if __name__=="__main__":
     import unittest
     class TestIndex(unittest.TestCase):

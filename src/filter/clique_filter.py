@@ -99,24 +99,29 @@ def collapseOverlaps(hits):
             prevHit = hit
             newHits.append(hit)
         else:
+            prevFrame = fasta.getFrame(prevHit[0])
+            hitFrame = fasta.getFrame(hit[0])
             prevSt,prevEnd = prevHit[5],prevHit[6]
             hitSt,hitEnd = hit[5],hit[6]
-            """ prev |===============|
-                hit    |=========|"""
-            if prevSt<=hitSt and prevEnd>=hitEnd:
-                continue
-                """ prev    |==========|
-                    hit  |===============|"""
-            elif prevSt>=hitSt and prevEnd<=hitEnd:
-                continue
-                """ prev    |==========|
-                    hit         |===============|"""
-            elif hitSt>=prevSt and hitSt<=prevEnd:
-                continue
-                """ prev           |==========|
-                    hit   |===============|        """
-            elif prevSt>=hitSt and prevSt<=hitEnd:
-                continue
+            if fasta.strand(prevFrame)==fasta.strand(hitFrame): 
+                """ prev |===============|
+                        hit    |=========|"""
+                if prevSt<=hitSt and prevEnd>=hitEnd:
+                    continue
+                    """ prev    |==========|
+                        hit  |===============|"""
+                elif prevSt>=hitSt and prevEnd<=hitEnd:
+                    continue
+                    """ prev    |==========|
+                        hit         |===============|"""
+                elif hitSt>=prevSt and hitSt<=prevEnd:
+                    continue
+                    """ prev           |==========|
+                        hit   |===============|        """
+                elif prevSt>=hitSt and prevSt<=hitEnd:
+                    continue
+                else:
+                    newHits.append(hit)
             else:
                 newHits.append(hit)
             prevHit = hit
@@ -148,6 +153,10 @@ if __name__=="__main__":
                                'Mesorhizobium opportunistum WSM2075, complete genome'),
                               ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,35127,35456,
                                'Mesorhizobium opportunistum WSM2075, complete genome'),
+                              ('CP002279.1_2','transport.fa.cluster2.fa',0,0,100,35127,35356,
+                               'Mesorhizobium opportunistum WSM2075, complete genome'),
+                              ('CP002279.1_4','transport.fa.cluster2.fa',0,0,100,35127,35456,
+                               'Mesorhizobium opportunistum WSM2075, complete genome'),
                               ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,45127,45356,
                                'Mesorhizobium opportunistum WSM2075, complete genome')]              
 
@@ -161,14 +170,13 @@ if __name__=="__main__":
             clusters = cfilter.fullcolorFilter()
             self.assertTrue(len(clusters)>0)
             for cluster in clusters:
-                print cluster
+               
                 self.assertTrue(len(cluster)<=5)
                 if len(cluster)==5:
                     answer = ["|".join(map(str,s)) for s in self.queries[:5]]
                     self.assertItemsEqual(answer,cluster)
         def test2(self):
             reduced = collapseOverlaps(self.queries)
-            print "Reduced",reduced
             self.assertItemsEqual(reduced,
                                   [('CP002279.1_3','toxin.fa.cluster2.fa',0,0,100,25000,25100,
                                    'Mesorhizobium opportunistum WSM2075, complete genome'),
@@ -181,6 +189,8 @@ if __name__=="__main__":
                                   ('CP002279.1_3','immunity.fa.cluster2.fa',0,0,100,25800,26900,
                                    'Mesorhizobium opportunistum WSM2075, complete genome'),
                                   ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,35127,35356,
+                                   'Mesorhizobium opportunistum WSM2075, complete genome'),
+                                  ('CP002279.1_4','transport.fa.cluster2.fa',0,0,100,35127,35456,
                                    'Mesorhizobium opportunistum WSM2075, complete genome'),
                                   ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,45127,45356,
                                    'Mesorhizobium opportunistum WSM2075, complete genome')]     )
