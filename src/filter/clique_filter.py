@@ -13,6 +13,9 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import fasta
+
+import matplotlib.pyplot as plt
+
 class CliqueFilter():
     def __init__(self,fasta_index,radius=50000):
         self.faidx = fasta.Indexer("",fasta_index)
@@ -31,24 +34,25 @@ class CliqueFilter():
                 jname,jenv_st,jenv_end = hitj[0],int(hitj[5]),int(hitj[6])
                 # Translate the six-frame translated coordinates
                 # into nucleotide reference coordinates
-                ienv_st,istrand = self.faidx.sixframe_to_nucleotide(iname,ienv_st)
-                ienv_end,istrand= self.faidx.sixframe_to_nucleotide(iname,ienv_end)
-                jenv_st,jstrand = self.faidx.sixframe_to_nucleotide(jname,jenv_st)
-                jenv_end,jstrand= self.faidx.sixframe_to_nucleotide(jname,jenv_end)
+                inenv_st,istrand = self.faidx.sixframe_to_nucleotide(iname,ienv_st)
+                inenv_end,istrand= self.faidx.sixframe_to_nucleotide(iname,ienv_end)
+                jnenv_st,jstrand = self.faidx.sixframe_to_nucleotide(jname,jenv_st)
+                jnenv_end,jstrand= self.faidx.sixframe_to_nucleotide(jname,jenv_end)
                 midi = (ienv_st+ienv_end)/2
                 midj = (jenv_st+jenv_end)/2
-                print "midpoints",midi,midj,"strands",istrand,jstrand
+                
                 if abs(midi-midj)<self.radius and istrand==jstrand:
-                    print "Create edge"
+                    
                     #Record genome coordinates of operons
                     iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,_,_,idescription=hiti
                     jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,_,_,jdescrjptjon=hitj
-                    nodei = "|".join(map(str,[iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,ienv_st,jenv_end,idescription]))
-                    nodej = "|".join(map(str,[jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jenv_st,jenv_end,jdescrjptjon]))
-                    print nodei
-                    print nodej
+                    nodei = "|".join(map(str,[iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,inenv_st,inenv_end,idescription]))
+                    nodej = "|".join(map(str,[jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jnenv_st,jnenv_end,jdescrjptjon]))
+                    
                     self.graph.add_edge(nodei,nodej)
-        print "graph edges",'\n'.join(map(str,self.graph.edges()))
+        
+        #nx.draw(self.graph)
+        #plt.show()
     """    
     The output will be cliques that contain all of the functions specified
     """
@@ -57,15 +61,15 @@ class CliqueFilter():
         #print "cliques",'\n'.join(map(str,list(clique_gen)))
         clusters = [] #Context gene clusters 
         for clique in clique_gen:
-            print "Len",len(clique)
-            #if len(clique)<len(keyfunctions): continue
+            
+            if len(clique)<len(keyfunctions): continue
             functions = set()
             for node in clique:
                 toks = node.split("|")
                 query = toks[1]
                 func = query.split(".")[0]
                 functions.add(func)
-            print "functions",functions
+            
             if functions.issuperset(set(keyfunctions)):
                 clusters.append(clique)
         return clusters
@@ -183,11 +187,32 @@ if __name__=="__main__":
             cfilter.createGraph(self.queries)
             clusters = cfilter.filter()
             self.assertTrue(len(clusters)>0)
+            correct = [  ('CP002279.1_3','toxin.fa.cluster2.fa',0,0,100,
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25000)[0],
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25100)[0],
+                           'Mesorhizobium opportunistum WSM2075, complete genome'),
+                          ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25200)[0],
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25300)[0],
+                           'Mesorhizobium opportunistum WSM2075, complete genome'),
+                          ('CP002279.1_3','modifier.fa.cluster2.fa',0,0,100,
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25400)[0],
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25500)[0],
+                           'Mesorhizobium opportunistum WSM2075, complete genome'),
+                          ('CP002279.1_3','regulator.fa.cluster2.fa',0,0,100,
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25600)[0],
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25700)[0],
+                           'Mesorhizobium opportunistum WSM2075, complete genome'),
+                          ('CP002279.1_3','immunity.fa.cluster2.fa',0,0,100,
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',25800)[0],
+                           self.faidx.sixframe_to_nucleotide('CP002279.1_3',26900)[0],
+                           'Mesorhizobium opportunistum WSM2075, complete genome')
+                       ]
             for cluster in clusters:
                
                 self.assertTrue(len(cluster)<=5)
                 if len(cluster)==5:
-                    answer = ["|".join(map(str,s)) for s in self.queries[:5]]
+                    answer = ["|".join(map(str,s)) for s in correct]
                     self.assertItemsEqual(answer,cluster)
         def test2(self):
             #all_hits=sorted(self.queries,key=lambda x: x[6])        
@@ -218,6 +243,13 @@ if __name__=="__main__":
                                       
                                   
     unittest.main()
+
+
+
+
+
+
+
 
 
 
