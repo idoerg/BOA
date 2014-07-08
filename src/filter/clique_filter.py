@@ -110,6 +110,9 @@ def collapseOverlaps(hits,fasta_index):
             prevEnd= faidx.sixframe_to_nucleotide(prevName,prevEnd)
             hitSt  = faidx.sixframe_to_nucleotide(hitName,hitSt)
             hitEnd = faidx.sixframe_to_nucleotide(hitName,hitEnd) 
+            if hitSt>hitEnd:  hitSt,hitEnd = hitSt,hitEnd
+            if prevSt>prevEnd:  hitSt,hitEnd = hitSt,hitEnd
+            
             if fasta.strand(prevFrame)==fasta.strand(hitFrame): 
                 """ prev |===============|
                         hit    |=========|"""

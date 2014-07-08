@@ -96,7 +96,7 @@ if __name__=="__main__":
     #fig = plt.figure(1)
     #plt.suptitle("Toxin phylogeny",fontsize=22)
     #tree=Phylo.read(toxin_treefile,"newick")
-    #Phylo.draw(tree,show_confidence=False,do_show=False)
+    #Phylo.draw(tree,show_confidence=False,do_show=False)    
     
     #fig = plt.figure(2)
     #plt.suptitle("Immunity phylogeny",fontsize=22)

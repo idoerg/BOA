@@ -60,10 +60,12 @@ class iTOL():
                 ln = ln.rstrip()
                 toks = ln.split('|')
                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
+                description = description.replace(' ','_')
                 accession = acc.split('.')[0]
                 if accession in rrna_dict:
                     if accession not in seen:
                         record = rrna_dict[accession]
+                        record.id = description
                         rrnas.append(record)
                         seen.add(accession)
                 else:
@@ -148,8 +150,8 @@ if __name__=="__main__":
         def tearDown(self):
             os.remove(self.rrnaFile)
             os.remove(self.operonFile)
-            if not self.itol==None:
-                self.itol.cleanUp()
+            #if not self.itol==None:
+            #    self.itol.cleanUp()
         def testGetRRNAS(self):
             self.itol = iTOL(self.operonFile,self.rrnaFile)
             self.itol.getRRNAs()
