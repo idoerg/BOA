@@ -1,3 +1,5 @@
 .metadata
 *~
 *.pyc
+quorum_epilogue.py
+workspace

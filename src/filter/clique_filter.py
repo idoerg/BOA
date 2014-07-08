@@ -18,7 +18,7 @@ class CliqueFilter():
         self.faidx = fasta.Indexer("",fasta_index)
         self.faidx.load()
         self.radius = radius
-        self.functions = ["toxin","modifier","immunity","transport","regulator"]
+    
     def createGraph(self,hits):
         self.graph = nx.Graph()
         handle = open("graph_error.txt",'w')
@@ -41,29 +41,28 @@ class CliqueFilter():
                     nodej = "|".join(map(str,hitj))
                     self.graph.add_edge(nodei,nodej)
     """
-    The output will be cliques that contain a full coloring (aka contain all functions) 
+    The output will be cliques that contain all of the functions specified
     """
-    def fullcolorFilter(self):
+    def filter(self,keyfunctions = ["toxin","modifier","immunity","transport","regulator"] ):
         clique_gen = nx.find_cliques(self.graph)
         clusters = [] #Context gene clusters 
-        
         for clique in clique_gen:
-            
-            if len(clique)<len(self.functions): continue
+            if len(clique)<len(keyfunctions): continue
             functions = set()
             for node in clique:
                 toks = node.split("|")
                 query = toks[1]
                 func = query.split(".")[0]
                 functions.add(func)
-            
-            if functions.issuperset(set(self.functions)):
+            if functions.issuperset(set(keyfunctions)):
                 clusters.append(clique)
         return clusters
+
+        
 """
 Locate all context gene clusters
 """
-def findContextGeneClusters(hits,faidx,radius=50000):
+def findContextGeneClusters(hits,faidx,radius=50000, functions = ["toxin","modifier","immunity","transport","regulator"]):
     err_handle = open('error.log','w')
     prevGenome = None
     buf,clusters = [],[]
@@ -80,7 +79,7 @@ def findContextGeneClusters(hits,faidx,radius=50000):
             
             cfilter.createGraph(buf)    
             
-            cliques = cfilter.fullcolorFilter()
+            cliques = cfilter.filter(functions)
             print >>err_handle,'Cliques'
             print >>err_handle,"\n".join(map(str,cliques)),'\n'
             clusters+= cliques
@@ -91,18 +90,26 @@ def findContextGeneClusters(hits,faidx,radius=50000):
 If a hit overlaps with a previous hit,
 throw the hit away
 """
-def collapseOverlaps(hits):
+def collapseOverlaps(hits,fasta_index):
     newHits = []
     prevHit = None
+    faidx = fasta.Indexer("",fasta_index)
+    faidx.load()
+    print "Before filtering",len(hits)
     for hit in hits:
         if prevHit == None:
             prevHit = hit
             newHits.append(hit)
         else:
-            prevFrame = fasta.getFrame(prevHit[0])
-            hitFrame = fasta.getFrame(hit[0])
+            prevName,hitName = prevHit[0],hit[0]
+            prevFrame = fasta.getFrame(prevName)
+            hitFrame = fasta.getFrame(hitName)
             prevSt,prevEnd = prevHit[5],prevHit[6]
             hitSt,hitEnd = hit[5],hit[6]
+            prevSt = faidx.sixframe_to_nucleotide(prevName,prevSt)
+            prevEnd= faidx.sixframe_to_nucleotide(prevName,prevEnd)
+            hitSt  = faidx.sixframe_to_nucleotide(hitName,hitSt)
+            hitEnd = faidx.sixframe_to_nucleotide(hitName,hitEnd) 
             if fasta.strand(prevFrame)==fasta.strand(hitFrame): 
                 """ prev |===============|
                         hit    |=========|"""
@@ -110,7 +117,7 @@ def collapseOverlaps(hits):
                     continue
                     """ prev    |==========|
                         hit  |===============|"""
-                elif prevSt>=hitSt and prevEnd<=hitEnd:
+                elif prevSt<=hitSt and prevEnd<=hitEnd and hitSt>=prevSt:
                     continue
                     """ prev    |==========|
                         hit         |===============|"""
@@ -118,13 +125,14 @@ def collapseOverlaps(hits):
                     continue
                     """ prev           |==========|
                         hit   |===============|        """
-                elif prevSt>=hitSt and prevSt<=hitEnd:
+                elif prevSt>=hitSt and prevSt<=hitEnd and hitEnd<=prevEnd:
                     continue
                 else:
                     newHits.append(hit)
             else:
                 newHits.append(hit)
             prevHit = hit
+    print "After filtering",len(newHits)
     return newHits
 
 if __name__=="__main__":
@@ -176,7 +184,7 @@ if __name__=="__main__":
                     answer = ["|".join(map(str,s)) for s in self.queries[:5]]
                     self.assertItemsEqual(answer,cluster)
         def test2(self):
-            reduced = collapseOverlaps(self.queries)
+            reduced = collapseOverlaps(self.queries,self.testfai)
             self.assertItemsEqual(reduced,
                                   [('CP002279.1_3','toxin.fa.cluster2.fa',0,0,100,25000,25100,
                                    'Mesorhizobium opportunistum WSM2075, complete genome'),

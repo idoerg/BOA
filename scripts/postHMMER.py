@@ -58,14 +58,12 @@ if __name__=="__main__":
         all_hits=sorted(all_hits,key=lambda x: x[6])   
         all_hits=sorted(all_hits,key=lambda x: x[5])
         
-        
-        print test_hits
         #Sort by genome name
         all_hits=sorted(all_hits,key=lambda x: x[-1])  
         cPickle.dump(all_hits,open("test.pickle",'wb'))
         print "Sorted"   
-    print len(all_hits)
-    all_hits = collapseOverlaps(all_hits)
+    print "All hits",len(all_hits)
+    all_hits = collapseOverlaps(all_hits,faidx)
     clusters = findContextGeneClusters(all_hits,faidx)
     outhandle = open('test.txt','w')
     for cluster in clusters:
