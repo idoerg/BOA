@@ -68,12 +68,19 @@ def getFasta(txt,fastadb,fastaindex,fastaout):
 if __name__=="__main__":
     db     = "/home/mortonjt/Projects/Bacfinder/db"
     quorum = "/home/mortonjt/Projects/Bacfinder/workspace/quorum"
+    folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
     operons= "%s/intermediate/operons.txt"%quorum
     rrnaFile = "%s/rrna.fa"%db
-    itol = iTOL(operons,rrnaFile)
+    itolout = "itol.txt"
+    
+    itol = iTOL(operons,rrnaFile,
+                "%s/operon.rrna"%folder,
+                "%s/operon.align"%folder,
+                "%s/operon.tree"%folder)               
     itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
     itol.buildTree()
-
+    itol.operonDistribution(itolout)
+    
     #toxins = quorum%"/intermediate/toxin_genes.txt"
     #immunity = quorum%"/intermediate/immunity_genes.txt"
     #allfna = quorum%"/data/all_trans.fna"

@@ -43,10 +43,11 @@ from clique_filter import *
 
 if __name__=="__main__":
     faidx = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all_trans.fai"
+    folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
     if os.path.exists("test.pickle"):
         all_hits = cPickle.load(open("test.pickle",'rb'))
     else:
-        folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
+        
         toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
         modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
         immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
@@ -65,7 +66,7 @@ if __name__=="__main__":
     print "All hits",len(all_hits)
     all_hits = collapseOverlaps(all_hits,faidx)
     clusters = findContextGeneClusters(all_hits,faidx)
-    outhandle = open('test.txt','w')
+    outhandle = open('%s/operons.txt'%(folder),'w')
     for cluster in clusters:
         for gene in cluster:
             outhandle.write("%s\n"%gene)

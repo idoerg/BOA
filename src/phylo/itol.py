@@ -19,6 +19,7 @@ import subprocess
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 from fasttree import *
+from collections import *
 class iTOL():
     
     def __init__(self,operonFile,allrrna,rrnaFile=None,alignFile=None,treeFile=None):
@@ -29,17 +30,18 @@ class iTOL():
         if rrnaFile==None:
             self.rrnaFile = "%s.rrna"%basename
         else:
-            self.rrnaFile = rrnaFile    
+            self.rrnaFile = rrnaFile
+            #For multiple alignment
+        if alignFile == None:
+            self.alignFile = "%s.align"%basename
+        else:
+            self.alignFile = alignFile    
         #For fasttree
         if treeFile == None:
             self.treeFile = "%s.tree"%basename
         else:
             self.treeFile = treeFile
-        #For multiple alignment
-        if alignFile == None:
-            self.alignFile = "%s.align"%basename
-        else:
-            self.alignFile = alignFile
+        
             
     def cleanUp(self):
         if os.path.exists(self.treeFile):
@@ -63,11 +65,11 @@ class iTOL():
                 description = description.replace(' ','_')
                 accession = acc.split('.')[0]
                 if accession in rrna_dict:
-                    if accession not in seen:
+                    if description not in seen:
                         record = rrna_dict[accession]
                         record.id = description
                         rrnas.append(record)
-                        seen.add(accession)
+                        seen.add(description)
                 else:
                     print "Accession %s is missing"%accession
         SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
@@ -79,7 +81,34 @@ class iTOL():
         proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
         ft.cleanUp() #Clean up!
+    def operonDistribution(self,itolout):
+        outhandle = open(itolout,'w')
+        outhandle.write("LABELS\timmunity\tmodifier\tregulator\ttoxin\ttransport\n")
         
+        outhandle.write("COLORS\t#ff0000\t#00ff00\t#0000ff\t#ff00ff\t#ffff00\n")    
+        with open(self.operonFile,'r') as handle:
+            func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
+            prevName = None
+            for ln in handle:
+                if ln[0]=='-':continue
+                toks = ln.split("|")
+                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
+                name = description.replace(' ','_')
+                name = name.split(',')[0]
+                if prevName == None: 
+                    prevName = name 
+                elif name!=prevName:
+                    functions = func_counts.items()
+                    functions = sorted(functions,key=lambda x:x[0])
+                    prevName = prevName.rstrip()
+                    functions,counts = zip(*functions)
+                    outhandle.write("%s\t%s\n"%(prevName,'\t'.join(map(str,counts))))
+                    func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
+                    prevName = name
+                
+                function = clrname.split('.')[0]
+                func_counts[function]+=1
+        outhandle.close()
 if __name__=="__main__":
     import unittest
     

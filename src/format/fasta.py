@@ -145,6 +145,9 @@ class Indexer():
 def getFrame(seqname):
     frame = seqname.split('_')[-1]
     return frame
+def getName(seqname):
+    name = seqname.split('_')[0]
+    return name
 def strand(frame):
     if int(frame)>=1 and int(frame)<=3:
         return '+'
