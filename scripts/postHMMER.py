@@ -40,7 +40,7 @@ from collections import defaultdict
 from collections import Counter
 from pandas import *
 from clique_filter import *
-
+from itol import *
 if __name__=="__main__":
     faidx = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all_trans.fai"
     folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
@@ -72,7 +72,23 @@ if __name__=="__main__":
             outhandle.write("%s\n"%gene)
         outhandle.write('----------\n')
     
+    db     = "/home/mortonjt/Projects/Bacfinder/db"
+    quorum = "/home/mortonjt/Projects/Bacfinder/workspace/quorum"
+    folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
+    operons= "%s/operons.txt"%folder
+    filtered_operons = "%s/big_operons.txt"%folder
+    rrnaFile = "%s/rrna.fa"%db
+    itolout = "itol.txt"
     
+    itol = iTOL(operons,rrnaFile,
+                "%s/operon.rrna"%folder,
+                "%s/operon.align"%folder,
+                "%s/operon.tree"%folder)
+    itol.sizeFilter(filtered_operons,k=200 )
+    itol.setOperonFile(filtered_operons)
+    itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
+    itol.buildTree()
+    itol.operonDistribution(itolout)
     
     
     

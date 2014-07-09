@@ -15,6 +15,7 @@ for directory_name in os.listdir(base_path):
 import fasta
 from bx.intervals import *
 import matplotlib.pyplot as plt
+import interval_filter
 
 class CliqueFilter():
     def __init__(self,fasta_index,radius=50000):
@@ -78,7 +79,7 @@ class CliqueFilter():
                 query = toks[1]
                 func = query.split(".")[0]
                 functions.add(func)
-            print functions
+            
             if functions.issuperset(set(keyfunctions)):
                 clusters.append(clique)
         return clusters
@@ -150,45 +151,11 @@ throw the hit away
 #             prevHit = hit 
 #     print "After filtering",len(newHits)
 #     return newHits
-"""
-Collapses hits using Interval trees
-"""
-def collapseOverlaps(hits,fasta_index):
-    tree = IntervalTree()
-    faidx = fasta.Indexer('',fasta_index)
-    faidx.load()
-    prevOrg,curOrg = None,None
-    prevStrand,curStrand = None,None
-    newHits = []
-    print "Before",len(hits)
-    for hit in hits:
-        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
-        curOrg = fasta.getName(acc)
-        hitSt,curStrand  = faidx.sixframe_to_nucleotide(acc,env_st)
-        hitEnd,curStrand = faidx.sixframe_to_nucleotide(acc,env_end) 
-        if prevOrg == None:
-            prevOrg = curOrg
-            prevStrand = curStrand
-            tree.add(hitSt,hitEnd,hit)
-            newHits.append(hit)            
-        elif prevOrg!=curOrg or prevStrand!=curStrand:
-            tree = IntervalTree()
-            tree.add(hitSt,hitEnd,hit)
-            prevOrg = curOrg
-            prevStrand = curStrand
-            newHits.append(hit)
-        else:
-            overlaps = tree.find(hitSt,hitEnd)
-            if len(overlaps)==0:
-                tree.add(hitSt,hitEnd,hit)
-                newHits.append(hit)
-    print "After",len(newHits)
-    
-    return newHits
+
     
 if __name__=="__main__":
     import unittest
-     class TestCase1(unittest.TestCase):
+    class TestCase1(unittest.TestCase):
          def setUp(self):
              indexes = [ '\t'.join(map(str,('CP002279.1_1',2294815, 185896721,60,61))),
                          '\t'.join(map(str,('CP002279.1_2',2294815, 188229850,60,61))),
@@ -263,7 +230,7 @@ if __name__=="__main__":
              #all_hits=sorted(all_hits,key=lambda x: x[5])
              #Sort by genome name
              #all_hits=sorted(all_hits,key=lambda x: x[-1])  
-             reduced = collapseOverlaps(self.queries,self.testfai)
+             reduced = interval_filter.overlaps(self.queries,self.testfai)
             
              self.assertItemsEqual(reduced,
                                    [   ('CP002279.1_3','toxin.fa.cluster2.fa',0,0,100,25000,25100,

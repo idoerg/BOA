@@ -11,7 +11,7 @@ Todo:
 
 from bx.intervals import *
 from collections import defaultdict
-
+import fasta
 import re
 """
 Filters out all query sequences that don't fall in one of the intervals
@@ -85,6 +85,41 @@ def bacteriocins(bacteriocins,genes,radius):
     filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,geneNeighborhoods
 
-
+"""
+Collapses hmmer hits using Interval trees
+"""
+def overlaps(hits,fasta_index,backtrans=True):
+    tree = IntervalTree()
+    faidx = fasta.Indexer('',fasta_index)
+    faidx.load()
+    prevOrg,curOrg = None,None
+    prevStrand,curStrand = None,None
+    newHits = []
+    print "Before",len(hits)
+    for hit in hits:
+        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+        curOrg = fasta.getName(acc)
+        if backtrans:
+            hitSt,curStrand  = faidx.sixframe_to_nucleotide(acc,env_st)
+            hitEnd,curStrand = faidx.sixframe_to_nucleotide(acc,env_end) 
+        if prevOrg == None:
+            prevOrg = curOrg
+            prevStrand = curStrand
+            tree.add(hitSt,hitEnd,hit)
+            newHits.append(hit)            
+        elif prevOrg!=curOrg or prevStrand!=curStrand:
+            tree = IntervalTree()
+            tree.add(hitSt,hitEnd,hit)
+            prevOrg = curOrg
+            prevStrand = curStrand
+            newHits.append(hit)
+        else:
+            overlaps = tree.find(hitSt,hitEnd)
+            if len(overlaps)==0:
+                tree.add(hitSt,hitEnd,hit)
+                newHits.append(hit)
+    print "After",len(newHits)
+    
+    return newHits
 
 

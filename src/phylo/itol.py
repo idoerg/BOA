@@ -80,7 +80,7 @@ class iTOL():
     """ Build fast tree """
     def buildTree(self,module=subprocess,iters=4,hours=12):
         ft = UnAlignedFastTree(self.rrnaFile,self.treeFile)
-        ft.align(module=module,iters=4,hours=12) #Run multiple sequence alignment and spit out aligned fasta file
+        ft.align(module=module,iters=10,hours=12) #Run multiple sequence alignment and spit out aligned fasta file
         proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
         ft.cleanUp() #Clean up!
@@ -99,7 +99,8 @@ class iTOL():
                 else:
                     buf.append(ln)
         lengths = sorted(lengths,reverse=True)
-        threshold = lengths[k]
+        if k>len(lengths): threshold = lengths[-1]
+        else:  threshold = lengths[k]
         with open(self.operonFile,'r') as handle:
             for ln in handle:
                 if ln[0]=='-':
