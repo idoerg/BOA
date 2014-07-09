@@ -58,7 +58,7 @@ from rpy2.robjects.packages import importr
 import rpy2.robjects.lib.ggplot2 as ggplot2
 import rpy2.robjects as robjects
 
-
+import fasta
 
 #robjects.r("library(vioplot)")
 
@@ -81,14 +81,44 @@ def overlap(bst,bend,ast,aend):
         return True
     else:
         return False
+""" For a given operon, this returns a list of functions and relative positions """
+def count(operon,fastaindex):
+    indexer = fasta.Indexer("",fastaindex)
+    indexer.load()
+    intervals = []
+    operon = sorted(operon,key=lambda x:x[5])
+    starts,ends = zip(*operon)[5:7]
     
+    gene = operon[0]
+    st,end = map(int,gene[5:7])
+    name = gene[0]
+    front,_ = indexer.sixframe_to_nucleotide( name, st )
+    for gene in operon:
+        name = gene[0]
+        cluster = gene[1]
+        function = cluster.split('.')[0]
+        st,end = map(int,gene[5:7])
+        st,_ = indexer.sixframe_to_nucleotide( name, st )
+        end,_ = indexer.sixframe_to_nucleotide( name, end )
+        if st>end: st,end = end,st
+        intervals.append( (function,st-front,end-front) )
+    ints = []
+    for intv in intervals:
+        func,st,end = intv
+        interval = xrange(st,end)
+        funcs = [func]*len(interval)
+        ints+=zip(funcs,interval)
+    return ints
+
+
 """ Distance distribution of functions within operons"""
-def operonDistributions(operonFile,clade="all"):
+def operonDistribution(operonFile,fastaindex,clade="all"):
+    intervals = []
     with open(operonFile,'r') as handle:
         buf = []
         for ln in handle:
             if ln[0]=="-":
-                
+                intervals+=count(buf,fastaindex)
                 buf = []
             else:
                 ln = ln.rstrip()
@@ -100,7 +130,45 @@ def operonDistributions(operonFile,clade="all"):
                     currentClade = description.split(' ')[0]
                     if clade==currentClad:
                         buf.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
-                
+    print len(intervals)
+    toxin = robjects.IntVector([t[1] for t in intervals if t[0]=="toxin"])
+    modifier = robjects.IntVector([t[1] for t in intervals if t[0]=="modifier"])
+    immunity = robjects.IntVector([t[1] for t in intervals if t[0]=="immunity"])
+    transport = robjects.IntVector([t[1] for t in intervals if t[0]=="transport"])
+    regulator = robjects.IntVector([t[1] for t in intervals if t[0]=="regulator"])
+    importr("ggplot2")
+    
+    plotViolinFunc = robj.r("""
+                            library(ggplot2)
+                            function(toxin,modifier,immunity,transport,regulator){
+                            #par(font.axis=2, font.lab=2)
+                            #png(filename="violin.png",width=1200,height=1200)
+                            png(filename="violin.png")
+                            df <- rbind(data.frame(x=1:length(toxin),y=sort(toxin),group="toxin"),
+                                        data.frame(x=1:length(modifier),y=sort(modifier),group="modifier"),
+                                        data.frame(x=1:length(immunity),y=sort(immunity),group="immunity"),
+                                        data.frame(x=1:length(transport),y=sort(transport),group="transport"),
+                                        data.frame(x=1:length(regulator),y=sort(regulator),group="regulator"))
+                            p <- ggplot() + 
+                                    geom_violin(data=df,
+                                                aes(x=group,y=y,group=group,fill=group),
+                                                stat="ydensity",
+                                                #adjust=10,
+                                                trim=FALSE) +
+                                    scale_fill_discrete("Distribution") + 
+                                    coord_flip(ylim=c(-50000,50000)) +
+                                    ylab("Distance") + 
+                                    xlab("Function") +
+                                    ggtitle("Operon Function Distributions") 
+                            print(p)
+                            dev.off()
+                            print(p)
+                            }
+                            """)
+    
+    plotViolinFunc(toxin,modifier,immunity,transport,regulator)
+    raw_input()
+
                         
     
 """Distance distribution of each cluster """
