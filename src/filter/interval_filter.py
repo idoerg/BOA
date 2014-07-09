@@ -95,13 +95,15 @@ def overlaps(hits,fasta_index,backtrans=True):
     prevOrg,curOrg = None,None
     prevStrand,curStrand = None,None
     newHits = []
-    print "Before",len(hits)
+    #print "Before",len(hits)
     for hit in hits:
         acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
         curOrg = fasta.getName(acc)
         if backtrans:
             hitSt,curStrand  = faidx.sixframe_to_nucleotide(acc,env_st)
-            hitEnd,curStrand = faidx.sixframe_to_nucleotide(acc,env_end) 
+            hitEnd,curStrand = faidx.sixframe_to_nucleotide(acc,env_end)
+        else:
+            hitSt,hitEnd = map(int,[env_st,env_end])
         if prevOrg == None:
             prevOrg = curOrg
             prevStrand = curStrand
@@ -118,7 +120,7 @@ def overlaps(hits,fasta_index,backtrans=True):
             if len(overlaps)==0:
                 tree.add(hitSt,hitEnd,hit)
                 newHits.append(hit)
-    print "After",len(newHits)
+    #print "After",len(newHits)
     
     return newHits
 
