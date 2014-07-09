@@ -32,46 +32,52 @@ def preprocessFasta(blastTab,fastaout):
             seqstr = ">%s|%s|%s|%s|%s|%s\n%s\n"%(bacID,gi,bst,bend,ast,aend,seq)
             handle.write(seqstr) 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser(description=\
-        'Format Blast output for iTOL visualization ')
-    parser.add_argument(\
-        '--accession-table', type=str, required=False,
-        help='A table that maps accession ids to species')
-    parser.add_argument(\
-        '--bacteriocins', type=str, required=False,
-        help='Bacteriocins in blast format')
-    parser.add_argument(\
-        '--anchor-genes', type=str, required=False,
-        help='Anchor genes from genbank files in blast format')
-    parser.add_argument(\
-        '--tree', type=str, required=False,default=None,
-        help='Newick tree')
-    parser.add_argument(\
-        '--rRNA', type=str, required=False,
-        help='16SRNA sequences')
-    args = parser.parse_args()
-    #root = os.environ['BACFINDER_HOME']
-    directory = os.path.dirname(args.anchor_genes)  
-    cluster_file = "%s/context_gene_cluster"%directory
-    outfasta = "%s/context_gene_cluster.fa"%directory
-    threshold = 0.7
-    clusterFile = "cluster.pickle"
-    
-    if os.path.exists(clusterFile):
-        cdhitProc = cPickle.load(open(clusterFile,'rb'))
-    else:
-        clrfasta = "anchorgenes.fa"
-        preprocessFasta(args.anchor_genes,clrfasta)
-        cdhitProc = cdhit.CDHit(clrfasta,cluster_file,threshold)
-        cdhitProc.run()
-        cdhitProc.parseClusters()
-        cdhitProc.countOut()
-        cPickle.dump(cdhitProc,open(clusterFile,'wb'))
-        os.remove(clrfasta)
-    cdhitProc.filterSize(55) 
-    violinplot.contextGeneDistances(cdhitProc)
-    
-
-
-
+    quorum_data = "/media/HD/Documents/Jamie/MiamiBio/Bacfinder/workspace/quorum_data"
+    operons = "%s/big_operons.txt"%quorum_data
+    fastaindex = "%s/all_trans.fai"%quorum_data
+    violinplot.operonDistribution(operons,fastaindex)
+# 
+#     
+#     parser = argparse.ArgumentParser(description=\
+#         'Format Blast output for iTOL visualization ')
+#     parser.add_argument(\
+#         '--accession-table', type=str, required=False,
+#         help='A table that maps accession ids to species')
+#     parser.add_argument(\
+#         '--bacteriocins', type=str, required=False,
+#         help='Bacteriocins in blast format')
+#     parser.add_argument(\
+#         '--anchor-genes', type=str, required=False,
+#         help='Anchor genes from genbank files in blast format')
+#     parser.add_argument(\
+#         '--tree', type=str, required=False,default=None,
+#         help='Newick tree')
+#     parser.add_argument(\
+#         '--rRNA', type=str, required=False,
+#         help='16SRNA sequences')
+#     args = parser.parse_args()
+#     #root = os.environ['BACFINDER_HOME']
+#     directory = os.path.dirname(args.anchor_genes)  
+#     cluster_file = "%s/context_gene_cluster"%directory
+#     outfasta = "%s/context_gene_cluster.fa"%directory
+#     threshold = 0.7
+#     clusterFile = "cluster.pickle"
+#     
+#     if os.path.exists(clusterFile):
+#         cdhitProc = cPickle.load(open(clusterFile,'rb'))
+#     else:
+#         clrfasta = "anchorgenes.fa"
+#         preprocessFasta(args.anchor_genes,clrfasta)
+#         cdhitProc = cdhit.CDHit(clrfasta,cluster_file,threshold)
+#         cdhitProc.run()
+#         cdhitProc.parseClusters()
+#         cdhitProc.countOut()
+#         cPickle.dump(cdhitProc,open(clusterFile,'wb'))
+#         os.remove(clrfasta)
+#     cdhitProc.filterSize(55) 
+#     violinplot.contextGeneDistances(cdhitProc)
+#     
+# 
+# 
+# 
 
