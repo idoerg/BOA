@@ -23,6 +23,7 @@ from collections import *
 class iTOL():
     
     def __init__(self,operonFile,allrrna,rrnaFile=None,alignFile=None,treeFile=None):
+        
         self.operonFile = operonFile
         self.allrrna = allrrna
         basename = os.path.basename(operonFile)
@@ -41,7 +42,9 @@ class iTOL():
             self.treeFile = "%s.tree"%basename
         else:
             self.treeFile = treeFile
-        
+        print self.rrnaFile
+    def setOperonFile(self,operonFile):
+        self.operonFile = operonFile
             
     def cleanUp(self):
         if os.path.exists(self.treeFile):
@@ -81,11 +84,39 @@ class iTOL():
         proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
         ft.cleanUp() #Clean up!
+        
+    """ Pick top k biggest operons """
+    def sizeFilter(self,filterout,k=100):
+        
+        buf = []
+        outhandle = open(filterout,'w')
+        lengths = []
+        with open(self.operonFile,'r') as handle:
+            for ln in handle:
+                if ln[0]=='-':
+                    lengths.append(len(buf))
+                    buf = []                    
+                else:
+                    buf.append(ln)
+        lengths = sorted(lengths,reverse=True)
+        threshold = lengths[k]
+        with open(self.operonFile,'r') as handle:
+            for ln in handle:
+                if ln[0]=='-':
+                    if len(buf)>threshold:
+                        for line in buf:
+                            outhandle.write(line)
+                        outhandle.write("----------\n")
+                    buf = []                    
+                else:
+                    buf.append(ln)
+        outhandle.close()
+        
+    """ Spit out iTOL file for operon distribution """        
     def operonDistribution(self,itolout):
         outhandle = open(itolout,'w')
         outhandle.write("LABELS\timmunity\tmodifier\tregulator\ttoxin\ttransport\n")
-        
-        outhandle.write("COLORS\t#ff0000\t#00ff00\t#0000ff\t#ff00ff\t#ffff00\n")    
+        outhandle.write("COLORS\t#0000ff\t#00ff00\t#ff0000\t#ff00ff\t#ff8c00\n")    
         with open(self.operonFile,'r') as handle:
             func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
             prevName = None
@@ -105,7 +136,6 @@ class iTOL():
                     outhandle.write("%s\t%s\n"%(prevName,'\t'.join(map(str,counts))))
                     func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
                     prevName = name
-                
                 function = clrname.split('.')[0]
                 func_counts[function]+=1
         outhandle.close()

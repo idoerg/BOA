@@ -127,6 +127,7 @@ class Indexer():
     def sixframe_to_nucleotide(self,seqname,aa_pos):
         frame = seqname.split('_')[-1]
         seqLen,byteOffset,lineLen,byteLen = self.faidx[seqname]
+        nuc_pos = 0
         if frame=="1":
             return (aa_pos*3,"+")
         elif frame=="2":
@@ -134,11 +135,11 @@ class Indexer():
         elif frame=="3":
             return (aa_pos*3+2,"+")
         elif frame=="4":
-            return (seqLen-(aa_pos*3),"-")
+            return (3*(seqLen-aa_pos),"-")
         elif frame=="5":
-            return (seqLen-(aa_pos*3+1),"-")
+            return (3*(seqLen-aa_pos)+1,"-")
         elif frame=="6":
-            return (seqLen-(aa_pos*3+2),"-")
+            return (3*(seqLen-aa_pos)+2,"-")
         else:
             raise Exception
 """ Get frame number for EMBOSS transeq output"""
@@ -197,7 +198,7 @@ if __name__=="__main__":
             pos,_ = indexer.sixframe_to_nucleotide("testseq40_2", 5)
             self.assertEquals(pos,16)
             pos,_ = indexer.sixframe_to_nucleotide("testseq40_5", 5)
-            self.assertEquals(pos,884)
+            self.assertEquals(pos,2686)
     class TestFasta(unittest.TestCase):
         def setUp(self):
             entries = ['>testseq1',

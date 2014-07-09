@@ -38,6 +38,8 @@ class CliqueFilter():
                 inenv_end,istrand= self.faidx.sixframe_to_nucleotide(iname,ienv_end)
                 jnenv_st,jstrand = self.faidx.sixframe_to_nucleotide(jname,jenv_st)
                 jnenv_end,jstrand= self.faidx.sixframe_to_nucleotide(jname,jenv_end)
+                assert inenv_st>=0,"Less than 0, transformed:%d original:%d"%(inenv_st,ienv_st)
+                assert jnenv_st>=0,"Less than 0, transformed:%d original:%d"%(jnenv_st,jenv_st)
                 midi = (ienv_st+ienv_end)/2
                 midj = (jenv_st+jenv_end)/2
                 
