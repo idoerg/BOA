@@ -79,7 +79,7 @@ if __name__=="__main__":
                 "%s/operon.rrna"%folder,
                 "%s/operon.align"%folder,
                 "%s/operon.tree"%folder)
-    itol.sizeFilter(filtered_operons,k=200)
+    itol.sizeFilter(filtered_operons,k=200 )
     itol.setOperonFile(filtered_operons)
     itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
     itol.buildTree()

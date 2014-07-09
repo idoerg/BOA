@@ -13,7 +13,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import fasta
-
+from bx.intervals import *
 import matplotlib.pyplot as plt
 
 class CliqueFilter():
@@ -108,42 +108,77 @@ def findContextGeneClusters(hits,faidx,radius=50000, functions = ["toxin","modif
 If a hit overlaps with a previous hit,
 throw the hit away
 """
+# def collapseOverlaps(hits,fasta_index):
+#     newHits = []
+#     prevHit = None
+#     faidx = fasta.Indexer("",fasta_index)
+#     faidx.load()
+#     print "Before filtering",len(hits)
+#     for hit in hits:
+#         if prevHit == None:
+#             prevHit = hit
+#             newHits.append(hit)
+#         else:
+#             prevName,hitName = prevHit[0],hit[0]
+#             prevSt,prevEnd = prevHit[5],prevHit[6]
+#             hitSt,hitEnd = hit[5],hit[6]
+#            
+#             prevSt,prevStrand = faidx.sixframe_to_nucleotide(prevName,prevSt)
+#             prevEnd,prevStrand= faidx.sixframe_to_nucleotide(prevName,prevEnd)
+#             hitSt,hitStrand  = faidx.sixframe_to_nucleotide(hitName,hitSt)
+#             hitEnd,hitStrand = faidx.sixframe_to_nucleotide(hitName,hitEnd) 
+#             prevName = fasta.getName(prevName)
+#             hitName = fasta.getName(hitName)
+#             if prevName!=hitName: 
+#                 newHits.append(hit)
+#             else:
+#                 if hitSt>hitEnd:  hitSt,hitEnd = hitSt,hitEnd
+#                 if prevSt>prevEnd:  hitSt,hitEnd = hitSt,hitEnd
+#                 if hitStrand==prevStrand: 
+#                     if prevSt>hitEnd: newHits.append(hit)
+#                     elif prevEnd<hitSt: newHits.append(hit)
+#                     else: continue
+#                 else:
+#                     newHits.append(hit)
+#             prevHit = hit 
+#     print "After filtering",len(newHits)
+#     return newHits
+"""
+Collapses hits using Interval trees
+"""
 def collapseOverlaps(hits,fasta_index):
-    newHits = []
-    prevHit = None
-    faidx = fasta.Indexer("",fasta_index)
+    tree = IntervalTree()
+    faidx = fasta.Indexer('',fasta_index)
     faidx.load()
-    print "Before filtering",len(hits)
+    prevOrg,curOrg = None,None
+    prevStrand,curStrand = None,None
+    newHits = []
+    print "Before",len(hits)
     for hit in hits:
-        if prevHit == None:
-            prevHit = hit
+        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+        curOrg = fasta.getName(acc)
+        hitSt,curStrand  = faidx.sixframe_to_nucleotide(acc,env_st)
+        hitEnd,curStrand = faidx.sixframe_to_nucleotide(acc,env_end) 
+        if prevOrg == None:
+            prevOrg = curOrg
+            prevStrand = curStrand
+            tree.add(hitSt,hitEnd,hit)
+            newHits.append(hit)            
+        elif prevOrg!=curOrg or prevStrand!=curStrand:
+            tree = IntervalTree()
+            tree.add(hitSt,hitEnd,hit)
+            prevOrg = curOrg
+            prevStrand = curStrand
             newHits.append(hit)
         else:
-            prevName,hitName = prevHit[0],hit[0]
-            prevSt,prevEnd = prevHit[5],prevHit[6]
-            hitSt,hitEnd = hit[5],hit[6]
-           
-            prevSt,prevStrand = faidx.sixframe_to_nucleotide(prevName,prevSt)
-            prevEnd,prevStrand= faidx.sixframe_to_nucleotide(prevName,prevEnd)
-            hitSt,hitStrand  = faidx.sixframe_to_nucleotide(hitName,hitSt)
-            hitEnd,hitStrand = faidx.sixframe_to_nucleotide(hitName,hitEnd) 
-            prevName = fasta.getName(prevName)
-            hitName = fasta.getName(hitName)
-            if prevName!=hitName: 
+            overlaps = tree.find(hitSt,hitEnd)
+            if len(overlaps)==0:
+                tree.add(hitSt,hitEnd,hit)
                 newHits.append(hit)
-            else:
-                if hitSt>hitEnd:  hitSt,hitEnd = hitSt,hitEnd
-                if prevSt>prevEnd:  hitSt,hitEnd = hitSt,hitEnd
-                if hitStrand==prevStrand: 
-                    if prevSt>hitEnd: newHits.append(hit)
-                    elif prevEnd<hitSt: newHits.append(hit)
-                    else: continue
-                else:
-                    newHits.append(hit)
-            prevHit = hit 
-    print "After filtering",len(newHits)
+    print "After",len(newHits)
+    
     return newHits
-
+    
 if __name__=="__main__":
     import unittest
     class TestCase(unittest.TestCase):

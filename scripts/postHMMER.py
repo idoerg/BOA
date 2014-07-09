@@ -60,7 +60,7 @@ if __name__=="__main__":
         all_hits=sorted(all_hits,key=lambda x: x[5])
         
         #Sort by genome name
-        all_hits=sorted(all_hits,key=lambda x: x[-1])  
+        all_hits=sorted(all_hits,key=lambda x: x[0])  
         cPickle.dump(all_hits,open("test.pickle",'wb'))
         print "Sorted"   
     print "All hits",len(all_hits)
