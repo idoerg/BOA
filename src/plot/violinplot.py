@@ -219,8 +219,7 @@ def operonDistribution(operonFile,fastaindex,clade="all"):
                             #par(font.axis=2, font.lab=2)
                             #png(filename="violin.png",units="in",width=80,height=80,res=2400)
                             #png(filename="violin.png")
-                            pdf("violin.pdf",width=15,heigh=15)
-                            
+                            pdf("violin_zoom.pdf",width=15,heigh=15)                            
                             df <- rbind(data.frame(x=1:length(toxin),y=sort(toxin),group="toxin"),
                                         data.frame(x=1:length(modifier),y=sort(modifier),group="modifier"),
                                         data.frame(x=1:length(immunity),y=sort(immunity),group="immunity"),
@@ -233,10 +232,10 @@ def operonDistribution(operonFile,fastaindex,clade="all"):
                                                 adjust=0.3,
                                                 trim=FALSE) +
                                     scale_fill_discrete("Distribution") + 
-                                    coord_flip(ylim=c(-5000,50000)) +
-                                    ylab("Distance") + 
+                                    coord_flip(ylim=c(-2000,50000)) +
+                                    ylab("Distance (base pairs)")+
                                     xlab("Function") +
-                                    ggtitle("Distribution of Functional Genes in Operons")+
+                                    ggtitle("Distribution of Genes By Function in Operons")+
                                     theme(plot.title=element_text(face="bold", size=30)) +
                                     theme(legend.title = element_text(colour="black", size=24, face="bold")) +
                                     theme(legend.text = element_text(colour="black", size = 18)) +
