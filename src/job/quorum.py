@@ -415,7 +415,7 @@ class pbsJobHandler:
         if not self.split:
             self.wait()
             self.split = True 
-
+            
             with open(self.efile) as fp: line = "".join([line for line in fp])
             first, second = re.search("(.*)Quorum Epilogue Args:\s*(.+)", line, re.DOTALL).group(1,2)
             with open(self.efile, "w") as fp: fp.write(first)

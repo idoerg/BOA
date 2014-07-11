@@ -1,6 +1,8 @@
 """
 A wrapper script for hmmsearch, hmmbuild and the 
 multiple alignment step using ClustalW
+
+TODO: fix the unittest tests here
 """
 
 import numpy
@@ -164,7 +166,7 @@ class HMMER(object):
                             outfile.write(line)
                         
     """Obtains ids for all of the sequences and write them into separate cluster files"""
-    def writeClusters(self,similarity,threads,memory):
+    def writeClusters(self,similarity=0.7,threads=1,memory=800):
         clusterProc = CDHit(self.fasta,self.clrreps,similarity,threads,memory)
         clusterProc.run()
         clusterProc.parseClusters()    
@@ -210,6 +212,12 @@ def parse(hmmerout):
                 #Ignore HMMER dumbass parsing exceptions
                 continue
     return entries
+def hmmerstr(hits):
+    all_hits = []
+    for hit in hits:
+        s = '|'.join(map(str,hit))
+        all_hits.append(s)
+    return '\n'.join(all_hits)
 """First separate all of the sequences into clusters of 70%"""
 def go(trainingSet,genome,results):
     hmmer = HMMER(trainingSet)
@@ -240,7 +248,13 @@ if __name__=="__main__":
     else:
         del sys.argv[1:]
         import unittest
-        
+        class TestStr(unittest.TestCase):
+            def test(self):
+                hits = [('CP002279.1_3','toxin.fa.cluster2.fa',0,0,100,25000,25100,
+                        'Mesorhizobium opportunistum WSM2075, complete genome')]
+                result = hmmerstr(hits)
+                self.assertEquals(result,
+                                  'CP002279.1_3|toxin.fa.cluster2.fa|0|0|100|25000|25100|Mesorhizobium opportunistum WSM2075, complete genome')
         class TestHMM(unittest.TestCase):
             def setUp(self):
                 seqs = ['>20.1',
@@ -362,7 +376,7 @@ if __name__=="__main__":
                 self.testhmm.search(self.genome,"results.txt")
                 self.assertTrue(os.path.exists("cluster0.table"))
                 self.assertTrue(os.path.exists("results.txt"))
-                
+        
         unittest.main()
     
     

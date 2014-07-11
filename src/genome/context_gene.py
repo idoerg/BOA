@@ -39,7 +39,7 @@ class ContextGeneBLAST(object):
                  training_labels,
                  intermediate,
                  evalue=0.000001,
-                 threads):                 
+                 threads=1):                 
         self.labels = training.Labels(trainingDir,training_labels)
         self.blast_proc = None
         self.evalue = evalue
@@ -103,6 +103,9 @@ if __name__=="__main__":
         '--output', type=str, required=False,default='.',
         help='Output context genes')
      parser.add_argument(\
+        '--num-threads', type=int, required=False, default=1,
+        help='The number of threads to be run by BLAST')
+     parser.add_argument(\
         '--intermediate', type=str, required=False,default='.',
         help='Directory for storing intermediate files')
      parser.add_argument(\
@@ -113,7 +116,8 @@ if __name__=="__main__":
          cg = ContextGeneBLAST(args.training_directory,
                                args.training_labels,
                                args.intermediate,
-                               args.evalue)
+                               args.evalue,
+                               args.num_threads)
          hits = cg.find(args.query)
          cg.write(hits,args.output)
          cg.cleanup()

@@ -102,6 +102,9 @@ def overlaps(hits,fasta_index,backtrans=True):
         if backtrans:
             hitSt,curStrand  = faidx.sixframe_to_nucleotide(acc,env_st)
             hitEnd,curStrand = faidx.sixframe_to_nucleotide(acc,env_end) 
+        else:
+            hitSt,hitEnd = env_st,env_end
+            
         if prevOrg == None:
             prevOrg = curOrg
             prevStrand = curStrand
