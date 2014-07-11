@@ -30,6 +30,10 @@ from fasttree import UnAlignedFastTree
 from  acc2species import AccessionToSpecies
 from accessionMap import GGAccession
 
+#import interval_filter
+import interval_filter
+import fasta
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
@@ -58,7 +62,7 @@ from rpy2.robjects.packages import importr
 import rpy2.robjects.lib.ggplot2 as ggplot2
 import rpy2.robjects as robjects
 
-import fasta
+
 
 #robjects.r("library(vioplot)")
 
@@ -81,18 +85,22 @@ def overlap(bst,bend,ast,aend):
         return True
     else:
         return False
-""" For a given operon, this returns a list of functions and relative positions """
-def count(operon,fastaindex):
+#TODO: Better way to manage memory
+def countInterval(operon,histogram,fastaindex):
+    zero = len(histogram)/2
     indexer = fasta.Indexer("",fastaindex)
     indexer.load()
     intervals = []
+    
     operon = sorted(operon,key=lambda x:x[5])
     starts,ends = zip(*operon)[5:7]
     
     gene = operon[0]
     st,end = map(int,gene[5:7])
     name = gene[0]
-    front,_ = indexer.sixframe_to_nucleotide( name, st )
+    st,_ = indexer.sixframe_to_nucleotide( name, st )
+    end,_ = indexer.sixframe_to_nucleotide( name, end )
+    front = min(st,end)
     for gene in operon:
         name = gene[0]
         cluster = gene[1]
@@ -100,6 +108,39 @@ def count(operon,fastaindex):
         st,end = map(int,gene[5:7])
         st,_ = indexer.sixframe_to_nucleotide( name, st )
         end,_ = indexer.sixframe_to_nucleotide( name, end )
+        st = min([st,0])
+        end = max([len(histogram)-zero,end])
+        for i in xrange(st,end):
+            histogram[i+zero]+=1
+    
+""" Counts all of the positions in the range of
+each functional gene in an operon """
+def listIntervals(operon,fastaindex):
+    intervals = []
+    
+    operon = interval_filter.overlaps(operon,fastaindex,False)
+    operon = sorted(operon,key=lambda x:x[5])
+    toxins = [t for t in operon if t[1].split('.')[0]=='toxin']
+    starts,ends = zip(*toxins)[5:7]
+    gene = operon[0]
+    st,end = map(int,gene[5:7])
+    front = st
+    name = gene[0]
+    print "Functions",[gene[1].split('.')[0] for gene in operon ]
+    strand = fasta.strand(fasta.getFrame(gene[0]))
+    #if strand== "+":
+    #    st,end = min(map(int,starts)),min(map(int,ends)) 
+    #    front = min(st,end)
+    #else:
+    #    st,end = max(map(int,starts)),max(map(int,ends)) 
+    #    front = max(st,end)
+        
+    for i in xrange(0,len(operon)):
+        gene = operon[i]
+        name = gene[0]
+        cluster = gene[1]
+        function = cluster.split('.')[0]
+        st,end = map(int,gene[5:7])
         if st>end: st,end = end,st
         intervals.append( (function,st-front,end-front) )
     ints = []
@@ -109,28 +150,62 @@ def count(operon,fastaindex):
         funcs = [func]*len(interval)
         ints+=zip(funcs,interval)
     return ints
-
+""" Count the midpoints of genes of all of the functional genes """
+def countMidpoints(operon,fastaindex):
+    intervals = []
+    operon = interval_filter.overlaps(operon,fastaindex,backtran=False)
+    operon = sorted(operon,key=lambda x:x[5])
+    #toxins = [t for t in operon if t[1].split('.')[0]=='toxin']
+    #starts,ends = zip(*operon)[5:7]
+    gene = operon[0]
+    strand = fasta.strand(fasta.getFrame(gene[0]))
+    name = gene[0]
+    st,end = map(int,gene[5:7])
+    front = st
+    #if strand== "+":
+    #    st,end = min(map(int,starts)),min(map(int,ends)) 
+    #    front = min(st,end)
+    #else:
+    #    st,end = max(map(int,starts)),max(map(int,ends)) 
+    #    front = max(st,end)
+    
+    #print "Operon",name,"Strand",strand
+    for i in xrange(1,len(operon)):
+        gene = operon[i]
+        name = gene[0]
+        cluster = gene[1]
+        function = cluster.split('.')[0]
+        st,end = map(int,gene[5:7])
+        mid = (st+end)/2 - front
+        #print function,'st',st,'end',end,'front',front,'mid',mid
+        intervals.append( (function,mid) )
+    return intervals
 
 """ Distance distribution of functions within operons"""
 def operonDistribution(operonFile,fastaindex,clade="all"):
-    intervals = []
-    with open(operonFile,'r') as handle:
-        buf = []
-        for ln in handle:
-            if ln[0]=="-":
-                intervals+=count(buf,fastaindex)
-                buf = []
-            else:
-                ln = ln.rstrip()
-                toks = ln.split('|')
-                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
-                if clade=="all":
-                    buf.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
+    if not os.path.exists("intervals.pickle"):
+        intervals = []
+        with open(operonFile,'r') as handle:
+            buf = []
+            for ln in handle:
+                if ln[0]=="-":
+                    intervals+=listIntervals(buf,fastaindex)
+                    buf = []
                 else:
-                    currentClade = description.split(' ')[0]
-                    if clade==currentClad:
+                    ln = ln.rstrip()
+                    toks = ln.split('|')
+                    acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
+                    if clade=="all":
                         buf.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
-    print len(intervals)
+                    else:
+                        currentClade = description.split(' ')[0]
+                        if clade==currentClad:
+                            buf.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
+        print len(intervals)
+        cPickle.dump(intervals,open("intervals.pickle",'wb'))
+    else:
+        intervals = cPickle.load(open('intervals.pickle','rb'))
+    print intervals[:10]
     toxin = robjects.IntVector([t[1] for t in intervals if t[0]=="toxin"])
     modifier = robjects.IntVector([t[1] for t in intervals if t[0]=="modifier"])
     immunity = robjects.IntVector([t[1] for t in intervals if t[0]=="immunity"])
@@ -142,8 +217,10 @@ def operonDistribution(operonFile,fastaindex,clade="all"):
                             library(ggplot2)
                             function(toxin,modifier,immunity,transport,regulator){
                             #par(font.axis=2, font.lab=2)
-                            #png(filename="violin.png",width=1200,height=1200)
-                            png(filename="violin.png")
+                            #png(filename="violin.png",units="in",width=80,height=80,res=2400)
+                            #png(filename="violin.png")
+                            pdf("violin.pdf",width=15,heigh=15)
+                            
                             df <- rbind(data.frame(x=1:length(toxin),y=sort(toxin),group="toxin"),
                                         data.frame(x=1:length(modifier),y=sort(modifier),group="modifier"),
                                         data.frame(x=1:length(immunity),y=sort(immunity),group="immunity"),
@@ -153,13 +230,21 @@ def operonDistribution(operonFile,fastaindex,clade="all"):
                                     geom_violin(data=df,
                                                 aes(x=group,y=y,group=group,fill=group),
                                                 stat="ydensity",
-                                                #adjust=10,
+                                                adjust=0.3,
                                                 trim=FALSE) +
                                     scale_fill_discrete("Distribution") + 
-                                    coord_flip(ylim=c(-50000,50000)) +
+                                    coord_flip(ylim=c(-5000,50000)) +
                                     ylab("Distance") + 
                                     xlab("Function") +
-                                    ggtitle("Operon Function Distributions") 
+                                    ggtitle("Distribution of Functional Genes in Operons")+
+                                    theme(plot.title=element_text(face="bold", size=30)) +
+                                    theme(legend.title = element_text(colour="black", size=24, face="bold")) +
+                                    theme(legend.text = element_text(colour="black", size = 18)) +
+                                    theme(axis.text.x = element_text(size = 18, colour = 'black',face="plain"),
+                                          axis.text.y = element_text(size = 18, colour = 'black',face="plain"),
+                                          axis.title.x = element_text(size = 28, colour = 'black',face="plain"),
+                                          axis.title.y = element_text(size = 28, colour = 'black', angle = 90,face="plain"))
+                                   
                             print(p)
                             dev.off()
                             print(p)
