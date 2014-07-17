@@ -55,9 +55,9 @@ class CliqueFilter():
                     
                     #Record genome coordinates of operons
                     iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,_,_,idescription=hiti
-                    jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,_,_,jdescrjptjon=hitj
+                    jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,_,_,jdescription=hitj
                     nodei = "|".join(map(str,[iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,inenv_st,inenv_end,idescription]))
-                    nodej = "|".join(map(str,[jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jnenv_st,jnenv_end,jdescrjptjon]))
+                    nodej = "|".join(map(str,[jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jnenv_st,jnenv_end,jdescription]))
                     
                     self.graph.add_edge(nodei,nodej)
         

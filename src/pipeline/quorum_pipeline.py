@@ -338,7 +338,7 @@ class QuorumPipelineHandler(object):
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
     def cliqueFilter(self,clique_radius=30000,functions = ["toxin","modifier","immunity","transport","regulator"]):
-        print "Clique filtering"
+        print "Clique filtering","Looking for cliques with",functions
         toxin_hits     = parse("%s/toxin.out"%self.intermediate)
         modifier_hits  = parse("%s/modifier.out"%self.intermediate)
         immunity_hits  = parse("%s/immunity.out"%self.intermediate)
@@ -397,7 +397,7 @@ class QuorumPipelineHandler(object):
             stdout_str = job.ofile_string()
             operon_strings.append(stdout_str)
         
-        open(self.operons_out,'w').write('\n----------\n'.join(operon_strings))
+        open(self.operons_out,'w').write(''.join(operon_strings))
    
     """ Classifies individual bacteriocins and context genes based on their text"""
     def textmine(self,njobs=1,dbtype="sqlite3",numTrees=1000):
@@ -499,6 +499,9 @@ if __name__=="__main__":
         '--bac-evalue', type=float, required=False, default=0.00001,
         help='The evalue for bacteriocin hits')
     parser.add_argument(\
+        '--functions', type=str, nargs="+", default=None, required=False,
+        help='The list of functions to look for (e.g. toxin, modifier, transport, immunity, regulator)')
+    parser.add_argument(\
         '--training-labels',type=str,required=False,default=None,
         help='Training labels for Naive Bayes')
     parser.add_argument(\
@@ -532,6 +535,8 @@ if __name__=="__main__":
     args = parser.parse_args()
     print "Intermediate",args.intermediate
     if not args.test:
+        if args.functions==None:
+            functions = ["toxin","modifier","immunity","transport","regulator"]
         proc = QuorumPipelineHandler(args.root_dir,
                                      args.genome_files,
                                      args.six_frame_genome,
@@ -555,16 +560,17 @@ if __name__=="__main__":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter()
+            proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter()
+            proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter()
+            proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="clique":
-            proc.cliqueFilter()
+            proc.cliqueFilter(30000,args.functions)
+            pass
         #from time import sleep
         #sleep(100)
         #proc.cleanup()
@@ -650,7 +656,7 @@ if __name__=="__main__":
                 #self.proc.blastContextGenes(njobs=10)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
-                self.proc.hmmerGenes(min_cluster=1,njobs=100)
+                #self.proc.hmmerGenes(min_cluster=1,njobs=100)
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 

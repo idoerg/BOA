@@ -123,6 +123,29 @@ class Indexer():
             seq=seq+line
         self.fasta_handle.close()
         return seq[:end-start]
+    """ Retrieve a sequence on the reverse strand based on fasta index """
+    def reverse_fetch(self,defn,start,end):
+        start,end = self.reverse(defn,end)+1,self.reverse(defn,start)+1
+        assert start<=end,"Start=%d > End=%d"%(start,end)
+        sequence = self.fetch(defn,start,end)
+        basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N','R':'Y','Y':'R'} 
+        letters = [basecomplement[base] for base in list(sequence[::-1])] 
+        return ''.join(letters)
+    """ Returns corresponding coordinates on opposite strand """
+    def reverse(self,seqname,pos):
+        seqLen,byteOffset,lineLen,byteLen = self.faidx[seqname]
+        assert type(seqLen)==type(int(0))
+        assert type(pos)==type(int(0))
+        return seqLen-pos
+    def reverseOperon(self,operon):
+        newOperon = []
+        for gene in operon:
+            s = strand(getFrame(gene[0]))
+            acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description = gene
+            env_st,env_end = map(int,[env_st,env_end])
+            env_st,env_end = self.reverse(acc,env_st),self.reverse(acc,env_end)    
+            newOperon.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
+        return newOperon
     """ Translate six frame translated positions into nucleotides """
     def sixframe_to_nucleotide(self,seqname,aa_pos):
         frame = seqname.split('_')[-1]
@@ -191,6 +214,17 @@ if __name__=="__main__":
             self.assertEquals("AAGCTAGCTAAGC",seq)
             seq = indexer.fetch("testseq40_5",1,900)
             self.assertEquals("AAGCTAGCT"*100,seq)
+        def testReverseFetch(self):
+            indexer = Indexer(self.fasta,self.fastaidx)
+            indexer.index()
+            indexer.load()
+            seq = indexer.reverse_fetch("testseq10_1",1,4)
+            self.assertEquals("AGTA",seq)
+            seq = indexer.reverse_fetch("testseq40_5",1,9)
+            self.assertEquals("AGCTAGCTT",seq)
+            seq = indexer.reverse_fetch("testseq40_5",1,900)
+            self.assertEquals("AGCTAGCTT"*100,seq)
+            
         def testTransform(self):
             indexer = Indexer(self.fasta,self.fastaidx)
             indexer.index()
