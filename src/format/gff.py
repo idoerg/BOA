@@ -13,14 +13,14 @@ import argparse
 
 from Bio.Seq import Seq
 from Bio import SeqIO
-
+import re
 class GFF():
     def __init__(self,gff_file,output_file,fasta_file,fasta_index,createIndex=False):
         self.gff_file = gff_file
         self.fasta = fasta_file
         self.fasta_index = fasta_index
         self.indexer = fasta.Indexer(self.fasta,self.fasta_index)
-        if createIndex: self.indexer.index()
+        if createIndex: self.indexer.index(accessionID=True)
         self.indexer.load()
         self.output_file = output_file
     """Parses gff file and spits out a fasta file for all of the predicted orfs"""
@@ -32,9 +32,8 @@ class GFF():
                 if ln[0]=='#': continue
                 ln = ln.rstrip()
                 toks = ln.split('\t')
-                
-                species,type,st,end,_,strand,_,text = toks
-                if type!="Genbank gene":continue
+                species,_,type,st,end,_,strand,_,text = toks
+                if type!="gene":continue
                 st,end = map(int,[st,end])
                 if strand=='+':
                     sequence = self.indexer.fetch(species,st,end)
@@ -42,7 +41,6 @@ class GFF():
                     sequence = self.indexer.reverse_fetch(species,st,end)
                 outhandle.write(">%s|%s|%d|%d|%s\n%s\n"%(species,text,st,end,strand,sequence))
         
-    
 def go(gff_files,fasta,fasta_index,output_file,createIndex):
     outhandle = open(output_file,'w')
     for gff_file in gff_files:
@@ -72,7 +70,7 @@ if __name__=="__main__":
         help='Run unittests')
     args = parser.parse_args()
     if not args.test:
-        go(args.gff_file,args.output_file,args.fasta,args.fasta_index,args.create_index)
+        go(args.gff_files,args.fasta,args.fasta_index,args.output,args.create_index)
         
     else:
         del sys.argv[1:]

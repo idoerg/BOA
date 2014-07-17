@@ -55,8 +55,11 @@ class Indexer():
         self.fastaidx = fastaidx #Output fasta index
         self.faidx = {} #internal dict for storing byte offset values
         
-    """ Develop an index similar to samtools faidx """
-    def index(self):
+    """ 
+    Develop an index similar to samtools faidx
+    speciesName: give the option to pick out only the accession id 
+    """
+    def index(self,accessionID=False):
         idx = []
         #name = name of sequence
         #seqLen = length of sequence without newline characters
@@ -72,9 +75,11 @@ class Indexer():
                 
                 if len(ln)==0: break
                 if ln[0]==">":
-                    print ">",myByteoff,byteoff
-                    if name is not None: 
-                        index_out.write('\t'.join(map(str, [name, seqLen, myByteoff, 
+                    #print ">",myByteoff,byteoff
+                    if name is not None:
+                        if accessionID: acc = name.split('|')[3]
+                        else: acc = name 
+                        index_out.write('\t'.join(map(str, [acc, seqLen, myByteoff, 
                                                             lineLen, byteLen])))
                         index_out.write('\n')
                         seqLen = 0
@@ -93,10 +98,13 @@ class Indexer():
                     seqLen += len(ln)
                     byteoff += lnlen
         if name is not None:
-            index_out.write('\t'.join(map(str, [name, seqLen, myByteoff, 
+            if accessionID: acc = name.split('|')[3]
+            else: acc = name 
+            index_out.write('\t'.join(map(str, [acc, seqLen, myByteoff, 
                                                 lineLen, byteLen])))
             index_out.write('\n')
         index_out.close()
+        print "Index created"
     """ Load fasta index """
     def load(self):
         with open(self.fastaidx,'r') as handle:
@@ -123,14 +131,20 @@ class Indexer():
             seq=seq+line
         self.fasta_handle.close()
         return seq[:end-start]
+    def complement(self,letter):
+        basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','R':'Y','Y':'R'}
+        if letter in basecomplement:
+            return basecomplement[letter]
+        else:
+            return letter
     """ Retrieve a sequence on the reverse strand based on fasta index """
     def reverse_fetch(self,defn,start,end):
         start,end = self.reverse(defn,end)+1,self.reverse(defn,start)+1
         assert start<=end,"Start=%d > End=%d"%(start,end)
         sequence = self.fetch(defn,start,end)
-        basecomplement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N':'N','R':'Y','Y':'R'} 
-        letters = [basecomplement[base] for base in list(sequence[::-1])] 
-        return ''.join(letters)
+        sequence = sequence.upper()
+        return ''.join(map(self.complement,sequence[::-1]))
+        
     """ Returns corresponding coordinates on opposite strand """
     def reverse(self,seqname,pos):
         seqLen,byteOffset,lineLen,byteLen = self.faidx[seqname]

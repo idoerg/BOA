@@ -1,5 +1,5 @@
 """
-Perform clustalw multiple alignment on a single file
+Perform mafft multiple alignment on a single file
 """
 import sys,os, subprocess
 from Bio import AlignIO
@@ -8,7 +8,9 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import quorum
-class Muscle(object):
+import glob
+
+class MAFFT(object):
     def __init__(self,input_file,output_file):
         self.input = input_file #input fasta file
         self.output = output_file
@@ -16,15 +18,15 @@ class Muscle(object):
         #output from clustalw
         self.aln = "%s.aln"%basename
         
+    def run(self,fasta=False,module=subprocess,maxiters=4,threads=1):
         
-    def run(self,fasta=False,module=subprocess,maxiters=4,maxhours=12):
         if fasta:
-            cline = "muscle -in %s -out %s -maxiters %d -maxhours %d"%(self.input,self.output,maxiters,maxhours)
+            cline = "mafft --maxiterate %d --thread %d %s"%(maxiters,threads,self.input)
         else:
-            cline = "muscle -in %s -out %s -maxiters %d -maxhours %d -clw"%(self.input,self.aln,maxiters,maxhours)
+            cline = "mafft --maxiterate %d --thread %d --clustalout %s"%(maxiters,threads,self.input)
         print cline
         child = module.Popen(str(cline),
-                             #stdout=subprocess.PIPE,
+                             stdout=open(self.aln,'w'),
                              shell=True)
         if module==quorum: child.submit()
         return child
@@ -37,6 +39,7 @@ class Muscle(object):
     def cleanUp(self):
         if os.path.exists(self.aln):
             os.remove(self.aln)
+        
         
 if __name__=='__main__':
     import unittest
@@ -55,13 +58,13 @@ if __name__=='__main__':
             self.aln = "%s.aln"%basename
             
         def tearDown(self):
-            if os.path.exists(self.infile):
-                os.remove(self.infile)
-            if os.path.exists(self.infile):
-                os.remove(self.aln)
-            
+            #if os.path.exists(self.infile):
+            #    os.remove(self.infile)
+            #if os.path.exists(self.infile):
+            #    os.remove(self.aln)
+            pass
         def testRunSto(self):
-           cw = Muscle(self.infile,self.outsto)
+           cw = MAFFT(self.infile,self.outsto)
            proc = cw.run()
            proc.wait()
            cw.outputSTO()
@@ -70,7 +73,7 @@ if __name__=='__main__':
            line1 = lines[0].rstrip()
            self.assertEquals(line1,"# STOCKHOLM 1.0")
            os.remove(self.outsto)
-
+           
     class TestQuorum(unittest.TestCase):
         def setUp(self):
             self.infile = "test.fa"
@@ -90,16 +93,16 @@ if __name__=='__main__':
                 os.remove(self.infile)
             if os.path.exists(self.infile):
                 os.remove(self.aln)
+            for file in glob.glob("tmp*"):
+                os.remove(file)
         def testQuorum(self):
-           cw = Muscle(self.infile,self.outfasta)
+           cw = MAFFT(self.infile,self.outfasta)
            proc = cw.run(fasta=True,module=quorum)
            proc.wait()
-           handle = open(self.outfasta,'r')
-           lines = handle.readlines()
-           line1 = lines[0].rstrip()
-           self.assertEquals(line1[0],">")
-           os.remove(self.outfasta)
-        
+           result = proc.ofile_string()
+           print result
+           self.assertEquals(result[0],">")
+           
     unittest.main()
     
     
