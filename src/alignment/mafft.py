@@ -22,11 +22,13 @@ class MAFFT(object):
         
         if fasta:
             cline = "mafft --maxiterate %d --thread %d %s"%(maxiters,threads,self.input)
+            out = self.output
         else:
             cline = "mafft --maxiterate %d --thread %d --clustalout %s"%(maxiters,threads,self.input)
+            out = self.aln
         print cline
         child = module.Popen(str(cline),
-                             stdout=open(self.aln,'w'),
+                             stdout=open(out,'w'),
                              shell=True)
         if module==quorum: child.submit()
         return child

@@ -14,6 +14,7 @@ from Bio import SeqIO
 from cdhit import CDHit
 #from clustalw import ClustalW
 from muscle import Muscle
+from mafft import MAFFT
 import argparse
 import subprocess
 cluster_id_reg = re.compile(">(\S+)")
@@ -73,8 +74,8 @@ class HMM(object):
         #proc.wait()
         return proc
     """Perform multiple alignment with Muscle on a single cluster"""
-    def multipleAlignment(self,module=subprocess):
-        cw = Muscle(self.clusterfa,self.sto)
+    def multipleAlignment(self,module=subprocess,msa=Muscle):
+        cw = msa(self.clusterfa,self.sto)
         self.clustal = cw
         proc = cw.run(fasta=True,module=self.module)
         #cw.outputSTO()
@@ -108,14 +109,14 @@ class HMMER(object):
     def getClusters(self):
         return self.clusterfas
     """Spawn hmms from each cluster"""
-    def HMMspawn(self,njobs=4):
+    def HMMspawn(self,msa=Muscle,njobs=4):
         procs = []
         i = 0
         for clrfa in self.clusterfas:
             hmm = HMM(clrfa,self.module)
             self.hmms.append(hmm)
         for hmm in self.hmms:
-            proc = hmm.multipleAlignment()
+            proc = hmm.multipleAlignment(msa=Muscle)
             procs.append(proc)
         #    i+=1
         #    if i==njobs: #make sure jobs don't overload
@@ -125,7 +126,7 @@ class HMMER(object):
         #        p.erase_files()
         for p in procs:
             p.wait()
-            p.erase_files()
+            if self.module==quorum:p.erase_files()
         procs = []
         for hmm in self.hmms:
             proc = hmm.hmmbuild()
@@ -138,8 +139,8 @@ class HMMER(object):
             #    p.erase_files()
         for p in procs:
             p.wait()
-            p.erase_files()
-        
+            if self.module==quorum:p.erase_files()
+            
             
     """Performs HMMER using all clusters on infasta"""
     def search(self,infasta,out,njobs=4):
@@ -156,8 +157,8 @@ class HMMER(object):
         #        i=0
         for p in procs:
             p.wait()
-            p.erase_files()
-
+            if self.module==quorum:p.erase_files()
+            
         with open(out, 'w') as outfile:
             for fname in self.tables:
                 if os.path.exists(fname):
@@ -176,6 +177,7 @@ class HMMER(object):
         record_dict = SeqIO.to_dict(SeqIO.parse(infasta,'fasta'))    
         
         for cluster in clusterProc.clusters:
+            print cluster
             if len(cluster.seqs)<self.minClusters:#filter out small clusters
                 continue
             outfile = '%s/%s.cluster%d.fa'%(directory,self.basename,i)
@@ -289,14 +291,33 @@ if __name__=="__main__":
                 clrfnames = self.testhmmer.getClusters()
                 testclr = clrfnames[0]
                 self.testhmm = HMM(testclr)
-                self.testhmm.multipleAlignment()
-                self.assertTrue(os.path.exists("cluster0.aln"))
-                self.assertTrue(os.path.exists("cluster0.sto"))
-                self.testhmm.hmmbuild()
-                self.assertTrue(os.path.exists("cluster0.hmm"))
-                self.testhmm.hmmsearch(self.genome)
-                self.assertTrue(os.path.exists("cluster0.table"))
-        
+                proc = self.testhmm.multipleAlignment() 
+                proc.wait()
+                self.assertTrue(os.path.exists(self.testhmm.clusterfa))
+                self.assertTrue(os.path.exists(self.testhmm.sto))
+                proc = self.testhmm.hmmbuild()
+                proc.wait()
+                self.assertTrue(os.path.exists(self.testhmm.hmm))
+                proc = self.testhmm.hmmsearch(self.genome)
+                proc.wait()
+                self.assertTrue(os.path.exists(self.testhmm.table))
+            
+            def testFFTHMMSearch(self):
+                self.testhmmer.writeClusters()
+                clrfnames = self.testhmmer.getClusters()
+                testclr = clrfnames[0]
+                self.testhmm = HMM(testclr)
+                proc = self.testhmm.multipleAlignment(msa=MAFFT)
+                proc.wait()
+                self.assertTrue(os.path.exists(self.testhmm.clusterfa))
+                self.assertTrue(os.path.exists(self.testhmm.sto))
+                proc = self.testhmm.hmmbuild()
+                proc.wait()
+                self.assertTrue(os.path.exists(self.testhmm.hmm))
+                proc = self.testhmm.hmmsearch(self.genome)
+                proc.wait()
+                self.assertTrue(os.path.exists(self.testhmm.table))
+             
         
         class TestHMMER(unittest.TestCase):
 
@@ -325,16 +346,18 @@ if __name__=="__main__":
                 os.remove(self.fasta)
                 os.remove(self.genome)
                 self.testhmm.cleanUp()
-            
+                pass
             def testSearch(self):
                 self.testhmm.writeClusters()
-                self.assertTrue(os.path.exists("test_cluster"))
-                self.assertTrue(os.path.exists("test_cluster.clstr"))
-                self.assertTrue(os.path.exists("cluster0.fa"))
+                print "Cluster fastas",self.testhmm.clusterfas
+                
+                self.assertTrue(os.path.exists("test.fa_cluster"))
+                self.assertTrue(os.path.exists("test.fa.cluster0.fa"))
+               
                 self.testhmm.HMMspawn()
-                self.assertTrue(os.path.exists("cluster0.hmm"))
+                self.assertTrue(os.path.exists("test.fa.cluster0.fa.hmm"))
                 self.testhmm.search(self.genome,"results.txt")
-                self.assertTrue(os.path.exists("cluster0.table"))
+                self.assertTrue(os.path.exists("test.fa.cluster0.fa.table"))
                 self.assertTrue(os.path.exists("results.txt"))
         
         class TestHMMERQuorum(unittest.TestCase):
@@ -368,14 +391,15 @@ if __name__=="__main__":
                 pass
             def testSearch(self):
                 self.testhmm.writeClusters()
-                self.assertTrue(os.path.exists("test_cluster"))
-                self.assertTrue(os.path.exists("test_cluster.clstr"))
-                self.assertTrue(os.path.exists("cluster0.fa"))
+                self.assertTrue(os.path.exists("test.fa_cluster"))
+                self.assertTrue(os.path.exists("test.fa.cluster0.fa"))
+               
                 self.testhmm.HMMspawn()
-                self.assertTrue(os.path.exists("cluster0.hmm"))
+                self.assertTrue(os.path.exists("test.fa.cluster0.fa.hmm"))
                 self.testhmm.search(self.genome,"results.txt")
-                self.assertTrue(os.path.exists("cluster0.table"))
+                self.assertTrue(os.path.exists("test.fa.cluster0.fa.table"))
                 self.assertTrue(os.path.exists("results.txt"))
+                
         
         unittest.main()
     
