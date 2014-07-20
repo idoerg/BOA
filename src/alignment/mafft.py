@@ -23,26 +23,21 @@ class MAFFT(multiplealignment.MultipleAlignment):
     def run(self,fasta=False,maxiters=4,threads=8):
         
         if fasta:
-            cline = "mafft --maxiterate %d --thread %d %s"%(maxiters,threads,self.input)
+            cline = "mafft --maxiterate %d --thread %d %s > %s"%(maxiters,threads,self.input,self.output)
             out = self.output
         else:
-            cline = "mafft --maxiterate %d --thread %d --clustalout %s"%(maxiters,threads,self.input)
+            cline = "mafft --maxiterate %d --thread %d --clustalout %s > %s"%(maxiters,threads,self.input,self.aln)
             out = self.aln
         print cline
         child = self.module.Popen(str(cline),
-                                  #stdout=open(out,'w+'),
                                   shell=True)
-        
         if self.module==quorum: child.submit()
         self.child = child
-        #return child
-        #child.wait()
+
     def wait(self):
         self.child.wait()
     def outputFASTA(self):
-        with open(self.output,'w') as outhandle:
-            for ln in self.child.stdout:
-                outhandle.write(ln)
+        pass
     def outputSTO(self):
         handle = open(self.output, 'w+')
         align = AlignIO.read(self.aln, "clustal")
@@ -70,10 +65,10 @@ if __name__=='__main__':
             self.aln = "%s.aln"%basename
             
         def tearDown(self):
-            #if os.path.exists(self.infile):
-            #    os.remove(self.infile)
-            #if os.path.exists(self.infile):
-            #    os.remove(self.aln)
+            if os.path.exists(self.infile):
+                os.remove(self.infile)
+            if os.path.exists(self.infile):
+                os.remove(self.aln)
             pass
         def testRunSto(self):
            cw = MAFFT(self.infile,self.outsto)

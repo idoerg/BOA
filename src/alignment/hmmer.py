@@ -113,6 +113,15 @@ class HMMER(object):
     """Get file names for all of the cluster files"""
     def getClusters(self):
         return self.clusterfas
+    """Wait for all jobs to complete"""
+    def wait(self,procs,fasta=False):
+        for p in procs: 
+            p.wait()
+            if fasta: 
+                #p.outputFASTA()
+                assert os.path.exists(p.output)  
+            if self.module==quorum: p.erase_files()
+        
     """Spawn hmms from each cluster"""
     def HMMspawn(self,msa=MAFFT,njobs=4,maxiters=20,threads=8):
         procs = []
@@ -125,26 +134,20 @@ class HMMER(object):
             procs.append(proc)
             i+=1
             if i==njobs: #make sure jobs don't overload
-                for p in procs: p.wait()
-                procs = []
-                i=0
-                p.erase_files()
-        for p in procs:
-            p.wait()
-            if self.module==quorum:p.erase_files()
-        procs = []
+                self.wait(procs,fasta=True)
+                procs,i = [],0
+        self.wait(procs,fasta=True)
+        
+        procs,i = [],0
         for hmm in self.hmms:
             proc = hmm.hmmbuild()
             procs.append(proc)
             i+=1
             if i==njobs: #make sure jobs don't overload
-                for p in procs: p.wait()
-                procs = []
-                i=0
-                p.erase_files()
-        for p in procs:
-            p.wait()
-            if self.module==quorum:p.erase_files()
+                self.wait(procs)
+                procs,i = [],0
+        self.wait(procs)
+        
             
             
     """Performs HMMER using all clusters on infasta"""
@@ -157,12 +160,10 @@ class HMMER(object):
             procs.append(proc)
             i+=1
             if i==njobs: #make sure jobs don't overload
-                for p in procs: p.wait()
-                procs = []
-                i=0
-        for p in procs:
-            p.wait()
-            if self.module==quorum:p.erase_files()
+                self.wait(procs)
+                procs,i = [],0
+        self.wait(procs)
+        procs,i = [],0     
             
         with open(out, 'w') as outfile:
             for fname in self.tables:
@@ -406,7 +407,7 @@ if __name__=="__main__":
                 self.testhmm.search(self.genome,"results.txt")
                 self.assertTrue(os.path.exists("test.fa.cluster0.fa.table"))
                 self.assertTrue(os.path.exists("results.txt"))
-                
+            
         
         unittest.main()
     
