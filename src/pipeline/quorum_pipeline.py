@@ -33,7 +33,8 @@ import nbayes
 import rforests
 import cdhit
 import fasta
-from hmmer import * 
+from hmmer import *
+from mafft import MAFFT 
 from quorum import *
 
 class QuorumPipelineHandler(object):
@@ -325,19 +326,19 @@ class QuorumPipelineHandler(object):
             os.rename(f,fname)
         for fname in self.class_files:
             assert os.path.getsize(fname)>0
-        self.class_files = self.class_files[::-1] #Reverse list for testing]
-        # Run 6 instances of HMMER for each class
+        #self.class_files = self.class_files[::-1] #Reverse list for testing]
+        # Run separate instances of HMMER for each class
         self.hmmers = [HMMER(f,quorum,min_cluster) 
                        for f in self.class_files]
         for i in xrange(len(self.class_files)):
             H = self.hmmers[i]
             H.writeClusters(similarity=0.7,threads=8,memory=3000)
-            H.HMMspawn(njobs)
+            H.HMMspawn(msa=MAFFT,njobs=njobs)
             H.search(self.six_frame_genomes,self.hmmer_class_out[i],njobs)
         
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
-    def cliqueFilter(self,clique_radius=30000,functions = ["toxin","modifier","immunity","transport","regulator"]):
+    def cliqueFilter(self,clique_radius=50000,functions = ["toxin","modifier","immunity","transport","regulator"]):
         print "Clique filtering","Looking for cliques with",functions
         toxin_hits     = parse("%s/toxin.out"%self.intermediate)
         modifier_hits  = parse("%s/modifier.out"%self.intermediate)
@@ -560,14 +561,14 @@ if __name__=="__main__":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            #proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
             proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            #proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="clique":
             proc.cliqueFilter(30000,args.functions)
             pass
@@ -584,8 +585,8 @@ if __name__=="__main__":
                 self.exampledir = "%s/example/Streptococcus_pyogenes"%self.root
                 self.bacdir = "%s/bacteriocins"%self.root
                 self.genome_files = test_modules.getFNA(self.exampledir) 
-                self.six_frame_genome = "%s/example/all_trans.fna"%self.root
-                self.six_frame_genome_index = "%s/example/all_trans.fai"%self.root
+                self.six_frame_genome = "%s/example/all_orfs.fna"%self.root
+                self.six_frame_genome_index = "%s/example/all_orfs.fai"%self.root
                 
                 self.bacteriocins = "%s/bagel.fa"%self.bacdir
                 self.intergenes = "test_intergenes.fa"
@@ -652,16 +653,15 @@ if __name__=="__main__":
                                 
                 #self.proc.textmine(njobs=7)
                 
-                
                 #self.proc.blastContextGenes(njobs=10)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
-                #self.proc.hmmerGenes(min_cluster=1,njobs=100)
+                self.proc.hmmerGenes(min_cluster=1,njobs=8)
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 
-                self.proc.cliqueFilter(clique_radius=100000)
-                self.assertTrue(os.path.getsize(self.proc.operons_out)>0)
+                #self.proc.cliqueFilter(clique_radius=100000)
+                #self.assertTrue(os.path.getsize(self.proc.operons_out)>0)
         unittest.main()       
         
         

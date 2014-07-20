@@ -45,7 +45,7 @@ class HMM(object):
                      "%s/%s_hmmsearch.log"%(directory,basename)]
     """Clean up useless files"""        
     def cleanUp(self):
-        self.clustal.cleanUp()
+        self.clustal.erase_files()
         #if os.path.exists(self.clusterfa): os.remove(self.clusterfa)
         if os.path.exists(self.sto): os.remove(self.sto)
         if os.path.exists(self.hmm): os.remove(self.hmm)
@@ -53,9 +53,11 @@ class HMM(object):
         for log in self.logs:
             if os.path.exists(log): os.remove(log)
     """Runs Viterbi algorithm on an input protein fasta"""
-    def hmmsearch(self,infasta):
-        #cmd = "hmmsearch --noali --notextw --max --domtblout %s %s %s"%(self.table,self.hmm,infasta)
-        cmd = "hmmsearch --noali --notextw --domtblout %s %s %s"%(self.table,self.hmm,infasta)
+    def hmmsearch(self,infasta,maxpower=False):
+        if maxpower:
+            cmd = "hmmsearch --noali --notextw --max --domtblout %s %s %s"%(self.table,self.hmm,infasta)
+        else:
+            cmd = "hmmsearch --noali --notextw --domtblout %s %s %s"%(self.table,self.hmm,infasta)
         print cmd
         proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
         if self.module==quorum: proc.submit()
@@ -74,12 +76,15 @@ class HMM(object):
         #proc.wait()
         return proc
     """Perform multiple alignment with Muscle on a single cluster"""
-    def multipleAlignment(self,module=subprocess,msa=Muscle):
-        cw = msa(self.clusterfa,self.sto)
+    def multipleAlignment(self,module=subprocess,msa=MAFFT,maxiters=20,threads=8):
+        cw = msa(self.clusterfa,self.sto,module)
         self.clustal = cw
-        proc = cw.run(fasta=True,module=self.module)
+        if msa==Muscle:
+            proc = cw.run(fasta=True,maxiters=maxiters)
+        else:
+            proc = cw.run(fasta=True,maxiters=maxiters,threads=threads)
         #cw.outputSTO()
-        return proc
+        return cw
         
 """Performs clustering and runs HMMER on every cluster"""
 class HMMER(object):
@@ -109,21 +114,21 @@ class HMMER(object):
     def getClusters(self):
         return self.clusterfas
     """Spawn hmms from each cluster"""
-    def HMMspawn(self,msa=Muscle,njobs=4):
+    def HMMspawn(self,msa=MAFFT,njobs=4,maxiters=20,threads=8):
         procs = []
         i = 0
         for clrfa in self.clusterfas:
             hmm = HMM(clrfa,self.module)
             self.hmms.append(hmm)
         for hmm in self.hmms:
-            proc = hmm.multipleAlignment(msa=Muscle)
+            proc = hmm.multipleAlignment(msa=msa,maxiters=maxiters,threads=threads)
             procs.append(proc)
-        #    i+=1
-        #    if i==njobs: #make sure jobs don't overload
-        #        for p in procs: p.wait()
-        #        procs = []
-        #        i=0
-        #        p.erase_files()
+            i+=1
+            if i==njobs: #make sure jobs don't overload
+                for p in procs: p.wait()
+                procs = []
+                i=0
+                p.erase_files()
         for p in procs:
             p.wait()
             if self.module==quorum:p.erase_files()
@@ -131,12 +136,12 @@ class HMMER(object):
         for hmm in self.hmms:
             proc = hmm.hmmbuild()
             procs.append(proc)
-            #i+=1
-            #if i==njobs: #make sure jobs don't overload
-            #    for p in procs: p.wait()
-            #    procs = []
-            #    i=0
-            #    p.erase_files()
+            i+=1
+            if i==njobs: #make sure jobs don't overload
+                for p in procs: p.wait()
+                procs = []
+                i=0
+                p.erase_files()
         for p in procs:
             p.wait()
             if self.module==quorum:p.erase_files()
@@ -150,11 +155,11 @@ class HMMER(object):
             proc = hmm.hmmsearch(infasta)
             self.tables.append(hmm.table)
             procs.append(proc)
-        #    i+=1
-        #    if i==njobs: #make sure jobs don't overload
-        #        for p in procs: p.wait()
-        #        procs = []
-        #        i=0
+            i+=1
+            if i==njobs: #make sure jobs don't overload
+                for p in procs: p.wait()
+                procs = []
+                i=0
         for p in procs:
             p.wait()
             if self.module==quorum:p.erase_files()
@@ -257,6 +262,7 @@ if __name__=="__main__":
                 result = hmmerstr(hits)
                 self.assertEquals(result,
                                   'CP002279.1_3|toxin.fa.cluster2.fa|0|0|100|25000|25100|Mesorhizobium opportunistum WSM2075, complete genome')
+        
         class TestHMM(unittest.TestCase):
             def setUp(self):
                 seqs = ['>20.1',
@@ -291,10 +297,10 @@ if __name__=="__main__":
                 clrfnames = self.testhmmer.getClusters()
                 testclr = clrfnames[0]
                 self.testhmm = HMM(testclr)
-                proc = self.testhmm.multipleAlignment() 
+                proc = self.testhmm.multipleAlignment(msa=Muscle,maxiters=4) 
                 proc.wait()
                 self.assertTrue(os.path.exists(self.testhmm.clusterfa))
-                self.assertTrue(os.path.exists(self.testhmm.sto))
+                self.assertTrue(os.path.getsize(self.testhmm.sto)>0)
                 proc = self.testhmm.hmmbuild()
                 proc.wait()
                 self.assertTrue(os.path.exists(self.testhmm.hmm))
@@ -307,10 +313,10 @@ if __name__=="__main__":
                 clrfnames = self.testhmmer.getClusters()
                 testclr = clrfnames[0]
                 self.testhmm = HMM(testclr)
-                proc = self.testhmm.multipleAlignment(msa=MAFFT)
+                proc = self.testhmm.multipleAlignment(msa=MAFFT,maxiters=4)
                 proc.wait()
                 self.assertTrue(os.path.exists(self.testhmm.clusterfa))
-                self.assertTrue(os.path.exists(self.testhmm.sto))
+                self.assertTrue(os.path.getsize(self.testhmm.sto)>0)
                 proc = self.testhmm.hmmbuild()
                 proc.wait()
                 self.assertTrue(os.path.exists(self.testhmm.hmm))
@@ -387,14 +393,15 @@ if __name__=="__main__":
                 os.remove(self.fasta)
                 os.remove(self.genome)
                 self.testhmm.cleanUp()
-                #os.remove("quorum_epilogue.py")
+                os.remove("quorum_epilogue.py")
                 pass
             def testSearch(self):
                 self.testhmm.writeClusters()
                 self.assertTrue(os.path.exists("test.fa_cluster"))
                 self.assertTrue(os.path.exists("test.fa.cluster0.fa"))
                
-                self.testhmm.HMMspawn()
+                self.testhmm.HMMspawn(msa=MAFFT,maxiters=4) 
+                
                 self.assertTrue(os.path.exists("test.fa.cluster0.fa.hmm"))
                 self.testhmm.search(self.genome,"results.txt")
                 self.assertTrue(os.path.exists("test.fa.cluster0.fa.table"))

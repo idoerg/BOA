@@ -9,35 +9,40 @@ for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import quorum
 class Muscle(object):
-    def __init__(self,input_file,output_file):
+    def __init__(self,input_file,output_file,module=subprocess):
         self.input = input_file #input fasta file
         self.output = output_file
         basename,_ = os.path.splitext(input_file)
         #output from clustalw
         self.aln = "%s.aln"%basename
+        self.module = module
         
-        
-    def run(self,fasta=False,module=subprocess,maxiters=4,maxhours=12):
+    def run(self,fasta=False,maxiters=4,maxhours=12):
         if fasta:
             cline = "muscle -in %s -out %s -maxiters %d -maxhours %d"%(self.input,self.output,maxiters,maxhours)
         else:
             cline = "muscle -in %s -out %s -maxiters %d -maxhours %d -clw"%(self.input,self.aln,maxiters,maxhours)
         print cline
-        child = module.Popen(str(cline),
-                             #stdout=subprocess.PIPE,
-                             shell=True)
-        if module==quorum: child.submit()
-        return child
+        child = self.module.Popen(str(cline),
+                                  #stdout=subprocess.PIPE,
+                                  shell=True)
+        if self.module==quorum: child.submit()
+        self.child = child
+        #return child
         #child.wait()
+    def wait(self):
+        self.child.wait()
+    def outputFASTA(self):
+        pass
     def outputSTO(self):
         handle = open(self.output, 'w+')
         align = AlignIO.read(self.aln, "clustal")
         AlignIO.write([align], handle, 'stockholm')
         handle.close()
-    def cleanUp(self):
+    def erase_files(self):
         if os.path.exists(self.aln):
             os.remove(self.aln)
-        
+        if self.module==quorum: self.child.erase_files()
 if __name__=='__main__':
     import unittest
     class TestRun(unittest.TestCase):
