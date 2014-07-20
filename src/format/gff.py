@@ -10,10 +10,13 @@ for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import fasta
 import argparse
-
+import hmmer
 from Bio.Seq import Seq
 from Bio import SeqIO
 import re
+from collections import defaultdict
+from bx.intervals import *
+
 class GFF():
     def __init__(self,gff_file,output_file,fasta_file,fasta_index,createIndex=False):
         self.gff_file = gff_file
@@ -40,7 +43,21 @@ class GFF():
                 else:
                     sequence = self.indexer.reverse_fetch(species,st,end)
                 outhandle.write(">%s|%s|%d|%d|%s\n%s\n"%(species,text,st,end,strand,sequence))
-        
+    """ Figures out which orfs overlap with HMMER hits """
+    def call_orfs(self,hmmer_in):
+        tree = IntervalTree()
+        hits = hmmer.parse(hmmer_in)
+        faidx = fasta.Indexer('',fasta_index)
+        faidx.load()
+        #Create interval tree from gff file
+        with open(self.gff_file,'r') as handle:
+            for ln in handle:
+                if ln[0]=='#': continue
+                ln = ln.rstrip()
+                toks = ln.split('\t')
+                species,_,type,st,end,_,strand,_,text = toks
+                
+
 def go(gff_files,fasta,fasta_index,output_file,createIndex):
     outhandle = open(output_file,'w')
     for gff_file in gff_files:
