@@ -1,5 +1,10 @@
 Todo:
-1) Clean up code
-2) Clean up unittests
-3) Create Naive Bayes classifier
-4) Create majority vote algorithm
+1) Consider getting rid of protein sequences after the first step of the pipeline
+   Only use DNA sequences
+   Pros: No six-frame translation BS
+         Take advantage of nhmmer speedup
+2) Seriously cleanup code
+   e.g. genbank.py and genome.py
+3) Double check to see if all unittests are working
+   Consider installing nosetests
+4) Consider making package portable

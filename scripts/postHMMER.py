@@ -18,6 +18,7 @@ from fasttree import UnAlignedFastTree
 from  acc2species import AccessionToSpecies
 from accessionMap import GGAccession
 import hmmer
+import gff
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -41,18 +42,32 @@ from collections import Counter
 from pandas import *
 from clique_filter import *
 from itol import *
+import clique_filter
 if __name__=="__main__":
     faidx = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all_trans.fai"
+    gffFile = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all.gff"
     folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
     if os.path.exists("test.pickle"):
         all_hits = cPickle.load(open("test.pickle",'rb'))
     else:
         
-        toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
-        modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
-        immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
-        regulator_hits = hmmer.parse("%s/regulator.out"%folder)
-        transport_hits = hmmer.parse("%s/transport.out"%folder)
+        #toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
+        #modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
+        #immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
+        #regulator_hits = hmmer.parse("%s/regulator.out"%folder)
+        #transport_hits = hmmer.parse("%s/transport.out"%folder)
+        
+        gff = gff.GFF(gff_file=gffFile,fasta_index=faidx)
+        toxin_hits     = gff.call_orfs("%s/toxin.out"%folder)
+        modifier_hits  = gff.call_orfs("%s/modifier.out"%folder)
+        immunity_hits  = gff.call_orfs("%s/immunity.out"%folder)
+        regulator_hits = gff.call_orfs("%s/regulator.out"%folder)
+        transport_hits = gff.call_orfs("%s/transport.out"%folder)
+        open("%s/toxin_orfs.out"%folder,'w').write(hmmer.hmmerstr(toxin_hits))
+        open("%s/modifier_orfs.out"%folder,'w').write(hmmer.hmmerstr(modifier_hits))
+        open("%s/immunity_orfs.out"%folder,'w').write(hmmer.hmmerstr(immunity_hits))
+        open("%s/regulator_orfs.out"%folder,'w').write(hmmer.hmmerstr(regulator_hits))
+        open("%s/transport_orfs.out"%folder,'w').write(hmmer.hmmerstr(transport_hits))
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits 
         
         #Sort by start/end position
@@ -64,8 +79,8 @@ if __name__=="__main__":
         cPickle.dump(all_hits,open("test.pickle",'wb'))
         print "Sorted"   
     print "All hits",len(all_hits)
-    all_hits = collapseOverlaps(all_hits,faidx)
-    clusters = findContextGeneClusters(all_hits,faidx)
+    all_hits = interval_filter.overlaps(all_hits,faidx)
+    clusters = clique_filter.findContextGeneClusters(all_hits,faidx)
     outhandle = open('%s/operons.txt'%(folder),'w')
     for cluster in clusters:
         for gene in cluster:
@@ -79,7 +94,7 @@ if __name__=="__main__":
     filtered_operons = "%s/big_operons.txt"%folder
     rrnaFile = "%s/rrna.fa"%db
     itolout = "itol.txt"
-    
+    """
     itol = iTOL(operons,rrnaFile,
                 "%s/operon.rrna"%folder,
                 "%s/operon.align"%folder,
@@ -89,7 +104,7 @@ if __name__=="__main__":
     itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
     itol.buildTree()
     itol.operonDistribution(itolout)
-    
+    """
     
     
     

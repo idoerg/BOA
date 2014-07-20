@@ -75,6 +75,7 @@ def bacteriocins(bacteriocins,genes,radius):
     if radius<0: radius = 50000000 #largest bacterial genome
     intervalDict = defaultdict( IntervalTree )
     for gene in genes:    
+        #NOTE!!! Need to double check this. May have strand issues
         start,end,refid,orgid,strand = gene.sbjct_start,gene.sbjct_end,gene.query_id,gene.sbjct_id,gene.strand
         stBound,endBound = start-radius,end+radius
         intervalDict[orgid].add( stBound,endBound,gene )
