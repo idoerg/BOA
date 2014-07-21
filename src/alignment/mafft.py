@@ -72,8 +72,8 @@ if __name__=='__main__':
             pass
         def testRunSto(self):
            cw = MAFFT(self.infile,self.outsto)
-           proc = cw.run()
-           proc.wait()
+           cw.run()
+           cw.wait()
            cw.outputSTO()
            handle = open(self.outsto,'r')
            lines = handle.readlines()
@@ -102,13 +102,12 @@ if __name__=='__main__':
                 os.remove(self.aln)
             for file in glob.glob("tmp*"):
                 os.remove(file)
+        
         def testQuorum(self):
-           cw = MAFFT(self.infile,self.outfasta)
-           proc = cw.run(fasta=True,module=quorum)
-           proc.wait()
-           result = proc.ofile_string()
-           print result
-           self.assertEquals(result[0],">")
+           cw = MAFFT(self.infile,self.outfasta,module=quorum)
+           cw.run(fasta=True)
+           cw.wait()
+           self.assertTrue(os.path.getsize(self.outfasta)>0)
            
     unittest.main()
     

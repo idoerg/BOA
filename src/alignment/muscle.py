@@ -67,8 +67,8 @@ if __name__=='__main__':
             
         def testRunSto(self):
            cw = Muscle(self.infile,self.outsto)
-           proc = cw.run()
-           proc.wait()
+           cw.run()
+           cw.wait()
            cw.outputSTO()
            handle = open(self.outsto,'r')
            lines = handle.readlines()
@@ -96,9 +96,9 @@ if __name__=='__main__':
             if os.path.exists(self.infile):
                 os.remove(self.aln)
         def testQuorum(self):
-           cw = Muscle(self.infile,self.outfasta)
-           proc = cw.run(fasta=True,module=quorum)
-           proc.wait()
+           cw = Muscle(self.infile,self.outfasta,module=quorum)
+           cw.run(fasta=True)
+           cw.wait()
            handle = open(self.outfasta,'r')
            lines = handle.readlines()
            line1 = lines[0].rstrip()

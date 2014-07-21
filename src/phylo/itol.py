@@ -20,6 +20,9 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 from fasttree import *
 from collections import *
+from muscle import Muscle
+from mafft import MAFFT
+
 class iTOL():
     
     def __init__(self,operonFile,allrrna,rrnaFile=None,alignFile=None,treeFile=None):
@@ -76,11 +79,13 @@ class iTOL():
                 else:
                     print "Accession %s is missing"%accession
         SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
-        
+    """ Run bootstrapping """
+    def bootstrap(self):
+        pass
     """ Build fast tree """
-    def buildTree(self,module=subprocess,iters=4,hours=12):
+    def buildTree(self,module=subprocess,MSA=Muscle,iters=4,threads=8,hours=12):
         ft = UnAlignedFastTree(self.rrnaFile,self.treeFile)
-        ft.align(module=module,iters=10,hours=12) #Run multiple sequence alignment and spit out aligned fasta file
+        ft.align(module=module,MSA=MSA,iters=iters,threads=threads,hours=hours) #Run multiple sequence alignment and spit out aligned fasta file
         proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
         ft.cleanUp() #Clean up!
@@ -214,7 +219,7 @@ if __name__=="__main__":
             #    self.itol.cleanUp()
         def testGetRRNAS(self):
             self.itol = iTOL(self.operonFile,self.rrnaFile)
-            self.itol.getRRNAs()
+            self.itol.getRRNAs() 
             self.assertTrue(os.path.getsize(self.itol.rrnaFile)>0)
             seq_records = list(SeqIO.parse(open(self.itol.rrnaFile,'r'), "fasta"))
             self.assertEquals(len(seq_records),2)
@@ -223,7 +228,9 @@ if __name__=="__main__":
             self.itol.getRRNAs()
             self.itol.buildTree()
             self.assertTrue(os.path.getsize(self.itol.treeFile)>0)
+        def testBootstrap(self):
             
+            pass
             
     unittest.main()
     

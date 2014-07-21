@@ -24,6 +24,8 @@ from accessionMap import GGAccession
 from clustalw import ClustalW
 from muscle import Muscle
 from  acc2species import AccessionToSpecies
+from muscle import Muscle
+from mafft import MAFFT
 
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
@@ -53,12 +55,15 @@ class UnAlignedFastTree(FastTree):
         proc = super(UnAlignedFastTree,self).run(module)
         return proc
     """ Run multiple alignment """
-    def align(self,module=subprocess,iters=4,hours=12):
+    def align(self,module=subprocess,MSA=Muscle,iters=4,threads=8,hours=12):
         #assert os.path.exists(self.accSeqs)
         #assert os.stat(self.accSeqs).st_size!=0 #assert not empty
         #cw = ClustalW(self.rawSeqs,self.algnFile)
-        cw = Muscle(self.rawSeqs,self.algnFile)
-        proc = cw.run(fasta=True,module=module,maxiters=iters,maxhours=hours)
+        cw = MSA(self.rawSeqs,self.algnFile,module=module)
+        if MSA==Muscle:
+            proc = cw.run(fasta=True,maxiters=iters,maxhours=hours)
+        elif MSA==MAFFT:
+            proc = cw.run(fasta=True,maxiters=iters,threads=threads)
         proc.wait()
         #print self.accSeqs
         cw.cleanUp()
