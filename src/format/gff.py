@@ -27,6 +27,7 @@ class GFF():
         self.indexer.load()
         self.output_file = output_file
         self.inttrees = defaultdict(IntervalTree)
+        self.indextree()
     """Parses gff file and spits out a fasta file for all of the predicted orfs"""
     def parse(self,outhandle=None):
         if outhandle==None:
@@ -46,7 +47,7 @@ class GFF():
                 outhandle.write(">%s|%s|%d|%d|%s\n%s\n"%(species,text,st,end,strand,sequence))
     """ Create an interval tree"""
     def indextree(self):
-        print "Creating interval tree"
+        
         with open(self.gff_file,'r') as handle:
             for ln in handle:
                 if ln[0]=='#': continue
@@ -57,16 +58,16 @@ class GFF():
                 species,_,type,st,end,_,strand,_,text = toks
                 if type!='gene': continue
                 st,end = map(int,[st,end])
-                print species,strand,st,end
+                
                 self.inttrees[(species,strand)].add( st,end,
                                                      (st,end,text) ) 
         
     """ Figures out which orfs overlap with HMMER hits """
     def call_orfs(self,hits):
         #Create interval tree from gff file
-        self.indextree()
+        
         newHits = []
-        print "Calling orfs"
+        
         for hit in hits:
             acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
             curOrg = fasta.getName(acc)
@@ -74,7 +75,7 @@ class GFF():
             hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
             
             orfs = self.inttrees[(curOrg,curStrand)].find(hitSt,hitEnd)
-            print orfs,curOrg,curStrand,hitSt,hitEnd
+            
             if len(orfs)>0:
                 orf_st,orf_end,_ = orfs[0]
                 env_st,env_end = orf_st,orf_end

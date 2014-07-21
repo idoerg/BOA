@@ -51,18 +51,18 @@ if __name__=="__main__":
         all_hits = cPickle.load(open("test.pickle",'rb'))
     else:
         
-        #toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
-        #modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
-        #immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
-        #regulator_hits = hmmer.parse("%s/regulator.out"%folder)
-        #transport_hits = hmmer.parse("%s/transport.out"%folder)
+        toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
+        modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
+        immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
+        regulator_hits = hmmer.parse("%s/regulator.out"%folder)
+        transport_hits = hmmer.parse("%s/transport.out"%folder)
         
         gff = gff.GFF(gff_file=gffFile,fasta_index=faidx)
-        toxin_hits     = gff.call_orfs("%s/toxin.out"%folder)
-        modifier_hits  = gff.call_orfs("%s/modifier.out"%folder)
-        immunity_hits  = gff.call_orfs("%s/immunity.out"%folder)
-        regulator_hits = gff.call_orfs("%s/regulator.out"%folder)
-        transport_hits = gff.call_orfs("%s/transport.out"%folder)
+        toxin_hits     = gff.call_orfs(toxin_hits    )
+        modifier_hits  = gff.call_orfs(modifier_hits )
+        immunity_hits  = gff.call_orfs(immunity_hits )
+        regulator_hits = gff.call_orfs(regulator_hits)
+        transport_hits = gff.call_orfs(transport_hits)
         open("%s/toxin_orfs.out"%folder,'w').write(hmmer.hmmerstr(toxin_hits))
         open("%s/modifier_orfs.out"%folder,'w').write(hmmer.hmmerstr(modifier_hits))
         open("%s/immunity_orfs.out"%folder,'w').write(hmmer.hmmerstr(immunity_hits))
@@ -80,7 +80,7 @@ if __name__=="__main__":
         print "Sorted"   
     print "All hits",len(all_hits)
     all_hits = interval_filter.overlaps(all_hits,faidx)
-    clusters = clique_filter.findContextGeneClusters(all_hits,faidx)
+    clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False)
     outhandle = open('%s/operons.txt'%(folder),'w')
     for cluster in clusters:
         for gene in cluster:
