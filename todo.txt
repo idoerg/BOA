@@ -10,6 +10,7 @@ Paper todo:
 	Number of operons that haven't been predicted by BAGEL and vice versa
 4) Draw all operons related to Streptococcus Pyogenes sag operon
 5) Draw all operons related to Thermotoga martima (maybe)
+6) Draw barplots of operons and their function distributions
 
 Todo:
 1) Consider getting rid of protein sequences after the first step of the pipeline
