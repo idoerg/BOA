@@ -1,3 +1,16 @@
+Paper todo:
+1) Finalize phylogenetic tree plots  
+    I talked to Dave about this.  He thinks that the plots that I have are than they aren't properly bootstrapped.  I'm not sure about what is the best way to bootstrap these trees.  
+	One person ISMB suggested that I need an outgroup.  Do you think this is a good idea?
+	Another person at ISMB recommended that I use GraPhlAn https://bitbucket.org/nsegata/graphlan/wiki/Home.  It looks like a neat package, but I'll need to evaluate if it is feasible to get results within the next few days
+2) Finalize violinplots
+3) Generate validation results
+	For this, I'm thinking about doing two sets of plots
+	Number of species we predict that have bacteriocins that aren't predicted by BAGEL and vice versa
+	Number of operons that haven't been predicted by BAGEL and vice versa
+4) Draw all operons related to Streptococcus Pyogenes sag operon
+5) Draw all operons related to Thermotoga martima (maybe)
+
 Todo:
 1) Consider getting rid of protein sequences after the first step of the pipeline
    Only use DNA sequences

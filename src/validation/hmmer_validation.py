@@ -63,10 +63,9 @@ def categorize(operon_file,ptt_file,outfile):
                                  hmm_st,hmm_end,env_st,env_end,
                                  description,"annotated"])
                             )+"\n")
-        
-    
-    
-    
+   
+
+
     
     
     
