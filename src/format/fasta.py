@@ -48,7 +48,15 @@ def format(seqin,width=60):
         j = i
     seq.append(seqin[j:])
     return '\n'.join(seq)
-        
+""" Flatten each fasta record into one tab delimited line """
+def flatten(fastain,fastaout):
+    out = open(fastaout,'w')
+    for seq_record in SeqIO.parse(fastain,"fasta"):
+        ID = seq_record.id
+        seq = seq_record.seq
+        out.write("%s\t%s\n"%(ID,seq))
+    out.close() 
+    
 class Indexer():
     def __init__(self,fasta,fastaidx):
         self.fasta = fasta       #Input fasta

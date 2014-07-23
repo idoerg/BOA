@@ -8,9 +8,6 @@ from Bio.SeqRecord import SeqRecord
 
 from Bio.Blast import NCBIXML
 from Bio.Blast import NCBIStandalone
-
-from collections import defaultdict
-
 import sys
 import os
 import site
@@ -18,6 +15,12 @@ import argparse
 import string
 import numpy
 import re
+from collections import defaultdict
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import quorum
+
 import subprocess
 import cdhit
 from accessionMap import GGAccession
@@ -27,10 +30,7 @@ from  acc2species import AccessionToSpecies
 from muscle import Muscle
 from mafft import MAFFT
 
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for directory_name in os.listdir(base_path):
-    site.addsitedir(os.path.join(base_path, directory_name))
-import quorum
+
 
 class FastTree(object):
     def __init__(self,algnFile,treeFile):
@@ -59,17 +59,19 @@ class UnAlignedFastTree(FastTree):
         #assert os.path.exists(self.accSeqs)
         #assert os.stat(self.accSeqs).st_size!=0 #assert not empty
         #cw = ClustalW(self.rawSeqs,self.algnFile)
-        cw = MSA(self.rawSeqs,self.algnFile,module=module)
+        self.cw = MSA(self.rawSeqs,self.algnFile,module=module)
         if MSA==Muscle:
-            proc = cw.run(fasta=True,maxiters=iters,maxhours=hours)
+            self.cw.run(fasta=True,maxiters=iters,maxhours=hours)
         elif MSA==MAFFT:
-            proc = cw.run(fasta=True,maxiters=iters,threads=threads)
-        proc.wait()
+            self.cw.run(fasta=True,maxiters=iters,threads=threads)
+        cw.wait()
         #print self.accSeqs
-        cw.cleanUp()
+        #cw.cleanUp()
     def cleanUp(self):
         #os.remove(self.accSeqs)
-        os.remove(self.algnFile)
+        #os.remove(self.algnFile)
+        self.cw.cleanUp()
+        pass
 
 acc_reg = re.compile("([A-Z]+_\d+)")
 def truncate(speciesName):
@@ -195,6 +197,7 @@ if __name__=="__main__":
             def setUp(self):
                 self.infile="test.fa"
                 self.ggtable = "../data/gg_13_5_accessions.txt"
+                self.treefile = "test.tree"
                 #self.accSeqs= "acc.fa"
                 entries = [">1111886",
                            "AACGAACGCTGGCGGCATGCCTAACACATGCAAGTCGAACGAGACCTTCGGGTCTAGTGGCGCACGGGTGCGTAACGCGTGGGAATCTGCCCTTGGGTACGGAATAACAGTTAGAAATGACTGCTAATACCGTATAATGACTTCGGTCCAAAGATTTATCGCCCAGGGATGAGCCCGCGTAGGATTAGCTTGTTGGTGAGGTAAAGGCTCACCAAGGCGACGATCCTTAGCTGGTCTGAGAGGATGATCAGCCACACTGGGACTGAGACATGGCCCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGGACAATGGGCGAAAGCCTGATCCAGCAATGCCGCGTGAGTGATGAAGGCCTTAGGGTTGTAAAGCTCTTTTACCCGGGATGATAATGACAGTACCGGGAGAATAAGCCCCGGCTAACTCCGTGCCAGCAGCCGCGGTAATACGGAGGGGGCTAGCGTTGTTCGGAATTACTGGGCGTAAAGCGCACGTAGGCGGCTTTGTAAGTTAGAGGTGAAAGCCCGGGGCTCAACTCCGGAATTGCCTTTAAGACTGCATCGCTAGAATTGTGGAGAGGTGAGTGGAATTCCGAGTGTAGAGGTGAAATTCGTAGATATTCGGAAGAACACCAGTGGCGAAGGCGACTCACTGGACACATATTGACGCTGAGGTGCGAAAGCGTGGGGAGCAAACAGGATTAGATACCCTGGTAGTCCACGCCGTAAACGATGATGACTAGCTGTCGGGGCGCTTAGCGTTTCGGTGGCGCAGCTAACGCGTTAAGTCATCCGCCTGGGGAGTACGGCCGCAAGGTTAAAACTCAAAGAAATTGACGGGGGCCTGCACAAGCGGTGGAGCATGTGGTTTAATTCGAAGCAACGCGCAGAACCTTACCAGCGTTTGACATGGTAGGACGGTTTCCAGAGATGGATTCCTACCCTTACGGGACCTACACACAGGTGCTGCATGGCTGTCGTCAGCTCGTGTCGTGAGATGTTGGGTTAAGTCCCGCAACGAGCGCAACCCTCGTCTTTGGTTGCTACCATTTAGTTGAGCACTCTAAAAAAACTGCCGGTGATAAGCCGGAGGAAGGTGGGGATGACGTCAAGTCCTCATAGCCCTTACGCGCTGGGCTACACACGTGCTACAATGGCGGTGACAGAGGGCAGCAAACCCGCGAGGGTGAGCTAATCTCCAAAAGCCGTCTCAGTTCGGATTGTTCTCTGCAACTCGAGAGCATGAAGGCGGAATCGCTAGTAATCGCGGATCAGCACGCCGCGGTGAATACGTTCCCAGGCCTTGTACACACCGCCCGTCACATCACGAAAGTCGGTTGCACTAGAAGTCGGTGGGCTAACCCGCAAGGGAGGCAGCCGCCTAAAGTGTGATCGGTAATTGGGGTG",
@@ -210,15 +213,19 @@ if __name__=="__main__":
                 open(self.infile,'w').write('\n'.join(entries))
             def tearDown(self):
                 os.remove(self.infile)
+                import glob
+                for file in glob.glob("*.tree"):
+                    os.remove(file)
+                
             def testAlign(self):
-                ft = UnAlignedFastTree(self.infile)
+                ft = UnAlignedFastTree(self.infile,self.treefile)
                 ft.align()
                 self.assertTrue( os.path.exists(ft.algnFile) )
                 self.assertTrue( os.stat(ft.algnFile).st_size!=0 )
                 ft.cleanUp()
                 os.remove(ft.treeFile)
             def testRun(self):
-                ft = UnAlignedFastTree(self.infile)
+                ft = UnAlignedFastTree(self.infile,self.treefile)
                 ft.align()
                 ft.run()
                 self.assertTrue( os.path.exists(ft.treeFile) )

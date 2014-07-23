@@ -19,6 +19,7 @@ import subprocess
 from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 from fasttree import *
+from raxml import *
 from collections import *
 from muscle import Muscle
 from mafft import MAFFT
@@ -69,6 +70,7 @@ class iTOL():
                 toks = ln.split('|')
                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
                 description = description.replace(' ','_')
+                description = description.replace("'",'')
                 accession = acc.split('.')[0]
                 if accession in rrna_dict:
                     if description not in seen:
@@ -79,12 +81,10 @@ class iTOL():
                 else:
                     print "Accession %s is missing"%accession
         SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
-    """ Run bootstrapping """
-    def bootstrap(self):
-        pass
+    
     """ Build fast tree """
-    def buildTree(self,module=subprocess,MSA=Muscle,iters=4,threads=8,hours=12):
-        ft = UnAlignedFastTree(self.rrnaFile,self.treeFile)
+    def buildTree(self,module=subprocess,TREE=UnAlignedRaxml,MSA=Muscle,iters=4,threads=8,hours=12):
+        ft = TREE(self.rrnaFile,self.treeFile)
         ft.align(module=module,MSA=MSA,iters=iters,threads=threads,hours=hours) #Run multiple sequence alignment and spit out aligned fasta file
         proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
@@ -132,6 +132,7 @@ class iTOL():
                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
                 name = description.replace(' ','_')
                 name = name.split(',')[0]
+                name = name.replace("'",'')
                 if prevName == None: 
                     prevName = name 
                 elif name!=prevName:

@@ -85,7 +85,20 @@ def bacteriocins(bacteriocins,genes,radius):
     queries = zip(headers,bacteriocins) 
     filtered,geneNeighborhoods = spatialFilter(queries,intervalDict,radius)
     return filtered,geneNeighborhoods
-
+"""
+Removes all entries with exact st,end on same organism
+"""
+def unique(hits):
+    hitset = set()
+    newHits = []
+    for hit in hits:
+        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+        curOrg = fasta.getName(acc)
+        if (env_st,env_end,curOrg) in hitset: continue
+        hitset.add( (env_st,env_end,curOrg) )
+        newHits.append( (acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description) )
+    return newHits
+        
 """
 Collapses hmmer hits using Interval trees
 """

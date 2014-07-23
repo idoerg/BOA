@@ -84,6 +84,7 @@ if __name__=="__main__":
     #Find operons with at least a toxin and a transport
     print "All hits",len(all_hits)
     all_hits = interval_filter.overlaps(all_hits,faidx)
+    all_hits = interval_filter.unique(all_hits)
     clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,
                                                      functions=["toxin","transport"])
     outhandle = open('%s/operons.txt'%(folder),'w')
@@ -93,15 +94,13 @@ if __name__=="__main__":
         outhandle.write('----------\n')
     
     #Predict operons based on just context genes
-    clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,
+    clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,radius=70000,   
                                                      functions=["modifier","regulator","immunity","transport"])
     outhandle = open('%s/predicted_operons.txt'%(folder),'w')
     for cluster in clusters:
         for gene in cluster:
             outhandle.write("%s\n"%gene)
         outhandle.write('----------\n')
-    
-    
     
     db     = "/home/mortonjt/Projects/Bacfinder/db"
     quorum = "/home/mortonjt/Projects/Bacfinder/workspace/quorum"
@@ -124,5 +123,5 @@ if __name__=="__main__":
     
     
     
-    
+        
     

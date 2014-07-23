@@ -84,7 +84,7 @@ class CliqueFilter():
                 clusters.append(clique)
         return clusters
     
-        
+    
 """
 Locate all context gene clusters
 """

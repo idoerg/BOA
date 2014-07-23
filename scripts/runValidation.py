@@ -18,14 +18,16 @@ from hmmer_validation import *
 from bagel_validation import *
 
 if __name__=="__main__":
-
-    operons = "/home/jamie/Documents/Miami_bio/Bacfinder/workspace/data/operons.txt"
-    predicted_operons = "/home/jamie/Documents/Miami_bio/Bacfinder/workspace/data/predicted_operons.txt"
-    bagel = "/home/jamie/Documents/Miami_bio/Bacfinder/workspace/data/bagel.csv"
+    
+    operons = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate/operons.txt"
+    predicted_operons = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate/predicted_operons.txt"
+    bagel = "/home/mortonjt/Projects/Bacfinder/bacteriocins/bagel.csv"
+    
     ptt = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all.ptt"
-    bagel,both,detect = bagel_compare_species(operons,bagel)
-    open("bagel.out",'w').write('\n'.join(map(str,sorted(list(bagel))))+'\n')
-    open("both.out",'w').write('\n'.join(map(str,sorted(list(both))))+'\n')
-    open("detect.out",'w').write('\n'.join(map(str,sorted(list(detect))))+'\n')
+    #bagel,both,detect = bagel_compare_species(operons,bagel)
+    #open("bagel.out",'w').write('\n'.join(map(str,sorted(list(bagel))))+'\n')
+    #open("both.out",'w').write('\n'.join(map(str,sorted(list(both))))+'\n')
+    #open("detect.out",'w').write('\n'.join(map(str,sorted(list(detect))))+'\n')
 
-    #categorize(operons,ptt,"categories.txt")
+    categorize(operons,ptt,"categories.txt")
+    categorize(predicted_operons,ptt,"predicted_categories.txt")
