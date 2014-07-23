@@ -15,10 +15,17 @@ for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 
 from hmmer_validation import *
+from bagel_validation import *
 
 if __name__=="__main__":
-    
-    operons = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate/operons.txt"
+
+    operons = "/home/jamie/Documents/Miami_bio/Bacfinder/workspace/data/operons.txt"
+    predicted_operons = "/home/jamie/Documents/Miami_bio/Bacfinder/workspace/data/predicted_operons.txt"
+    bagel = "/home/jamie/Documents/Miami_bio/Bacfinder/workspace/data/bagel.csv"
     ptt = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all.ptt"
-    
-    categorize(operons,ptt,"categories.txt") 
+    bagel,both,detect = bagel_compare_species(operons,bagel)
+    open("bagel.out",'w').write('\n'.join(map(str,sorted(list(bagel))))+'\n')
+    open("both.out",'w').write('\n'.join(map(str,sorted(list(both))))+'\n')
+    open("detect.out",'w').write('\n'.join(map(str,sorted(list(detect))))+'\n')
+
+    #categorize(operons,ptt,"categories.txt")
