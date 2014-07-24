@@ -25,8 +25,12 @@ class Raxml(object):
     def __init__(self,algnFile,treeFile):
         self.algnFile = algnFile
         self.treeFile = treeFile
-    def run(self,module=subprocess,threads=6):
-        cmd = "raxml -m GTRGAMMA -p 12345 -s %s -n %s -T %d"%(self.algnFile,self.treeFile,threads)
+    def run(self,module=subprocess,threads=6,replicates=100):
+        cmd = "raxml -m GTRGAMMA -p 12345 -s %s -n %s -x 12345 -N %d -T %d"%(self.algnFile,
+                                                                    self.treeFile,
+                                                                    replicates,
+                                                                    threads)
+        print cmd
         child = module.Popen(cmd,shell=True)
         self.treeFile = "RAxML_bestTree.%s"%self.treeFile
         if module==quorum: child.submit()

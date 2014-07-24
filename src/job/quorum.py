@@ -55,10 +55,15 @@ class QuorumError(Exception):
 class pbsJobHandler:
     """A pbsJobHandler corresponds to a job launched (or to be launched) on quorum.  Once the object is created (and provided with a command-line execution command),
        the user can extract various inforamtion about the job (current status, output, etc...) and cleanup files."""
-    def __init__(self, batch_file, executable, use_pid = pbs_defaults['use_pid'], job_name = pbs_defaults['job_name'], nodes = pbs_defaults['nodes'], ppn = pbs_defaults['ppn'], 
-                 mem = pbs_defaults['mem'], walltime = pbs_defaults['walltime'], address = pbs_defaults['address'], join = pbs_defaults['join'], env = pbs_defaults['env'], 
-                 queue = pbs_defaults['queue'], mail = pbs_defaults['mail'], output_location = pbs_defaults['output_location'], chdir = pbs_defaults['chdir'], 
-                 RHmodules = pbs_defaults['RHmodules'], file_limit = pbs_defaults['file_limit'], file_delay = pbs_defaults['file_delay'], epilogue_file = pbs_defaults['epilogue_file']):
+    def __init__(self, batch_file, executable, use_pid = pbs_defaults['use_pid'], 
+                 job_name = pbs_defaults['job_name'], nodes = pbs_defaults['nodes'], 
+                 ppn = pbs_defaults['ppn'],mem = pbs_defaults['mem'], 
+                 walltime = pbs_defaults['walltime'], address = pbs_defaults['address'], join = pbs_defaults['join'], 
+                 env = pbs_defaults['env'], queue = pbs_defaults['queue'], 
+                 mail = pbs_defaults['mail'], output_location = pbs_defaults['output_location'], 
+                 chdir = pbs_defaults['chdir'], RHmodules = pbs_defaults['RHmodules'], 
+                 file_limit = pbs_defaults['file_limit'], file_delay = pbs_defaults['file_delay'], 
+                 epilogue_file = pbs_defaults['epilogue_file']):
         """Constructor.  Requires a file name for the batch file, and the execution command.  Optional parmeters include:
            * use_pid: will embded a process id into the batch file name if true.  Default = true.
            * job_name: A name for the quorum name.  Default = the batch file name.
@@ -104,7 +109,7 @@ class pbsJobHandler:
         self.walltime = walltime
         self.modules = RHmodules
         self.output_location = output_location if output_location else "."
-        
+        print "Threads",self.ppn
         s="#PBS -l nodes="+ str(self.nodes)+":ppn="+str(self.ppn)+(":m128" if self.mem else "") + "\n"
         f.write(s)
         s="#PBS -l walltime="+self.walltime+"\n"
@@ -455,7 +460,7 @@ def loadPBS(fp):
     """Recover a list of pickled jobs from a specified file pointer."""
     return pickle.load(fp)
 
-def Popen(cmd, shell, batch_file = None, stdin = None, stdout = None, stderr = None):
+def Popen(cmd, shell, batch_file = None, stdin = None, stdout = None, stderr = None, threads=1):
     """Parallel to the subprocess.Popen.  Will use a randomly generated batchfile name (in current dir) if not specified.
     All other parameters are default.
     * If shell of false: assume cmd will be a list, when is then joined with " "
@@ -466,7 +471,8 @@ def Popen(cmd, shell, batch_file = None, stdin = None, stdout = None, stderr = N
 
     if not batch_file:
         batch_file = tempfile.NamedTemporaryFile(dir=".").name
-    return pbsJobHandler(batch_file = batch_file, executable = cmd)
+    print "Popen threads",threads
+    return pbsJobHandler(batch_file = batch_file, executable = cmd,ppn=threads)
 
 def relaunch(args = sys.argv, force = False, walltime = "40:00:00", python = "python"):
     """Detects whether program is being run on the head node.  If so, relaunch identical program on a compute node and quit."""

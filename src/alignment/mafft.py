@@ -29,9 +29,16 @@ class MAFFT(multiplealignment.MultipleAlignment):
             cline = "mafft --maxiterate %d --thread %d --clustalout %s > %s"%(maxiters,threads,self.input,self.aln)
             out = self.aln
         print cline
-        child = self.module.Popen(str(cline),
-                                  shell=True)
-        if self.module==quorum: child.submit()
+        
+        if self.module==quorum:
+            child = self.module.Popen(str(cline),
+                                  shell=True,
+                                  threads=threads) 
+            child.submit()
+        else:
+            child = self.module.Popen(str(cline),
+                                      shell=True)
+                                  
         self.child = child
 
     def wait(self):

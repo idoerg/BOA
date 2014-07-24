@@ -1,7 +1,11 @@
 from Bio.Seq import Seq
 from Bio import SeqIO
 import os,sys,site
-
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for directory_name in os.listdir(base_path):
+    site.addsitedir(os.path.join(base_path, directory_name))
+import quorum
+import subprocess
 """ Remove duplicate entries"""
 def removeDuplicates(items):
     uniqueDict = {tuple(x[-5:-1]):x for x in items}
@@ -56,7 +60,7 @@ def flatten(fastain,fastaout):
         seq = seq_record.seq
         out.write("%s\t%s\n"%(ID,seq))
     out.close() 
-    
+
 class Indexer():
     def __init__(self,fasta,fastaidx):
         self.fasta = fasta       #Input fasta
@@ -125,6 +129,8 @@ class Indexer():
                 self.faidx[chrom]=(seqLen,byteOffset,lineLen,byteLen)
     """ Retrieve a sequence based on fasta index """
     def fetch(self, defn, start, end):
+        assert type(1)==type(start)
+        assert type(1)==type(end)
         self.fasta_handle = open(self.fasta,'r')
         seq=""
         if not self.faidx.has_key(defn):
@@ -168,6 +174,13 @@ class Indexer():
             env_st,env_end = self.reverse(acc,env_st),self.reverse(acc,env_end)    
             newOperon.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end, description))
         return newOperon
+    
+    """ Build a six-frame translation of entire fasta file"""
+    def translate(self,transout,module=subprocess):
+        cmd = "transeq -sequence %s -outseq %s -frame 6 -clean"%(self.fasta,transout)
+        proc = module.Popen(cmd,shell=True)
+        proc.wait()
+        
     """ Translate six frame translated positions into nucleotides """
     def sixframe_to_nucleotide(self,seqname,aa_pos):
         frame = seqname.split('_')[-1]
@@ -202,7 +215,7 @@ def strand(frame):
     else:
         raise Exception 
 if __name__=="__main__":
-    import unittest
+    import unittest 
     class TestIndex(unittest.TestCase):
         def setUp(self):
             entries = ['>testseq10_1',
@@ -300,5 +313,41 @@ if __name__=="__main__":
                               "CA"])
                               )
 
+    class TestTranslate(unittest.TestCase):
+        def setUp(self):
+          self.frames = ["MAIVMGRX",
+                         "WPLXWAAX",
+                         "GHCNGPLX",
+                         "HGNYHAAS"[::-1],
+                         "XPWQLPGS"[::-1],
+                         "XAMTIPRQ"[::-1]
+                         ]
+          seq = "atggccattguaatgggccgctga"
+          self.fasta = "test.fasta"
+          self.sixframe = "six.fasta"
+          open(self.fasta,'w').write(">test\n%s\n"%(seq))
+          #open(self.sixframe,'w').write(">test_1\n%s\n"%(frame1)+\
+          #                              ">test_2\n%s\n"%(frame2)+\
+          #                              ">test_3\n%s\n"%(frame3)+\
+          #                              ">test_4\n%s\n"%(frame4)+\
+          #                              ">test_5\n%s\n"%(frame5)+\
+          #                              ">test_6\n%s\n"%(frame6)
+          #                              )
+        def tearDown(self):
+            os.remove(self.fasta)
+            os.remove(self.sixframe)          
+        def test1(self):
+            indexer = Indexer(self.fasta,"")
+            indexer.translate(self.sixframe)
+            i = 0
+            for record in SeqIO.parse(open(self.sixframe,'r'),'fasta'):
+                seq = record.seq
+                self.assertEquals(str(seq),self.frames[i])
+                i+=1
             
     unittest.main()
+    
+    
+    
+    
+    

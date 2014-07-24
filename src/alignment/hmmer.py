@@ -31,6 +31,7 @@ class HMM(object):
     def __init__(self,
                  clusterfa,
                  module=subprocess,
+                 threads=8,
                  reverseComplement=False):
         self.module=module
         directory = os.path.dirname(clusterfa)
@@ -43,6 +44,7 @@ class HMM(object):
         self.table = "%s/%s.table"%(directory,basename) #results from hmmsearch
         self.logs = ["%s/%s_hmmbuild.log"%(directory,basename),
                      "%s/%s_hmmsearch.log"%(directory,basename)]
+        self.threads = threads
     """Clean up useless files"""        
     def cleanUp(self):
         self.clustal.erase_files()
@@ -59,30 +61,30 @@ class HMM(object):
         else:
             cmd = "hmmsearch --noali --notextw --domtblout %s %s %s"%(self.table,self.hmm,infasta)
         print cmd
-        proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
+        proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True,threads=self.threads)
         if self.module==quorum: proc.submit()
         return proc
     """Runs Viterbi algorithm on an input nucleotide fasta"""
     def nhmmsearch(self,infasta):
         cmd = "nhmmer --noali --domtblout --max %s %s %s"%(self.table,self.hmm,infasta)
-        proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True)
+        proc = self.module.Popen(cmd,stderr=open(self.logs[0],'w+'),shell=True,threads=self.threads)
         if self.module==quorum: proc.submit()
         return proc 
     """Builds an HMM for a cluster"""
     def hmmbuild(self,module=subprocess):
         cmd = "hmmbuild %s %s "%(self.hmm,self.sto)
-        proc = self.module.Popen(cmd,stderr=open(self.logs[1],'w+'),shell=True)
+        proc = self.module.Popen(cmd,stderr=open(self.logs[1],'w+'),shell=True,threads=self.threads)
         if self.module==quorum: proc.submit()
         #proc.wait()
         return proc
     """Perform multiple alignment with Muscle on a single cluster"""
-    def multipleAlignment(self,module=subprocess,msa=MAFFT,maxiters=20,threads=8):
+    def multipleAlignment(self,module=subprocess,msa=MAFFT,maxiters=20):
         cw = msa(self.clusterfa,self.sto,module)
         self.clustal = cw
         if msa==Muscle:
             proc = cw.run(fasta=True,maxiters=maxiters)
         else:
-            proc = cw.run(fasta=True,maxiters=maxiters,threads=threads)
+            proc = cw.run(fasta=True,maxiters=maxiters,threads=self.threads)
         #cw.outputSTO()
         return cw
         
@@ -90,6 +92,7 @@ class HMM(object):
 class HMMER(object):
     def __init__(self,fasta="",
                  module=subprocess,
+                 threads=8,
                  minClusters=2):
         self.module = module
         directory = os.path.dirname(fasta)
@@ -102,7 +105,7 @@ class HMMER(object):
         self.hmms = []
         self.tables = []
         self.minClusters = minClusters #The mininum number of members in a cluster
-        
+        self.threads = threads
     """Remove all useless files"""
     def cleanUp(self):
         for hmm in self.hmms:
@@ -123,14 +126,14 @@ class HMMER(object):
             if self.module==quorum: p.erase_files()
         
     """Spawn hmms from each cluster"""
-    def HMMspawn(self,msa=MAFFT,njobs=4,maxiters=20,threads=8):
+    def HMMspawn(self,msa=MAFFT,njobs=4,maxiters=20):
         procs = []
         i = 0
         for clrfa in self.clusterfas:
-            hmm = HMM(clrfa,self.module)
+            hmm = HMM(clrfa,module=self.module,threads=self.threads)
             self.hmms.append(hmm)
         for hmm in self.hmms:
-            proc = hmm.multipleAlignment(msa=msa,maxiters=maxiters,threads=threads)
+            proc = hmm.multipleAlignment(msa=msa,maxiters=maxiters)
             procs.append(proc)
             i+=1
             if i==njobs: #make sure jobs don't overload
@@ -173,8 +176,8 @@ class HMMER(object):
                             outfile.write(line)
                         
     """Obtains ids for all of the sequences and write them into separate cluster files"""
-    def writeClusters(self,similarity=0.7,threads=1,memory=800):
-        clusterProc = CDHit(self.fasta,self.clrreps,similarity,threads,memory)
+    def writeClusters(self,similarity=0.7,memory=800):
+        clusterProc = CDHit(self.fasta,self.clrreps,similarity,self.threads,memory)
         clusterProc.run()
         clusterProc.parseClusters()    
         i = 0

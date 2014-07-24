@@ -80,7 +80,7 @@ if __name__=="__main__":
         all_hits=sorted(all_hits,key=lambda x: x[0])  
         cPickle.dump(all_hits,open("test.pickle",'wb'))
         print "Sorted"   
-        
+    """
     #Find operons with at least a toxin and a transport
     print "All hits",len(all_hits)
     all_hits = interval_filter.overlaps(all_hits,faidx)
@@ -101,7 +101,7 @@ if __name__=="__main__":
         for gene in cluster:
             outhandle.write("%s\n"%gene)
         outhandle.write('----------\n')
-    
+    """
     db     = "/home/mortonjt/Projects/Bacfinder/db"
     quorum = "/home/mortonjt/Projects/Bacfinder/workspace/quorum"
     folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
@@ -113,11 +113,11 @@ if __name__=="__main__":
     itol = iTOL(operons,rrnaFile,
                 "%s/operon.rrna"%folder,
                 "%s/operon.align"%folder,
-                "%s/operon.tree"%folder)
+                "operon.tree")
     itol.sizeFilter(filtered_operons,k=200 )
     itol.setOperonFile(filtered_operons)
     itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
-    itol.buildTree(MSA=MAFFT,iters=10,threads=8)
+    #itol.buildTree(MSA=MAFFT,iters=10,threads=8)
     itol.operonDistribution(itolout)
     
     

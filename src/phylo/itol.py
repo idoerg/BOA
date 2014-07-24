@@ -24,6 +24,39 @@ from collections import *
 from muscle import Muscle
 from mafft import MAFFT
 
+def formatName(name):
+    name = name.replace("'",'')
+    name = name.replace("\"",'')
+    name = name.replace(",",'')
+    name = name.replace("]",'')
+    name = name.replace("[",'')
+    name = name.replace("(",'')
+    name = name.replace(")",'')
+    name = name.replace("\\",'')
+    name = name.replace("/",'')
+    name = name.replace(";",'')
+    name = name.replace(":",'')
+    name = name.replace(">",'')
+    name = name.replace("<",'')
+    name = name.replace("+",'')
+    name = name.replace("-",'')
+    name = name.replace("=",'')
+    name = name.replace("|",'')
+    name = name.replace("{",'')
+    name = name.replace("}",'')
+    name = name.replace("?",'')
+    name = name.replace("~",'')
+    name = name.replace("`",'')
+    name = name.replace("*",'')
+    name = name.replace("&",'')
+    name = name.replace("^",'')
+    name = name.replace("%",'')
+    name = name.replace("$",'')
+    name = name.replace("#",'')
+    name = name.replace("@",'')
+    name = name.replace("!",'')
+    name = name.replace(" ",'_')
+    return name
 class iTOL():
     
     def __init__(self,operonFile,allrrna,rrnaFile=None,alignFile=None,treeFile=None):
@@ -69,8 +102,7 @@ class iTOL():
                 ln = ln.rstrip()
                 toks = ln.split('|')
                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
-                description = description.replace(' ','_')
-                description = description.replace("'",'')
+                description = formatName(description)
                 accession = acc.split('.')[0]
                 if accession in rrna_dict:
                     if description not in seen:
@@ -122,7 +154,8 @@ class iTOL():
     def operonDistribution(self,itolout):
         outhandle = open(itolout,'w')
         outhandle.write("LABELS\timmunity\tmodifier\tregulator\ttoxin\ttransport\n")
-        outhandle.write("COLORS\t#0000ff\t#00ff00\t#ff0000\t#ff00ff\t#ff8c00\n")    
+        outhandle.write("COLORS\t#0000ff\t#00ff00\t#ff0000\t#ff00ff\t#ff8c00\n")
+        seen = set()    
         with open(self.operonFile,'r') as handle:
             func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
             prevName = None
@@ -130,9 +163,10 @@ class iTOL():
                 if ln[0]=='-':continue
                 toks = ln.split("|")
                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
-                name = description.replace(' ','_')
-                name = name.split(',')[0]
-                name = name.replace("'",'')
+                if (acc,env_st,env_end) in seen: continue
+                seen.add( (acc,env_st,env_end) )
+                name = description.split(',')[0]
+                name = formatName(name)
                 if prevName == None: 
                     prevName = name 
                 elif name!=prevName:

@@ -26,7 +26,14 @@ class Muscle(object):
         child = self.module.Popen(str(cline),
                                   #stdout=subprocess.PIPE,
                                   shell=True)
-        if self.module==quorum: child.submit()
+        if self.module==quorum:
+            child = self.module.Popen(str(cline),
+                                  shell=True,
+                                  threads=threads) 
+            child.submit()
+        else:
+            child = self.module.Popen(str(cline),
+                                      shell=True)
         self.child = child
         #return child
         #child.wait()
