@@ -53,7 +53,9 @@ import intergene
 import genome
 import interval_filter
 #import intervals
-import annotated_genes
+import annotation
+import genbank_annotation
+import fasta
 
 
 from bx.intervals import *
@@ -193,7 +195,7 @@ def main(genome_files,
         if verbose: print "Number of original bacteriocins",len(bacteriocins)
         intergeneDict = identifyIntergenic(bacteriocins,intergene_file)
         writeBacteriocins(bacteriocins,intergeneDict,bacteriocinsOut)
-        annots = [annot for annot in annotated_genes.AnnotatedGenes(annotations_file)]
+        annots = [annot for annot in annotation.AnnotatedGenes(annotations_file)]
         annots,bacteriocinNeighborhoods = interval_filter.annotatedGenes(annots,bacteriocins,bacteriocin_radius)
         annot_bact_pairs = zip(annots,bacteriocinNeighborhoods)
         writeAnnotatedGenes(annot_bact_pairs, annotationsOut)
@@ -279,7 +281,6 @@ if __name__=="__main__":
         import unittest
         import test_modules
         import test_genbank
-        import annotated_genes
         import intergene
         
         class TestPipeline(unittest.TestCase):
@@ -288,12 +289,13 @@ if __name__=="__main__":
                 self.exampledir = "%s/example/Streptococcus_pyogenes"%self.root
                 self.bacdir = "%s/bacteriocins"%self.root
                 self.annotated_genes = "test_genes.fa"
-                annotated_genes.go(self.exampledir,self.annotated_genes) 
+                print "Example dir",self.exampledir
+                annotation.go(self.exampledir,self.annotated_genes,types=['.gbk']) 
                 self.genome_files = test_modules.getFNA(self.exampledir)
                 self.bacteriocins = "%s/bagel.fa"%self.bacdir
                 self.genes = "%s/genes.fa"%self.bacdir
                 self.intergenes = "test_intergenes.fa"
-                intergene.go(self.root,self.intergenes)
+                intergene.go(self.exampledir,self.intergenes)
                 self.bacteriocinsOut = "test_out_bacteriocins.txt"
                 #self.filteredOut,
                 self.annotationsOut = "neighbor_genes.txt"
@@ -345,7 +347,7 @@ if __name__=="__main__":
                 handle = open(self.test_file,'w')
                 handle.write(test_input)
                 handle.close()
-                annotated_genes.parseAnnotations("NC_12345",self.test_file,open(self.out_file,'w'))
+                genbank_annotation.parse("NC_12345",self.test_file,open(self.out_file,'w'))
             def tearDown(self):
                 os.remove(self.test_file)
                 os.remove(self.out_file)
@@ -516,7 +518,7 @@ if __name__=="__main__":
                                                 sbjct_end   = 460,
                                                 strand = "-")]
                 radius = 100
-                annots = [A for A in annotated_genes.AnnotatedGenes(self.out_file)]
+                annots = [A for A in annotation.AnnotatedGenes(self.out_file)]
                 filtered,hoods = interval_filter.annotatedGenes(annots,bacteriocins,radius)
                 self.assertEquals(1,len(filtered))
                 self.assertEquals(1,len(hoods)) 

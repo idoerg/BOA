@@ -6,7 +6,7 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 import genbank_annotation
 import gff_annotation
-
+import os,sys,site
 """
 A container to process fasta objects and obtain information for annotations
 """
@@ -30,15 +30,19 @@ class AnnotatedGenes(object):
         except StopIteration as s:
             raise StopIteration()
 
-def go(root_dir,output_file):
+def go(root_dir,output_file,index_obj=None,types=[".gbk",".gff"]):
     outHandle = open(output_file,'w')
     for root, subFolders, files in os.walk(root_dir):
         for fname in files:
             genome_files = []
             organism,ext = os.path.splitext(os.path.basename(fname))
-            if ext==".gbk":
+            if ext==".gbk" and ext in types:
                 absfile=os.path.join(root,fname)
-                genbank_annotations.parse(organism,absfile,outHandle)
+                genbank_annotation.parse(organism,absfile,outHandle)
+            elif ext==".gff" and ext in types:
+                absfile=os.path.join(root,fname)
+                gff_annotation.parse(organism,absfile,index_obj,outHandle)
+                
                 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\

@@ -138,20 +138,7 @@ class QuorumPipelineHandler(object):
         intergene.go(self.genome_dir,self.intergenes)
         outhandle = open(self.all_fasta,'w')
         #Combine all genome files into a single genome fasta file
-        for root, subFolders, files in os.walk(self.genome_dir):
-            for fname in files:
-                genome_files = []
-                organism,ext = os.path.splitext(os.path.basename(fname))
-                absfile=os.path.join(root,fname)
-                if ext==".fna":
-                    shutil.copyfileobj(open(absfile),outhandle)
         
-        indexer = fasta.Indexer(self.all_fasta,"")
-        indexer.translate(self.six_frame_genomes)
-        
-        six_frame_index = fasta.Indexer(self.six_frame_genomes,
-                                        self.six_frame_faidx) 
-        six_frame_index.index()
             
         
     """  Runs blast to identify bacteriocins and context genes"""

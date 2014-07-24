@@ -213,141 +213,190 @@ def strand(frame):
     elif int(frame)>=4 and int(frame)<=6:
         return '-'
     else:
-        raise Exception 
+        raise Exception
+     
+"""Merge all fasta files together, create fasta index, six-frame translated
+genomes and six-frame translation index"""
+def go(rootdir,
+       all_fasta,
+       all_faidx,
+       six_frame_genome,
+       six_frame_faidx):
+    outhandle = open(all_fasta,'w')
+    for root, subFolders, files in os.walk(self.genome_dir):
+        for fname in files:
+            genome_files = []
+            organism,ext = os.path.splitext(os.path.basename(fname))
+            absfile=os.path.join(root,fname)
+            if ext==".fna":
+                shutil.copyfileobj(open(absfile),outhandle)
+    
+    indexer = Indexer(all_fasta,all_faidx)
+    indexer.index()
+    indexer.translate(six_frame_genomes)
+    
+    six_frame_index = fasta.Indexer(six_frame_genomes,
+                                    six_frame_faidx) 
+    six_frame_index.index()
+    
 if __name__=="__main__":
-    import unittest 
-    class TestIndex(unittest.TestCase):
-        def setUp(self):
-            entries = ['>testseq10_1',
-                       'AGCTACT',
-                       '>testseq10_2',
-                       'AGCTAGCT',
-                       '>testseq40_2',
-                       'AAGCTAGCT',
-                       '>testseq40_5',
-                       'AAGCTAGCT\n'*100
-                       ]
-            self.fasta = "test.fa"
-            self.fastaidx = "test.fai"
-            self.revfasta = "rev.fa"
-            open(self.fasta,'w').write('\n'.join(entries))
-        def tearDown(self):
-            if os.path.exists(self.fasta):
+    parser = argparse.ArgumentParser(description=\
+        'Finds bacteriocins and context genes')
+    parser.add_argument(\
+        '--root-dir', type=str, required=False,
+        help='The output file basename for filtered annotationed regions and bacteriocins')
+    parser.add_argument(\
+        '--output', type=str, required=False,
+        help='The output file basename for filtered annotationed regions and bacteriocins')
+    parser.add_argument(\
+        '--test', action='store_const', const=True, default=False,
+        help='Run unittests')
+    args = parser.parse_args()
+    
+    if not args.test:
+        all_fasta = "%s_all.fna"%args.output
+        all_faidx = "%s_all.fai"%args.output
+        six_fasta = "%s_six.fna"%args.output
+        six_faidx = "%s_six.fai"%args.output
+        go(args.root_dir,
+           all_fasta,
+           all_faidx,
+           six_fasta,
+           six_faidx)
+    else:    
+        import unittest 
+        class TestIndex(unittest.TestCase):
+            def setUp(self):
+                entries = ['>testseq10_1',
+                           'AGCTACT',
+                           '>testseq10_2',
+                           'AGCTAGCT',
+                           '>testseq40_2',
+                           'AAGCTAGCT',
+                           '>testseq40_5',
+                           'AAGCTAGCT\n'*100
+                           ]
+                self.fasta = "test.fa"
+                self.fastaidx = "test.fai"
+                self.revfasta = "rev.fa"
+                open(self.fasta,'w').write('\n'.join(entries))
+            def tearDown(self):
+                if os.path.exists(self.fasta):
+                    os.remove(self.fasta)
+                if os.path.exists(self.fastaidx):
+                    os.remove(self.fastaidx)
+                if os.path.exists(self.revfasta):
+                    os.remove(self.revfasta)
+            def testIndex(self):
+                indexer = Indexer(self.fasta,self.fastaidx)
+                indexer.index()
+                indexer.load()
+      
+                seq = indexer.fetch("testseq10_1",1,4)
+                self.assertEquals("AGCT",seq)
+                seq = indexer.fetch("testseq40_5",1,13)
+                self.assertEquals("AAGCTAGCTAAGC",seq)
+                seq = indexer.fetch("testseq40_5",1,900)
+                self.assertEquals("AAGCTAGCT"*100,seq)
+            def testReverseFetch(self):
+                indexer = Indexer(self.fasta,self.fastaidx)
+                indexer.index()
+                indexer.load()
+                seq = indexer.reverse_fetch("testseq10_1",1,4)
+                self.assertEquals("AGTA",seq)
+                seq = indexer.reverse_fetch("testseq40_5",1,9)
+                self.assertEquals("AGCTAGCTT",seq)
+                seq = indexer.reverse_fetch("testseq40_5",1,900)
+                self.assertEquals("AGCTAGCTT"*100,seq)
+                
+            def testTransform(self):
+                indexer = Indexer(self.fasta,self.fastaidx)
+                indexer.index()
+                indexer.load()
+                pos,_ = indexer.sixframe_to_nucleotide("testseq40_2", 5)
+                self.assertEquals(pos,16)
+                pos,_ = indexer.sixframe_to_nucleotide("testseq40_5", 5)
+                self.assertEquals(pos,2686)
+        class TestFasta(unittest.TestCase):
+            def setUp(self):
+                entries = ['>testseq1',
+                           'AGCTACT',
+                           '>testseq2',
+                           'AGCTAGCT',
+                           '>testseq2',
+                           'AAGCTAGCT'
+                           '>testseq3',
+                           'AAGCTAGCT\n'*100
+                           ]
+                self.fasta = "test.fa"
+                self.fastaidx = "test.fai"
+                self.revfasta = "rev.fa"
+                open(self.fasta,'w').write('\n'.join(entries))
+            def tearDown(self):
+                if os.path.exists(self.fasta):
+                    os.remove(self.fasta)
+                if os.path.exists(self.fastaidx):
+                    os.remove(self.fastaidx)
+                if os.path.exists(self.revfasta):
+                    os.remove(self.revfasta)
+            def test1(self):
+                reverse_complement(self.fasta,self.revfasta)
+                seqs = [s for s in SeqIO.parse(self.revfasta,"fasta")]
+                self.assertEquals(str(seqs[0].seq),"AGTAGCT")
+                self.assertEquals(str(seqs[1].seq),"AGCTAGCT")
+            def test2(self):
+                remove_duplicates(self.fasta,self.revfasta)
+                seqs = [s for s in SeqIO.parse(self.revfasta,"fasta")]
+                self.assertEquals(len(seqs),2)
+            def test3(self):
+                seq = "ACACGCGACGCAGCGACGCAGCAGCAGCAGCA"
+                newseq = format(seq,5)
+                self.assertEquals(newseq,
+                                  '\n'.join([
+                                  "ACACG",
+                                  "CGACG",
+                                  "CAGCG",
+                                  "ACGCA",
+                                  "GCAGC",
+                                  "AGCAG",
+                                  "CA"])
+                                  )
+    
+        class TestTranslate(unittest.TestCase):
+            def setUp(self):
+              self.frames = ["MAIVMGRX",
+                             "WPLXWAAX",
+                             "GHCNGPLX",
+                             "HGNYHAAS"[::-1],
+                             "XPWQLPGS"[::-1],
+                             "XAMTIPRQ"[::-1]
+                             ]
+              seq = "atggccattguaatgggccgctga"
+              self.fasta = "test.fasta"
+              self.sixframe = "six.fasta"
+              open(self.fasta,'w').write(">test\n%s\n"%(seq))
+              #open(self.sixframe,'w').write(">test_1\n%s\n"%(frame1)+\
+              #                              ">test_2\n%s\n"%(frame2)+\
+              #                              ">test_3\n%s\n"%(frame3)+\
+              #                              ">test_4\n%s\n"%(frame4)+\
+              #                              ">test_5\n%s\n"%(frame5)+\
+              #                              ">test_6\n%s\n"%(frame6)
+              #                              )
+            def tearDown(self):
                 os.remove(self.fasta)
-            if os.path.exists(self.fastaidx):
-                os.remove(self.fastaidx)
-            if os.path.exists(self.revfasta):
-                os.remove(self.revfasta)
-        def testIndex(self):
-            indexer = Indexer(self.fasta,self.fastaidx)
-            indexer.index()
-            indexer.load()
-  
-            seq = indexer.fetch("testseq10_1",1,4)
-            self.assertEquals("AGCT",seq)
-            seq = indexer.fetch("testseq40_5",1,13)
-            self.assertEquals("AAGCTAGCTAAGC",seq)
-            seq = indexer.fetch("testseq40_5",1,900)
-            self.assertEquals("AAGCTAGCT"*100,seq)
-        def testReverseFetch(self):
-            indexer = Indexer(self.fasta,self.fastaidx)
-            indexer.index()
-            indexer.load()
-            seq = indexer.reverse_fetch("testseq10_1",1,4)
-            self.assertEquals("AGTA",seq)
-            seq = indexer.reverse_fetch("testseq40_5",1,9)
-            self.assertEquals("AGCTAGCTT",seq)
-            seq = indexer.reverse_fetch("testseq40_5",1,900)
-            self.assertEquals("AGCTAGCTT"*100,seq)
-            
-        def testTransform(self):
-            indexer = Indexer(self.fasta,self.fastaidx)
-            indexer.index()
-            indexer.load()
-            pos,_ = indexer.sixframe_to_nucleotide("testseq40_2", 5)
-            self.assertEquals(pos,16)
-            pos,_ = indexer.sixframe_to_nucleotide("testseq40_5", 5)
-            self.assertEquals(pos,2686)
-    class TestFasta(unittest.TestCase):
-        def setUp(self):
-            entries = ['>testseq1',
-                       'AGCTACT',
-                       '>testseq2',
-                       'AGCTAGCT',
-                       '>testseq2',
-                       'AAGCTAGCT'
-                       '>testseq3',
-                       'AAGCTAGCT\n'*100
-                       ]
-            self.fasta = "test.fa"
-            self.fastaidx = "test.fai"
-            self.revfasta = "rev.fa"
-            open(self.fasta,'w').write('\n'.join(entries))
-        def tearDown(self):
-            if os.path.exists(self.fasta):
-                os.remove(self.fasta)
-            if os.path.exists(self.fastaidx):
-                os.remove(self.fastaidx)
-            if os.path.exists(self.revfasta):
-                os.remove(self.revfasta)
-        def test1(self):
-            reverse_complement(self.fasta,self.revfasta)
-            seqs = [s for s in SeqIO.parse(self.revfasta,"fasta")]
-            self.assertEquals(str(seqs[0].seq),"AGTAGCT")
-            self.assertEquals(str(seqs[1].seq),"AGCTAGCT")
-        def test2(self):
-            remove_duplicates(self.fasta,self.revfasta)
-            seqs = [s for s in SeqIO.parse(self.revfasta,"fasta")]
-            self.assertEquals(len(seqs),2)
-        def test3(self):
-            seq = "ACACGCGACGCAGCGACGCAGCAGCAGCAGCA"
-            newseq = format(seq,5)
-            self.assertEquals(newseq,
-                              '\n'.join([
-                              "ACACG",
-                              "CGACG",
-                              "CAGCG",
-                              "ACGCA",
-                              "GCAGC",
-                              "AGCAG",
-                              "CA"])
-                              )
-
-    class TestTranslate(unittest.TestCase):
-        def setUp(self):
-          self.frames = ["MAIVMGRX",
-                         "WPLXWAAX",
-                         "GHCNGPLX",
-                         "HGNYHAAS"[::-1],
-                         "XPWQLPGS"[::-1],
-                         "XAMTIPRQ"[::-1]
-                         ]
-          seq = "atggccattguaatgggccgctga"
-          self.fasta = "test.fasta"
-          self.sixframe = "six.fasta"
-          open(self.fasta,'w').write(">test\n%s\n"%(seq))
-          #open(self.sixframe,'w').write(">test_1\n%s\n"%(frame1)+\
-          #                              ">test_2\n%s\n"%(frame2)+\
-          #                              ">test_3\n%s\n"%(frame3)+\
-          #                              ">test_4\n%s\n"%(frame4)+\
-          #                              ">test_5\n%s\n"%(frame5)+\
-          #                              ">test_6\n%s\n"%(frame6)
-          #                              )
-        def tearDown(self):
-            os.remove(self.fasta)
-            os.remove(self.sixframe)          
-        def test1(self):
-            indexer = Indexer(self.fasta,"")
-            indexer.translate(self.sixframe)
-            i = 0
-            for record in SeqIO.parse(open(self.sixframe,'r'),'fasta'):
-                seq = record.seq
-                self.assertEquals(str(seq),self.frames[i])
-                i+=1
-            
-    unittest.main()
-    
-    
-    
-    
-    
+                os.remove(self.sixframe)          
+            def test1(self):
+                indexer = Indexer(self.fasta,"")
+                indexer.translate(self.sixframe)
+                i = 0
+                for record in SeqIO.parse(open(self.sixframe,'r'),'fasta'):
+                    seq = record.seq
+                    self.assertEquals(str(seq),self.frames[i])
+                    i+=1
+                
+        unittest.main()
+        
+        
+        
+        
+        
