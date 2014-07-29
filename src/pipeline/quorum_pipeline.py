@@ -27,7 +27,7 @@ import genbank
 import blast
 import intergene
 import genome
-import annotated_genes
+import annotation
 import bacteriocin
 import nbayes
 import rforests
@@ -37,6 +37,8 @@ import hmmer
 import quorum
 from mafft import MAFFT 
 import gff
+import interval_filter
+import clique_filter
 
 class QuorumPipelineHandler(object):
     def __init__(self,
@@ -84,9 +86,10 @@ class QuorumPipelineHandler(object):
             self.annotated_genes = "%s/annotated_genesDB.fa"%self.intermediate
         
         self.all_fasta          ="%s/all.fna"%self.intermediate
-        self.six_frame_genomes  ="%s/all_trans.fna"%self.intermediate
-        self.six_frame_faidx    ="%s/all_trans.fai"%self.intermediate
-        
+        self.all_faidx          ="%s/all.fai"%self.intermediate
+        self.six_fasta          ="%s/all_trans.fna"%self.intermediate
+        self.six_faidx          ="%s/all_trans.fai"%self.intermediate
+        self.gff                ="%s/all.gff"%self.intermediate
         self.blasted_tab_bacteriocins = "%s/blasted_bacteriocins.txt"%self.intermediate
         self.blasted_fasta_bacteriocins = "%s/blasted_bacteriocins.fa"%self.intermediate
         self.cand_context_genes_tab = "%s/cand_context_genes.txt"%self.intermediate
@@ -134,13 +137,25 @@ class QuorumPipelineHandler(object):
         naive bayes model"""
     def preprocess(self):
         print "Preprocessing"
-        annotated_genes.go(self.genome_dir,self.annotated_genes) 
-        intergene.go(self.genome_dir,self.intergenes)
-        outhandle = open(self.all_fasta,'w')
         #Combine all genome files into a single genome fasta file
-        
-            
-        
+        fasta.go(self.genome_dir,
+                 self.all_fasta,
+                 self.all_faidx,
+                 self.six_fasta,
+                 self.six_faidx) 
+        indexer = fasta.Indexer(self.all_fasta,self.all_faidx)
+        indexer.load()
+        intergene.go(self.genome_dir,self.intergenes)
+        annotation.go(self.genome_dir,self.annotated_genes,index_obj=indexer) 
+        #Combine all gff files together
+        outhandle = open(self.gff,'w')
+        for root, subFolders, files in os.walk(self.genome_dir):
+            for fname in files:
+                genome_files = []
+                organism,ext = os.path.splitext(os.path.basename(fname))
+                absfile=os.path.join(root,fname)
+                if ext==".gff":
+                    shutil.copyfileobj(open(absfile),outhandle)
     """  Runs blast to identify bacteriocins and context genes"""
     def blast(self,njobs=1):
         print "Blasting"
@@ -339,13 +354,12 @@ class QuorumPipelineHandler(object):
             H = self.hmmers[i]
             H.writeClusters(similarity=0.7,memory=3000)
             H.HMMspawn(msa=MAFFT,njobs=njobs)
-            H.search(self.six_frame_genomes,self.hmmer_class_out[i],njobs)
+            H.search(self.six_fasta,self.hmmer_class_out[i],njobs)
         
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
     def cliqueFilter(self,clique_radius=50000,functions = ["toxin","modifier","immunity","transport","regulator"]):
         print "Clique filtering","Looking for cliques with",functions
-        
         
         toxin_hits     = hmmer.parse("%s/toxin.out"%self.intermediate)
         modifier_hits  = hmmer.parse("%s/modifier.out"%self.intermediate)
@@ -353,7 +367,7 @@ class QuorumPipelineHandler(object):
         regulator_hits = hmmer.parse("%s/regulator.out"%self.intermediate)
         transport_hits = hmmer.parse("%s/transport.out"%self.intermediate)
         
-        genefile = gff.GFF(gff_file=gffFile,fasta_index=self.six_frame_faidx)
+        genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
         toxin_hits     = genefile.call_orfs(toxin_hits    )
         modifier_hits  = genefile.call_orfs(modifier_hits )
         immunity_hits  = genefile.call_orfs(immunity_hits )
@@ -361,19 +375,20 @@ class QuorumPipelineHandler(object):
         transport_hits = genefile.call_orfs(transport_hits)
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
         #Find operons with at least a toxin and a transport
-        all_hits = interval_filter.overlaps(all_hits,faidx)
+        #all_hits = interval_filter.overlaps(all_hits,self.all_faidx,backtrans=False)
         all_hits = interval_filter.unique(all_hits)
-        clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,
+        open("%s/orf_hits.out"%(self.intermediate),'w').write(hmmer.hmmerstr(all_hits))
+        clusters = clique_filter.findContextGeneClusters(all_hits,self.all_faidx,backtrans=False,
                                                          functions=["toxin","transport"])
-        outhandle = open('%s/operons.txt'%(self.intermediate,self.pred_operons_out),'w')
+        outhandle = open(self.operons_out,'w')
         for cluster in clusters:
             for gene in cluster:
                 outhandle.write("%s\n"%gene)
             outhandle.write('----------\n')
         #Predict operons based on just context genes
-        clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,radius=70000,   
+        clusters = clique_filter.findContextGeneClusters(all_hits,self.all_faidx,backtrans=False,radius=70000,   
                                                          functions=["modifier","regulator","immunity","transport"])
-        outhandle = open('%s/%s'%(self.intermediate,self.pred_operons_out),'w')
+        outhandle = open(self.pred_operons_out,'w')
         for cluster in clusters:
             for gene in cluster:
                 outhandle.write("%s\n"%gene)
@@ -604,12 +619,12 @@ if __name__=="__main__":
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            #proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
             proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="clique":
-            proc.cliqueFilter(30000,args.functions)
+            proc.cliqueFilter(60000,args.functions)
             pass
         #from time import sleep
         #sleep(100)
@@ -658,7 +673,7 @@ if __name__=="__main__":
                 print "Test Run"
                 self.proc = QuorumPipelineHandler(                       
                                          self.root,
-                                         self.example_dir,
+                                         self.exampledir,
                                          self.intergenes,
                                          self.annotated_genes,
                                          self.bacteriocins,
@@ -675,19 +690,19 @@ if __name__=="__main__":
                                          self.verbose                
                                         ) 
                 
-                #self.proc.preprocess()
+                self.proc.preprocess()
                 self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.proc.all_fasta) > 0)
-                self.assertTrue(os.path.getsize(self.proc.six_frame_genomes) > 0)
-                self.assertTrue(os.path.getsize(self.proc.six_frame_faidx) > 0)
+                self.assertTrue(os.path.getsize(self.proc.six_fasta) > 0)
+                self.assertTrue(os.path.getsize(self.proc.six_faidx) > 0)
                 
-                #self.proc.blast(njobs=10)
+                self.proc.blast(njobs=10)
                 
                 self.assertTrue(os.path.getsize(self.proc.blasted_fasta_bacteriocins) > 0)
                 self.assertTrue(os.path.getsize(self.proc.cand_context_genes_fasta) > 0)
                 
-                #self.proc.blastContextGenes(njobs=10)
+                self.proc.blastContextGenes(njobs=10)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
                 self.proc.hmmerGenes(min_cluster=1,njobs=8)

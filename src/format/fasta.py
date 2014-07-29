@@ -1,6 +1,6 @@
 from Bio.Seq import Seq
 from Bio import SeqIO
-import os,sys,site
+import os,sys,site,shutil
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
@@ -71,7 +71,7 @@ class Indexer():
     Develop an index similar to samtools faidx
     speciesName: give the option to pick out only the accession id 
     """
-    def index(self,accessionID=False):
+    def index(self):
         idx = []
         #name = name of sequence
         #seqLen = length of sequence without newline characters
@@ -89,7 +89,8 @@ class Indexer():
                 if ln[0]==">":
                     #print ">",myByteoff,byteoff
                     if name is not None:
-                        if accessionID: acc = name.split('|')[3]
+                        #Handle stupid parsing scenario
+                        if name[:3]=="gi|":acc = name.split('|')[3]
                         else: acc = name 
                         index_out.write('\t'.join(map(str, [acc, seqLen, myByteoff, 
                                                             lineLen, byteLen])))
@@ -110,7 +111,7 @@ class Indexer():
                     seqLen += len(ln)
                     byteoff += lnlen
         if name is not None:
-            if accessionID: acc = name.split('|')[3]
+            if name[:3]=="gi|": acc = name.split('|')[3]
             else: acc = name 
             index_out.write('\t'.join(map(str, [acc, seqLen, myByteoff, 
                                                 lineLen, byteLen])))
@@ -223,7 +224,7 @@ def go(rootdir,
        six_frame_genome,
        six_frame_faidx):
     outhandle = open(all_fasta,'w')
-    for root, subFolders, files in os.walk(self.genome_dir):
+    for root, subFolders, files in os.walk(rootdir):
         for fname in files:
             genome_files = []
             organism,ext = os.path.splitext(os.path.basename(fname))
@@ -233,10 +234,10 @@ def go(rootdir,
     
     indexer = Indexer(all_fasta,all_faidx)
     indexer.index()
-    indexer.translate(six_frame_genomes)
+    indexer.translate(six_frame_genome)
     
-    six_frame_index = fasta.Indexer(six_frame_genomes,
-                                    six_frame_faidx) 
+    six_frame_index = Indexer(six_frame_genome,
+                              six_frame_faidx) 
     six_frame_index.index()
     
 if __name__=="__main__":

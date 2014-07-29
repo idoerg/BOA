@@ -64,7 +64,7 @@ class UnAlignedFastTree(FastTree):
             self.cw.run(fasta=True,maxiters=iters,maxhours=hours)
         elif MSA==MAFFT:
             self.cw.run(fasta=True,maxiters=iters,threads=threads)
-        cw.wait()
+        self.cw.wait()
         #print self.accSeqs
         #cw.cleanUp()
     def cleanUp(self):

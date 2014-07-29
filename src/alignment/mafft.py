@@ -54,7 +54,8 @@ class MAFFT(multiplealignment.MultipleAlignment):
         if os.path.exists(self.aln):
             os.remove(self.aln)
         if self.module==quorum: self.child.erase_files()
-        
+    def cleanUp(self):
+        self.erase_files()
 if __name__=='__main__':
     import unittest
     class TestRun(unittest.TestCase):

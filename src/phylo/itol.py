@@ -56,7 +56,9 @@ def formatName(name):
     name = name.replace("@",'')
     name = name.replace("!",'')
     name = name.replace(" ",'_')
+    name = '_'.join(name.split("_")[:2])
     return name
+
 class iTOL():
     
     def __init__(self,operonFile,allrrna,rrnaFile=None,alignFile=None,treeFile=None):
@@ -105,11 +107,13 @@ class iTOL():
                 description = formatName(description)
                 accession = acc.split('.')[0]
                 if accession in rrna_dict:
-                    if description not in seen:
+                    name = description.split(',')[0]
+                    name = formatName(name)
+                    if name not in seen:
                         record = rrna_dict[accession]
-                        record.id = description
+                        record.id = name
                         rrnas.append(record)
-                        seen.add(description)
+                        seen.add(name)
                 else:
                     print "Accession %s is missing"%accession
         SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
@@ -120,11 +124,11 @@ class iTOL():
         ft.align(module=module,MSA=MSA,iters=iters,threads=threads,hours=hours) #Run multiple sequence alignment and spit out aligned fasta file
         proc=ft.run(module=module) #Run fasttree on multiple alignment and spit out newick tree
         proc.wait()
+        self.treeFile=ft.treeFile
         ft.cleanUp() #Clean up!
         
     """ Pick top k biggest operons """
     def sizeFilter(self,filterout,k=100):
-        
         buf = []
         outhandle = open(filterout,'w')
         lengths = []
@@ -158,15 +162,16 @@ class iTOL():
         seen = set()    
         with open(self.operonFile,'r') as handle:
             func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
+        
             prevName = None
             for ln in handle:
                 if ln[0]=='-':continue
                 toks = ln.split("|")
                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
-                if (acc,env_st,env_end) in seen: continue
-                seen.add( (acc,env_st,env_end) )
                 name = description.split(',')[0]
                 name = formatName(name)
+                if (name,env_st,env_end) in seen: continue
+                seen.add( (name,env_st,env_end) )
                 if prevName == None: 
                     prevName = name 
                 elif name!=prevName:
@@ -180,6 +185,7 @@ class iTOL():
                 function = clrname.split('.')[0]
                 func_counts[function]+=1
         outhandle.close()
+        
 if __name__=="__main__":
     import unittest
     
@@ -261,8 +267,9 @@ if __name__=="__main__":
         def testBuildTree(self):
             self.itol = iTOL(self.operonFile,self.rrnaFile)
             self.itol.getRRNAs()
-            self.itol.buildTree()
+            self.itol.buildTree(TREE=UnAlignedFastTree)
             self.assertTrue(os.path.getsize(self.itol.treeFile)>0)
+
         def testBootstrap(self):
             
             pass

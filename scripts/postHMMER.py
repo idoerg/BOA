@@ -45,6 +45,9 @@ from itol import *
 from muscle import Muscle
 from mafft import MAFFT
 import clique_filter
+
+import quorum
+
 if __name__=="__main__":
     faidx = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all_trans.fai"
     gffFile = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all.gff"
@@ -114,9 +117,9 @@ if __name__=="__main__":
                 "%s/operon.rrna"%folder,
                 "%s/operon.align"%folder,
                 "operon.tree")
-    itol.sizeFilter(filtered_operons,k=200 )
+    #itol.sizeFilter(filtered_operons,k=200 )
     itol.setOperonFile(filtered_operons)
-    itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
+    #itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
     #itol.buildTree(MSA=MAFFT,iters=10,threads=8)
     itol.operonDistribution(itolout)
     

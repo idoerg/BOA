@@ -31,10 +31,11 @@ class ClustalW(object):
         align = AlignIO.read(self.aln, "clustal")
         AlignIO.write([align], handle, 'fasta')
         handle.close()
-    def cleanUp(self):
+    def erase_files(self):
         os.remove(self.aln)
         os.remove(self.dnd)
-        
+    def cleanUp(self):
+        self.erase_files()
 if __name__=='__main__':
     import unittest
     class TestRun(unittest.TestCase):

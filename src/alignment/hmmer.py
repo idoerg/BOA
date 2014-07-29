@@ -210,12 +210,13 @@ def parse(hmmerout):
             toks = re.split("\s+",ln)
             target,query = toks[0],toks[3]
             try:
-                full_evalue = float(toks[6]) 
+                #full_evalue = float(toks[6])
+                score = float(toks[13]) 
                 hmm_st,hmm_end,env_st,env_end = map(int,[ toks[15],toks[16],toks[19],toks[20] ]) 
                 description = ' '.join(toks[22:])
                 entries.append( (
                        target,query,
-                       full_evalue,
+                       score,
                        hmm_st,hmm_end,env_st,env_end,
                        description 
                        ) )
