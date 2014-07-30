@@ -24,10 +24,12 @@ class CliqueFilter():
         self.radius = radius
     
     def createGraph(self,hits,backtrans=True):
+        print "Creating graph"
         self.graph = nx.Graph()
         handle = open("graph_error.txt",'w')
         for i in xrange(len(hits)):
             for j in xrange(0,i):
+                print i,j
                 hiti = hits[i]
                 hitj = hits[j]
                 #acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
@@ -60,7 +62,7 @@ class CliqueFilter():
                     nodej = "|".join(map(str,[jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jnenv_st,jnenv_end,jdescription]))
                     
                     self.graph.add_edge(nodei,nodej)
-        
+                    
         #nx.draw(self.graph)
         #plt.show()
     """    
@@ -99,6 +101,7 @@ def findContextGeneClusters(hits,faidx,radius=50000,backtrans=True, functions = 
         elif prevGenome == hit[-1]: 
             buf.append(hit)
         else: 
+            
             print >>err_handle,prevGenome,'\n'
             print >>err_handle,'Buffer'
             print >>err_handle,"\n".join(map(str,buf)),'\n'
@@ -111,6 +114,13 @@ def findContextGeneClusters(hits,faidx,radius=50000,backtrans=True, functions = 
             clusters+= cliques
             buf = [hit]
             prevGenome = hit[-1]
+    
+    cfilter.createGraph(buf,backtrans)    
+    cliques = cfilter.filter(functions)
+    print >>err_handle,'Cliques'
+    print >>err_handle,"\n".join(map(str,cliques)),'\n'
+    clusters+= cliques
+            
     return clusters
 
 

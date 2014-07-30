@@ -20,11 +20,9 @@ import fasta
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\
         'Extracts orfs and creates fasta files')
-    parser.add_argument(\
-                        '--fasta', type=str, required=False,
+    parser.add_argument('--fasta', type=str, required=False,
                         help='Input fasta file')
-    parser.add_argument(\
-                        '--faidx', type=str, required=False,
+    parser.add_argument('--faidx', type=str, required=False,
                         help='Input fasta index')
     args = parser.parse_args()
     indexer = fasta.Indexer(args.fasta,args.faidx)

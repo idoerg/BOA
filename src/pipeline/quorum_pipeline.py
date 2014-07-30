@@ -367,18 +367,35 @@ class QuorumPipelineHandler(object):
         regulator_hits = hmmer.parse("%s/regulator.out"%self.intermediate)
         transport_hits = hmmer.parse("%s/transport.out"%self.intermediate)
         
-        genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
-        toxin_hits     = genefile.call_orfs(toxin_hits    )
-        modifier_hits  = genefile.call_orfs(modifier_hits )
-        immunity_hits  = genefile.call_orfs(immunity_hits )
-        regulator_hits = genefile.call_orfs(regulator_hits)
-        transport_hits = genefile.call_orfs(transport_hits)
+        #genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
+        #toxin_hits     = genefile.call_orfs(toxin_hits    )
+        #modifier_hits  = genefile.call_orfs(modifier_hits )
+        #immunity_hits  = genefile.call_orfs(immunity_hits )
+        #regulator_hits = genefile.call_orfs(regulator_hits)
+        #transport_hits = genefile.call_orfs(transport_hits)
+        fasta_index = fasta.Indexer(self.six_fasta,self.six_faidx,window=1000)
+        fasta_index.index()
+        fasta_index.load()
+        toxin_hits     = fasta.call_orfs(fasta_index,toxin_hits    )
+        modifier_hits  = fasta.call_orfs(fasta_index,modifier_hits )
+        immunity_hits  = fasta.call_orfs(fasta_index,immunity_hits )
+        regulator_hits = fasta.call_orfs(fasta_index,regulator_hits)
+        transport_hits = fasta.call_orfs(fasta_index,transport_hits)
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
+        
         #Find operons with at least a toxin and a transport
         #all_hits = interval_filter.overlaps(all_hits,self.all_faidx,backtrans=False)
         all_hits = interval_filter.unique(all_hits)
-        open("%s/orf_hits.out"%(self.intermediate),'w').write(hmmer.hmmerstr(all_hits))
-        clusters = clique_filter.findContextGeneClusters(all_hits,self.all_faidx,backtrans=False,
+        fasta.write_orfs(fasta_index,all_hits,
+                         "%s/orf_hits.out"%(self.intermediate))
+        # #Sort by start/end position and genome name
+        all_hits=sorted(all_hits,key=lambda x: x[6])   
+        all_hits=sorted(all_hits,key=lambda x: x[5])
+        all_hits=sorted(all_hits,key=lambda x: x[0])
+        all_hits=sorted(all_hits,key=lambda x: x[-1])
+        clusters = clique_filter.findContextGeneClusters(all_hits,self.six_faidx,
+                                                         radius=clique_radius,
+                                                         backtrans=True,
                                                          functions=["toxin","transport"])
         outhandle = open(self.operons_out,'w')
         for cluster in clusters:
@@ -386,7 +403,9 @@ class QuorumPipelineHandler(object):
                 outhandle.write("%s\n"%gene)
             outhandle.write('----------\n')
         #Predict operons based on just context genes
-        clusters = clique_filter.findContextGeneClusters(all_hits,self.all_faidx,backtrans=False,radius=70000,   
+        clusters = clique_filter.findContextGeneClusters(all_hits,self.six_faidx,
+                                                         radius=clique_radius,
+                                                         backtrans=True,   
                                                          functions=["modifier","regulator","immunity","transport"])
         outhandle = open(self.pred_operons_out,'w')
         for cluster in clusters:
@@ -690,22 +709,22 @@ if __name__=="__main__":
                                          self.verbose                
                                         ) 
                 
-                self.proc.preprocess()
+                #self.proc.preprocess()
                 self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.proc.all_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_faidx) > 0)
                 
-                self.proc.blast(njobs=10)
+                #self.proc.blast(njobs=10)
                 
                 self.assertTrue(os.path.getsize(self.proc.blasted_fasta_bacteriocins) > 0)
                 self.assertTrue(os.path.getsize(self.proc.cand_context_genes_fasta) > 0)
                 
-                self.proc.blastContextGenes(njobs=10)
+                #self.proc.blastContextGenes(njobs=10)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
-                self.proc.hmmerGenes(min_cluster=1,njobs=8)
+                #self.proc.hmmerGenes(min_cluster=1,njobs=8)
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 

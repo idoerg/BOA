@@ -6,6 +6,8 @@ for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import quorum
 import subprocess
+import argparse
+import hmmer
 """ Remove duplicate entries"""
 def removeDuplicates(items):
     uniqueDict = {tuple(x[-5:-1]):x for x in items}
@@ -62,11 +64,11 @@ def flatten(fastain,fastaout):
     out.close() 
 
 class Indexer():
-    def __init__(self,fasta,fastaidx):
+    def __init__(self,fasta,fastaidx,window=100):
         self.fasta = fasta       #Input fasta
         self.fastaidx = fastaidx #Output fasta index
         self.faidx = {} #internal dict for storing byte offset values
-        
+        self.window=window
     """ 
     Develop an index similar to samtools faidx
     speciesName: give the option to pick out only the accession id 
@@ -128,6 +130,47 @@ class Indexer():
                 chrom = cols[0]
                 seqLen,byteOffset,lineLen,byteLen = map(int,cols[1:])
                 self.faidx[chrom]=(seqLen,byteOffset,lineLen,byteLen)
+                
+    """ Return the orf by finding the sequence between the stop codons
+    Careful about window size"""
+    def fetch_orf(self,defn,start,end):
+        LEN = self.window/2
+        seqLen,byteOffset,lineLen,byteLen=self.faidx[defn]
+        if start-LEN<0:    orf_start = 1
+        else:              orf_start = start-LEN
+        if end+LEN>seqLen: orf_end   = seqLen-1
+        else:              orf_end = end+LEN
+        #switching to envelop coordinate frame
+        local_start =start-orf_start
+        local_end   =end-orf_start 
+        env_seq = self.fetch(defn,orf_start,orf_end)
+        def all_indices(val, a):
+            return [i for i in xrange(len(a)) if a[i] == val]
+        indices = all_indices('X',env_seq)
+        cover = True
+        fw,bk = 0,-1
+        startCodon,stopCodon = 0,len(env_seq)
+        while cover:
+            if indices[fw+1]<=local_start:  
+                startCodon = indices[fw+1]
+                fw+=1
+            if local_end<=indices[bk-1]: 
+                stopCodon  = indices[bk-1]
+                bk-=1
+            if ((fw)>=(bk)%len(indices) or  
+                (indices[bk-1]<=local_end and indices[fw+1]>=local_start)):
+                cover = False
+            assert local_start>=startCodon,"%d>%d"%(local_start,startCodon)
+            assert local_end<=stopCodon,"%d>%d"%(local_end,stopCodon) 
+        
+        orf = env_seq[startCodon+1:stopCodon]
+        orf_start,orf_end = orf_start+startCodon+1,orf_start+stopCodon-1
+        assert orf_start<=start,"%d>%d"%(orf_start,start)
+        assert end<=orf_end,"%d>%d %d"%(end,orf_end) 
+        #assert 'X' not in orf,"startCodon=%d start=%d fw[i+1]=%d stopCodon=%d bk[i-1]=%d end=%d %s"%(
+        #                       startCodon, start, indices[fw+1], stopCodon, indices[bk-1], end,orf)     
+        return orf,orf_start,orf_end
+    
     """ Retrieve a sequence based on fasta index """
     def fetch(self, defn, start, end):
         assert type(1)==type(start)
@@ -215,7 +258,23 @@ def strand(frame):
         return '-'
     else:
         raise Exception
-     
+""" Fetch orfs from hmmer hits
+Careful about faidx window size """
+def call_orfs(indexer,hits):
+    newHits = []
+    for hit in hits:
+        acc,clrname,score,hmm_st,hmm_end,env_st,env_end,description=hit
+        
+        seq,env_st,env_end = indexer.fetch_orf(acc,env_st,env_end)
+        newHits.append((acc,clrname,score,hmm_st,hmm_end,env_st,env_end,description))
+    return newHits
+def write_orfs(indexer,hits,out):
+    with open(out,'w') as outhandle:
+        for hit in hits:
+            acc,clrname,score,hmm_st,hmm_end,env_st,env_end,description=hit
+            seq = indexer.fetch(acc,env_st,env_end)
+            outhandle.write(">%s\n%s\n"%('|'.join(map(str,hit)),
+                                         format(seq)))           
 """Merge all fasta files together, create fasta index, six-frame translated
 genomes and six-frame translation index"""
 def go(rootdir,
@@ -265,6 +324,7 @@ if __name__=="__main__":
            six_fasta,
            six_faidx)
     else:    
+        del sys.argv[1:]
         import unittest 
         class TestIndex(unittest.TestCase):
             def setUp(self):
@@ -362,7 +422,56 @@ if __name__=="__main__":
                                   "AGCAG",
                                   "CA"])
                                   )
-    
+        class TestOrf(unittest.TestCase):
+            def setUp(self):
+                entries = ['>testseq1',
+                           'AGCTAXPWWTTCGXTTTQXP',
+                           '>testseq2',
+                           'APWWTTCGXTTTPPWHVRQK',
+                           'APWWTTCGQTTTPPWHVRQK',
+                           'APWWTTCGTTTTPPWHVRQX',
+                           'APXWTTCGGTTTPPWHVRQX',
+                           'APWWTTCGXTTTPPWHVRQX',
+                           ]
+                self.fasta = "test.fa"
+                self.fastaidx = "test.fai"
+                self.revfasta = "rev.fa"
+                open(self.fasta,'w').write('\n'.join(entries))
+            def tearDown(self):
+                os.remove(self.fasta)
+                os.remove(self.fastaidx)
+            def test1(self):
+                indexer = Indexer(self.fasta,self.fastaidx)
+                indexer.index()
+                indexer.load()
+                seq,st,end = indexer.fetch_orf("testseq1",9,11)
+                self.assertEquals(seq,"PWWTTCG")
+                self.assertEquals(st,7)
+                self.assertEquals(end,13)
+                seq2 = indexer.fetch("testseq1",st,end)
+                self.assertEquals(seq,seq2)
+            
+            def test2(self):
+                indexer = Indexer(self.fasta,self.fastaidx,window=100)
+                indexer.index()
+                indexer.load()
+                seq,st,end = indexer.fetch_orf("testseq2",35,40)
+                self.assertEquals(seq,''.join(['TTTPPWHVRQK',
+                                               'APWWTTCGQTTTPPWHVRQK',
+                                               'APWWTTCGTTTTPPWHVRQ']) )
+                seq2 = indexer.fetch("testseq2",st,end)
+                self.assertEquals(seq,seq2)
+            def test3(self):
+                indexer = Indexer(self.fasta,self.fastaidx,window=100)
+                indexer.index()
+                indexer.load()
+                seq,st,end = indexer.fetch_orf("testseq2",25,55)
+                self.assertEquals(seq,''.join(['TTTPPWHVRQK',
+                                               'APWWTTCGQTTTPPWHVRQK',
+                                               'APWWTTCGTTTTPPWHVRQ']) )
+                seq2 = indexer.fetch("testseq2",st,end)
+                self.assertEquals(seq,seq2)
+            
         class TestTranslate(unittest.TestCase):
             def setUp(self):
               self.frames = ["MAIVMGRX",
