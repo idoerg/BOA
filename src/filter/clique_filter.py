@@ -16,6 +16,7 @@ import fasta
 from bx.intervals import *
 import matplotlib.pyplot as plt
 import interval_filter
+import itertools
 
 class CliqueFilter():
     def __init__(self,fasta_index,radius=50000):
@@ -24,12 +25,12 @@ class CliqueFilter():
         self.radius = radius
     
     def createGraph(self,hits,backtrans=True):
-        print "Creating graph"
+        #print "Creating graph"
         self.graph = nx.Graph()
         handle = open("graph_error.txt",'w')
         for i in xrange(len(hits)):
             for j in xrange(0,i):
-                print i,j
+                #print i,j
                 hiti = hits[i]
                 hitj = hits[j]
                 #acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
@@ -85,7 +86,66 @@ class CliqueFilter():
             if functions.issuperset(set(keyfunctions)):
                 clusters.append(clique)
         return clusters
-    
+
+    """ Returns the start and end coordinates of the entire clique"""
+    def envelop(self,clique):
+        starts,ends = [],[]
+        for node in clique:
+            toks = node.split("|")
+            st,end = map(int,toks[5:7])
+            starts.append(st)
+            ends.append(end)
+        return min(starts),max(ends)
+
+    """Sort clusters by start/end position"""
+    def sort(self,clusters):
+        tups = []
+        for clique in clusters:
+            st,end = self.envelop(clique)
+            tups.append((st,end,clique))
+        tups = sorted(tups,key=lambda x:x[0])
+        tups = sorted(tups,key=lambda x:x[1])
+        return zip(*tups)[2]
+
+    def overlap(self,st1,end1,st2,end2):
+        assert st1<end1
+        assert st2<end2
+        if end1<st2:
+            return False
+        elif st1>end2:
+            return False
+        else:
+            return True
+
+    """ Merge overlapping cliques together """
+    def merge(self,clusters):
+        clique_intervals = IntervalTree()
+        clusters = self.sort(clusters)
+        newClusters = []
+        #print clusters
+        for i in xrange(len(clusters)):
+            j = i+1
+            icluster = clusters[i]
+            if j<len(clusters):   
+                jcluster = clusters[j]
+                ist,iend = self.envelop(icluster)
+                jstart,jend = self.envelop(jcluster)
+                print 'cluster1=%d start1=%d end1=%d cluster2=%d start2=%d end2=%d'%(i,ist,iend,j,jstart,jend)
+                overlaps = [icluster]
+                while self.overlap(ist,iend,jstart,jend):
+                    print 'cluster1=%d start1=%d end1=%d cluster2=%d start2=%d end2=%d'%(i,ist,iend,j,jstart,jend)
+                    overlaps.append(jcluster)
+                    j+=1
+                    if j==len(clusters): break
+                    
+                    jcluster = clusters[j]
+                    jstart,jend = self.envelop(jcluster)
+            else:
+                overlaps=[icluster]
+            group = list(set(itertools.chain(*overlaps)))
+            #print '\n'.join(map(str,set(group)))
+            newClusters.append(group)
+        return newClusters
     
 """
 Locate all context gene clusters
@@ -122,6 +182,7 @@ def findContextGeneClusters(hits,faidx,radius=50000,backtrans=True, functions = 
     clusters+= cliques
             
     return clusters
+
 
 
 def go(input,faidx,radius,functions):
@@ -179,6 +240,64 @@ if __name__=="__main__":
     else:
         del sys.argv[1:]    
         import unittest
+        class TestMerge(unittest.TestCase):
+            def setUp(self):
+                indexes = [
+                            '\t'.join(map(str,('HE577328.1_4',    588676,  8720859786,      60,      61))),
+                            '\t'.join(map(str,('HE577328.1_5',    588676,  8721458351,      60,      61))),
+                            '\t'.join(map(str,('HE577328.1_6',    588676,  8722056916,      60,      61))),
+                            '\t'.join(map(str,('HE577330.1_1',    259600,  8722655481,      60,      61))),
+                            '\t'.join(map(str,('HE577330.1_2',    259599,  8722919485,      60,      61))),
+                            '\t'.join(map(str,('HE577330.1_3',    259599,  8723183488,      60,      61))),
+                            '\t'.join(map(str,('HE577330.1_4',    259599,  8723447491,      60,      61))),
+                            '\t'.join(map(str,('HE577330.1_5',    259600,  8723711494,      60,      61))),
+                            '\t'.join(map(str,('HE577330.1_6',    259599,  8723975498,      60,      61)))]
+    
+                self.testfai = "test.fai"
+                open(self.testfai,'w').write('\n'.join(indexes))
+                self.queries = [
+                ('HE577328.1_5','transport.fa.cluster10.fa',3.4e-172,15,215,200000,200300,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_5','transport.fa.cluster2.fa' ,5.6e-14,462,545,200500,200600,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_5','transport.fa.cluster10.fa',3.4e-172,15,215,201000,201400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_5','transport.fa.cluster2.fa' ,5.6e-14,462,545,201500,201800,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_5','toxin.fa.cluster105.fa'   ,8.2e-16,37, 120,202000,202400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_5','toxin.fa.cluster190.fa'   ,1.2e-14,3,   96,312000,312400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_4','transport.fa.cluster11.fa',1e-154, 6,  205,312600,312800,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_5','toxin.fa.cluster195.fa'   ,1.8e-10,3,   86,321000,321000,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'),
+                ('HE577328.1_4','transport.fa.cluster2.fa' ,4e-36,462,  537,325200,325400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome')]
+                self.faidx = fasta.Indexer("",self.testfai)           
+                self.faidx.load()
+                self.maxDiff=10000
+            def test1(self):
+                cfilter = CliqueFilter(self.testfai,radius=10000)
+                cfilter.createGraph(self.queries,backtrans=False)
+                clusters = cfilter.filter(keyfunctions=["toxin","transport"])
+                self.assertEquals(len(clusters),3)
+                print '\n'.join(map(str,clusters[0]))
+                print '\n'
+                print '\n'.join(map(str,clusters[1]))
+                print '\n'
+                print '\n'.join(map(str,clusters[2]))
+                print '\n'
+
+                clusters = cfilter.merge(clusters)
+                print '\n'.join(map(str,clusters[1]))
+                self.assertEquals(set(clusters[0]),
+                    set([
+                    '|'.join(map(str,('HE577328.1_5','transport.fa.cluster10.fa',3.4e-172,15,215,200000,200300,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'))),
+                    '|'.join(map(str,('HE577328.1_5','transport.fa.cluster2.fa' ,5.6e-14,462,545,200500,200600,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'))),
+                    '|'.join(map(str,('HE577328.1_5','transport.fa.cluster10.fa',3.4e-172,15,215,201000,201400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'))),
+                    '|'.join(map(str,('HE577328.1_5','transport.fa.cluster2.fa' ,5.6e-14,462,545,201500,201800,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'))),
+                    '|'.join(map(str,('HE577328.1_5','toxin.fa.cluster105.fa'   ,8.2e-16,37, 120,202000,202400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome')))]
+                    ))
+                self.assertEquals(set(clusters[1]),
+                    set([
+                    '|'.join(map(str,(('HE577328.1_5','toxin.fa.cluster190.fa'   ,1.2e-14,3,   96,312000,312400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome')))),
+                    '|'.join(map(str,(('HE577328.1_4','transport.fa.cluster11.fa',1e-154, 6,  205,312600,312800,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome')))),
+                    '|'.join(map(str,(('HE577328.1_5','toxin.fa.cluster195.fa'   ,1.8e-10,3,   86,321000,321000,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome')))),
+                    '|'.join(map(str,(('HE577328.1_4','transport.fa.cluster2.fa' ,4e-36,462,  537,325200,325400,'Azospirillum brasilense Sp245 plasmid AZOBR_p1 complete genome'))))]
+                    ))
+
         class TestCase1(unittest.TestCase):
              def setUp(self):
                  indexes = [ '\t'.join(map(str,('CP002279.1_1',2294815, 185896721,60,61))),
@@ -275,7 +394,8 @@ if __name__=="__main__":
                                             'Mesorhizobium opportunistum WSM2075, complete genome'),
                                            ('CP002279.1_3','transport.fa.cluster2.fa',0,0,100,45127,45356,
                                             'Mesorhizobium opportunistum WSM2075, complete genome')])  
-                                           
+
+                
         class TestCase2(unittest.TestCase):
             def setUp(self):
                 indexes = [
