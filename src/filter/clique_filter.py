@@ -21,11 +21,12 @@ import itertools
 class CliqueFilter():
     def __init__(self,fasta_index="",radius=50000):
         self.faidx = fasta.Indexer("",fasta_index)
-        self.faidx.load()
+        if fasta_index!="":
+            self.faidx.load()
         self.radius = radius
     
     def createGraph(self,hits,backtrans=True):
-        #print "Creating graph"
+        print "Creating graph %d hits"%(len(hits))
         self.graph = nx.Graph()
         handle = open("graph_error.txt",'w')
         for i in xrange(len(hits)):
@@ -39,10 +40,10 @@ class CliqueFilter():
                 # Translate the six-frame translated coordinates
                 # into nucleotide reference coordinates
                 if backtrans:
-                    inenv_st,istrand = self.faidx.sixframe_to_nucleotide(iname,ienv_st)
-                    inenv_end,istrand= self.faidx.sixframe_to_nucleotide(iname,ienv_end)
-                    jnenv_st,jstrand = self.faidx.sixframe_to_nucleotide(jname,jenv_st)
-                    jnenv_end,jstrand= self.faidx.sixframe_to_nucleotide(jname,jenv_end)
+                    inenv_st,istrand  = self.faidx.sixframe_to_nucleotide(iname,ienv_st)
+                    inenv_end,istrand = self.faidx.sixframe_to_nucleotide(iname,ienv_end)
+                    jnenv_st,jstrand  = self.faidx.sixframe_to_nucleotide(jname,jenv_st)
+                    jnenv_end,jstrand = self.faidx.sixframe_to_nucleotide(jname,jenv_end)
                 else:
                     inenv_st,inenv_end = ienv_st,ienv_end
                     jnenv_st,jnenv_end = jenv_st,jenv_end

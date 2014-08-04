@@ -15,13 +15,14 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 base_path="%s/src"%base_path
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
-    
+
 import clique_filter
-import hmmer            
+import hmmer
 from collections import Counter
 import itertools
 import cPickle
 import gff
+import interval_filter
 
 def bargraph(clusters,numFuncs):
 	operon_cnts = Counter(['toxin','modifier','immunity','transport','regulator'])
@@ -39,40 +40,39 @@ def bargraph(clusters,numFuncs):
 	return operon_cnts
 
 if __name__=="__main__":
-	faidx = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all_trans.fai"
-    gffFile = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all.gff"
-    folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
-	if os.path.exists("all_hits.pickle"):
-		all_hits, clusters = cPickle.load(open("all_hits.pickle",'rb'))
-
+	faidx = "/Users/mortonyt/Documents/MiamiBio/workspace/all_trans.fai"
+	gffFile = "/Users/mortonyt/Documents/MiamiBio/workspace/all.gff"
+	folder = "/Users/mortonyt/Documents/MiamiBio/workspace"
+	if os.path.exists("clusters.pickle"):
+		all_hits = cPickle.load(open("all_hits.pickle",'rb'))
+		clusters = cPickle.load(open("clusters.pickle",'rb'))
 	else:
+		if os.path.exists("all_hits.pickle"):
+			toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
+			modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
+			immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
+			regulator_hits = hmmer.parse("%s/regulator.out"%folder)
+			transport_hits = hmmer.parse("%s/transport.out"%folder)
 
-		toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
-		modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
-		immunity_hits  = hmmer.parse("%s/immunity.out"%folder)
-		regulator_hits = hmmer.parse("%s/regulator.out"%folder)
-		transport_hits = hmmer.parse("%s/transport.out"%folder)
+			gff = gff.GFF(gff_file=gffFile,fasta_index=faidx)
+			toxin_hits     = gff.call_orfs(toxin_hits    )
+			modifier_hits  = gff.call_orfs(modifier_hits )
+			immunity_hits  = gff.call_orfs(immunity_hits )
+			regulator_hits = gff.call_orfs(regulator_hits)
+			transport_hits = gff.call_orfs(transport_hits)
+			all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
+			all_hits=sorted(all_hits,key=lambda x: x[6])
+			all_hits=sorted(all_hits,key=lambda x: x[5])
+			cPickle.dump(all_hits,open("all_hits.pickle",'wb'))
+		else:
+			all_hits = cPickle.load(open("all_hits.pickle",'rb'))
 
-		gff = gff.GFF(gff_file=gffFile,fasta_index=faidx)
-		toxin_hits     = gff.call_orfs(toxin_hits    )
-		modifier_hits  = gff.call_orfs(modifier_hits )
-		immunity_hits  = gff.call_orfs(immunity_hits )
-		regulator_hits = gff.call_orfs(regulator_hits)
-		transport_hits = gff.call_orfs(transport_hits)
-    	all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
-    	all_hits=sorted(all_hits,key=lambda x: x[6])   
-        all_hits=sorted(all_hits,key=lambda x: x[5])
-        
-        #Sort by genome name
-        all_hits=sorted(all_hits,key=lambda x: x[0])  
-    	all_hits = interval_filter.overlaps(all_hits,faidx)
-    	all_hits = interval_filter.unique(all_hits)
-    	cf = clique_filter.CliqueFilter(radius=50000)
-    	cf.createGraph(all_hits,backtrans=False)
-    	clusters = cf.filter(keyfunctions=["toxin","transport"])
-    	
+		all_hits = sorted(all_hits,key=lambda x: x[0] )
+		all_hits = interval_filter.overlaps(all_hits,faidx)
+		all_hits = interval_filter.unique(all_hits)
+		clusters = clique_filter.findContextGeneClusters(all_hits,faidx,radius=50000,functions = ['toxin','transport'],backtrans=False)
 
-    	cPickle.dump((all_hits,clusters),open("all_hits.pickle",'wb'))
+    	cPickle.dump((all_hits,clusters),open("clusters.pickle",'wb'))
 
 	func5 = bargraph(clusters,5)
 	func4 = bargraph(clusters,5)
@@ -89,4 +89,3 @@ if __name__=="__main__":
 	ax.set_xticklabels(('5','4','3','2'))
 
 	plt.show()
-
