@@ -19,7 +19,7 @@ import interval_filter
 import itertools
 
 class CliqueFilter():
-    def __init__(self,fasta_index,radius=50000):
+    def __init__(self,fasta_index="",radius=50000):
         self.faidx = fasta.Indexer("",fasta_index)
         self.faidx.load()
         self.radius = radius
@@ -69,7 +69,7 @@ class CliqueFilter():
     """    
     The output will be cliques that contain all of the functions specified
     """
-    def filter(self,keyfunctions = ["toxin","modifier","immunity","transport","regulator"] ):
+    def filter(self,merge=False,keyfunctions = ["toxin","modifier","immunity","transport","regulator"] ):
         clique_gen = nx.find_cliques(self.graph)
         #print "cliques",'\n'.join(map(str,list(clique_gen)))
         clusters = [] #Context gene clusters 
@@ -85,7 +85,11 @@ class CliqueFilter():
             
             if functions.issuperset(set(keyfunctions)):
                 clusters.append(clique)
-        return clusters
+        #Merge overlapping cliques
+        if merge:
+            return self.merge(clusters)
+        else:
+            return clusters
 
     """ Returns the start and end coordinates of the entire clique"""
     def envelop(self,clique):
@@ -130,10 +134,8 @@ class CliqueFilter():
                 jcluster = clusters[j]
                 ist,iend = self.envelop(icluster)
                 jstart,jend = self.envelop(jcluster)
-                print 'cluster1=%d start1=%d end1=%d cluster2=%d start2=%d end2=%d'%(i,ist,iend,j,jstart,jend)
                 overlaps = [icluster]
                 while self.overlap(ist,iend,jstart,jend):
-                    print 'cluster1=%d start1=%d end1=%d cluster2=%d start2=%d end2=%d'%(i,ist,iend,j,jstart,jend)
                     overlaps.append(jcluster)
                     j+=1
                     if j==len(clusters): break
@@ -240,7 +242,7 @@ if __name__=="__main__":
     else:
         del sys.argv[1:]    
         import unittest
-        class TestMerge(unittest.TestCase):
+        class TestMerge1(unittest.TestCase):
             def setUp(self):
                 indexes = [
                             '\t'.join(map(str,('HE577328.1_4',    588676,  8720859786,      60,      61))),
@@ -482,11 +484,35 @@ if __name__=="__main__":
                             igene,jgene = cluster[i],cluster[j]
                             iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,inenv_st,inenv_end,idescription = igene.split('|')
                             jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jnenv_st,jnenv_end,jdescrjptjon = jgene.split('|')
+                            inenv_st,inenv_end = map(int,[inenv_st,inenv_end])
+                            jnenv_st,jnenv_end = map(int,[jnenv_st,jnenv_end])
                             midi = (inenv_st+inenv_end)/2
                             midj = (jnenv_st+jnenv_end)/2
                             self.assertLessEqual(abs(midi-midj), 50000,"midi: %d midj: %d"%(midi,midj))
                 print "Clusters",len(clusters)
                 pass
+            def test2(self):
+                cfilter = CliqueFilter(self.testfai,radius=100000)
+                cfilter.createGraph(self.queries,backtrans=False)
+                clusters = cfilter.filter()
+               
+                for cluster in clusters:
+                    for i in xrange(len(cluster)):
+                        for j in xrange(i):
+                            igene,jgene = cluster[i],cluster[j]
+                            iacc,iclrname,ifull_evalue,ihmm_st,ihmm_end,inenv_st,inenv_end,idescription = igene.split('|')
+                            jacc,jclrname,jfull_evalue,jhmm_st,jhmm_end,jnenv_st,jnenv_end,jdescrjptjon = jgene.split('|')
+                            inenv_st,inenv_end = map(int,[inenv_st,inenv_end])
+                            jnenv_st,jnenv_end = map(int,[jnenv_st,jnenv_end])
+                            assert type(inenv_st)==type(0)
+                            assert type(inenv_end)==type(0)
+
+                            midi = (inenv_st+inenv_end)/2
+                            midj = (jnenv_st+jnenv_end)/2
+                            self.assertLessEqual(abs(midi-midj), 100000,"midi: %d midj: %d"%(midi,midj))
+                print "Clusters",len(clusters)
+                pass
+                
         unittest.main()
 
 
