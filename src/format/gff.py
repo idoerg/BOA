@@ -9,6 +9,7 @@ base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 import fasta
+import faa
 import argparse
 import hmmer
 from Bio.Seq import Seq
@@ -18,12 +19,13 @@ from collections import defaultdict
 from bx.intervals import *
 
 class GFF():
-    def __init__(self,gff_file,output_file="",fasta_file="",fasta_index="",createIndex=False,accessionID=True):
+    def __init__(self,gff_file,output_file="",fasta_file="",fasta_index="",
+                 createIndex=False,accessionID=True):
         self.gff_file = gff_file
         self.fasta = fasta_file
         self.fasta_index = fasta_index
         self.indexer = fasta.Indexer(self.fasta,self.fasta_index)
-        if createIndex: self.indexer.index(accessionID)
+        if createIndex: self.indexer.index()
         self.indexer.load()
         self.output_file = output_file
         self.inttrees = defaultdict(IntervalTree)
@@ -56,11 +58,11 @@ class GFF():
                 toks = ln.split('\t')
                
                 species,_,type,st,end,_,strand,_,text = toks
-                if type!='gene': continue
-                st,end = map(int,[st,end])
-                
-                self.inttrees[(species,strand)].add( st,end,
-                                                     (st,end,text) ) 
+                if type=='CDS': 
+                    st,end = map(int,[st,end])
+                    
+                    self.inttrees[(species,strand)].add( st,end,
+                                                         (st,end,text) ) 
         
     """ Figures out which orfs overlap with HMMER hits """
     def call_orfs(self,hits):
@@ -82,6 +84,27 @@ class GFF():
                 newHits.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description))
         return newHits
     
+    
+    """ Figures out which orfs overlap HMMER hits AND retreives orf from faa file""" 
+    def translate_orfs(self,hits,faaindex,outfile):
+        prot_reg = re.compile("Name=([A-Za-z0-9_]+.\d);")
+        outhandle = open(outfile,'w')
+        for hit in hits:
+            acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+            curOrg = fasta.getName(acc)
+            hitSt,curStrand  = self.indexer.sixframe_to_nucleotide(acc,env_st)
+            hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
+            orfs = self.inttrees[(curOrg,curStrand)].find(hitSt,hitEnd)
+            if len(orfs)>0:
+                orf_st,orf_end,text = orfs[0]
+                protid = prot_reg.findall(text)[0]
+                record = faaindex[protid]
+                #print record
+                s = ">%s\n%s\n"%(record.id,fasta.format(str(record.seq)))
+                outhandle.write(s)
+        outhandle.close()
+        
+        
 def go(gff_files,fasta,fasta_index,output_file,createIndex):
     outhandle = open(output_file,'w')
     for gff_file in gff_files:
@@ -146,7 +169,7 @@ if __name__=="__main__":
                 os.remove(self.gff)
             def test1(self):
                 gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,True,False)
-                gff.parse()
+                gff.parse() 
                 result = ''.join(open(self.outfasta,'r').readlines())
                 seqs = [str(s.seq) for s in SeqIO.parse(self.outfasta,"fasta")]
                 headers = [s.id for s in SeqIO.parse(self.outfasta,"fasta")]
@@ -155,6 +178,75 @@ if __name__=="__main__":
                 self.assertEquals(headers[0],'CP002987.1|ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00010|51|100|+')
                 self.assertEquals(headers[1],'CP002987.1|ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00011|51|100|-')
         
+        class TestTranslateOrfs(unittest.TestCase):
+            def setUp(self):
+                indexes = [ '\t'.join(map(str,('CP002279.1_1',2294815, 185896721,60,61))),
+                             '\t'.join(map(str,('CP002279.1_2',2294815, 188229850,60,61))),
+                             '\t'.join(map(str,('CP002279.1_3',2294814, 190562979,60,61))),
+                             '\t'.join(map(str,('CP002279.1_4',2294814, 192896107,60,61))),
+                             '\t'.join(map(str,('CP002279.1_5',2294815, 195229235,60,61))),
+                             '\t'.join(map(str,('CP002279.1_6',2294815, 197562364,60,61)))]
+                
+                gff = '\n'.join([
+                '##gff-version 3',
+                '#!gff-spec-version 1.2',
+                '#!processor NCBI annotwriter',
+                '##sequence-region CP002987.1 1 4044777',
+                '##species http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=931626',
+                '\t'.join(map(str,['CP002279.1','Genbank\tregion',1,10000,'.','+','.','ID=id0;Name=ANONYMOUS;Dbxref=taxon:931626;Is_circular=true;'])),
+                '\t'.join(map(str,['CP002279.1','Genbank\tgene',100,160,'.','+','.','ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00010'])),
+                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',100,160,'.','+','0','ID=cds0;Name=AFA46815.1;Parent=gene0;Dbxref=NCBI_GP:AFA46815.1;'])),             
+                '\t'.join(map(str,['CP002279.1','Genbank\tgene',1500,1800,'.','+','.','ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00011'])),
+                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',1500,1800,'.','+','0','ID=cds0;Name=AFA46816.1;Parent=gene0;Dbxref=NCBI_GP:AFA46815.1;'])),             
+                '\t'.join(map(str,['CP002279.1','Genbank\tgene',3200,3800,'.','+','.','ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00011'])),
+                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',3200,3800,'.','+','0','ID=cds0;Name=AFA46817.1;Parent=gene0;Dbxref=NCBI_GP:AFA46815.1;']))             
+                ])
+                self.queries   = [('CP002279.1_1','toxin.fa.cluster2.fa',0,0,1,125,150,
+                                    'Mesorhizobium opportunistum WSM2075, complete genome'),
+                                   ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,570,600,
+                                    'Mesorhizobium opportunistum WSM2075, complete genome'),
+                                   ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,1220,1280,
+                                    'Mesorhizobium opportunistum WSM2075, complete genome')] 
+                seqs=['>CP002279.1',
+                      'ACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAG\n'*100]
+                prots=['>gi|093|AFA46815.1|gb|',
+                       'TYVDVRRRTX'*2,
+                       '>gi|093|AFA46816.1|gb|',
+                       'TYVDVRRRTX'*10,
+                       '>gi|093|AFA46817.1|gb|',
+                       'TYVDVRRRTX'*20]
+                      
+                self.gff = "test.gff"
+                self.fasta = "test.fasta"
+                self.faidx = "test.faidx"
+                self.outfasta = "out.fasta"
+                open(self.gff,'w').write(gff)
+                open(self.fasta,'w').write('\n'.join(seqs))
+                print '\n'.join(indexes)
+                open(self.faidx,'w').write('\n'.join(indexes))
+                self.out = "prot_out.fasta"
+                self.faa = "test.faa"
+                open(self.faa,'w').write('\n'.join(prots))
+            def tearDown(self):
+                os.remove(self.fasta)
+                os.remove(self.faidx)
+                os.remove(self.gff)
+                #os.remove(self.out)
+        
+            def test(self):
+                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False,False)
+                faaindex = faa.FAA(self.faa)
+                faaindex.index()
+                
+                gff.translate_orfs(self.queries,faaindex,self.out)
+                hits = list(SeqIO.parse(open(self.out,'r'),"fasta")) 
+                self.assertGreater(len(hits),0)
+                #self.assertEquals(hits[0].id,"AFA46815.1") 
+                self.assertEquals(str(hits[0].seq),'TYVDVRRRTX'*10)
+                #self.assertEquals(hits[1].id,"AFA46816.1")
+                self.assertEquals(str(hits[1].seq),'TYVDVRRRTX'*20)
+                
+                    
         class TestIndexTree(unittest.TestCase):
             def setUp(self):
                 indexes = [ '\t'.join(map(str,('CP002279.1_1',2294815, 185896721,60,61))),
@@ -210,7 +302,7 @@ if __name__=="__main__":
                                    ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,3551,4000,
                                     'Mesorhizobium opportunistum WSM2075, complete genome')]
                                   )
-                pass
+                
         unittest.main()
         
         

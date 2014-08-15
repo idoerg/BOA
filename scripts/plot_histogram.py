@@ -40,14 +40,18 @@ def bargraph(clusters,numFuncs):
 	return operon_cnts
 
 if __name__=="__main__":
-	faidx = "/Users/mortonyt/Documents/MiamiBio/workspace/all_trans.fai"
-	gffFile = "/Users/mortonyt/Documents/MiamiBio/workspace/all.gff"
-	folder = "/Users/mortonyt/Documents/MiamiBio/workspace"
+	#faidx = "/Users/mortonyt/Documents/MiamiBio/workspace/all_trans.fai"
+	#gffFile = "/Users/mortonyt/Documents/MiamiBio/workspace/all.gff"
+	#folder = "/Users/mortonyt/Documents/MiamiBio/workspace"
+        faidx = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all_trans.fai"
+        gffFile = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/data/all.gff"
+        folder = "/home/mortonjt/Projects/Bacfinder/workspace/quorum/intermediate"
+
 	if os.path.exists("clusters.pickle"):
 		all_hits = cPickle.load(open("all_hits.pickle",'rb'))
 		clusters = cPickle.load(open("clusters.pickle",'rb'))
 	else:
-		if os.path.exists("all_hits.pickle"):
+		if not os.path.exists("all_hits.pickle"):
 			toxin_hits     = hmmer.parse("%s/toxin.out"%folder)
 			modifier_hits  = hmmer.parse("%s/modifier.out"%folder)
 			immunity_hits  = hmmer.parse("%s/immunity.out"%folder)

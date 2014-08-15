@@ -1,3 +1,4 @@
+
 """
 Plot the phylogenetic trees for toxins and immunity genes
 """
@@ -76,13 +77,13 @@ if __name__=="__main__":
     itolout = "itol.txt"
     
     itol = iTOL(operons,rrnaFile,
-                "%s/operon.rrna"%folder,
-                "%s/operon.align"%folder,
-                "%s/operon.tree"%folder)
-    itol.sizeFilter(filtered_operons,k=200 )
-    itol.setOperonFile(filtered_operons)
+                "operon.rrna",
+                "operon.align",
+                "operon.tree")
+    #itol.sizeFilter(filtered_operons,k=200 )
+    itol.setOperonFile(operons)
     itol.getRRNAs()  #### Note: This will only get the RRNAs for chromosomal bacteriocins
-    itol.buildTree()
+    itol.buildTree(MSA=MAFFT,iters=30)
     itol.operonDistribution(itolout)
     
     #toxins = quorum%"/intermediate/toxin_genes.txt"

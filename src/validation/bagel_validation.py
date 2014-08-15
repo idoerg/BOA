@@ -8,6 +8,7 @@ for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
 from annotated_genes import AnnotationTree
 
+    
 
 """ Compare discovered genes to Bagel """
 def bagel_compare_species(operon_file,bagel_csv):
