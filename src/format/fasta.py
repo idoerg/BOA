@@ -258,6 +258,9 @@ def strand(frame):
         return '-'
     else:
         raise Exception
+def getStrand(seqname):
+    return strand(getFrame(seqname))
+
 """ Fetch orfs from hmmer hits
 Careful about faidx window size """
 def call_orfs(indexer,hits):

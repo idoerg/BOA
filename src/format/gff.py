@@ -20,7 +20,7 @@ from bx.intervals import *
 
 class GFF():
     def __init__(self,gff_file,output_file="",fasta_file="",fasta_index="",
-                 createIndex=False,accessionID=True):
+                 createIndex=False):
         self.gff_file = gff_file
         self.fasta = fasta_file
         self.fasta_index = fasta_index
@@ -85,19 +85,24 @@ class GFF():
         return newHits
     
     
-    """ Figures out which orfs overlap HMMER hits AND retreives orf from faa file""" 
+    """ Figures out which orfs overlap HMMER hits AND retreives orf from faa file
+        Note: This assumes that coordinates are in genome coordinates
+    """ 
     def translate_orfs(self,hits,faaindex,outfile):
         prot_reg = re.compile("Name=([A-Za-z0-9_]+.\d);")
         outhandle = open(outfile,'w')
         for hit in hits:
             acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
             curOrg = fasta.getName(acc)
-            hitSt,curStrand  = self.indexer.sixframe_to_nucleotide(acc,env_st)
-            hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
+            #hitSt,curStrand  = self.indexer.sixframe_to_nucleotide(acc,env_st)
+            #hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
+            hitSt,hitEnd = map(int,[env_st,env_end])
+            curStrand = fasta.getStrand(acc)
             orfs = self.inttrees[(curOrg,curStrand)].find(hitSt,hitEnd)
             if len(orfs)>0:
                 orf_st,orf_end,text = orfs[0]
                 protid = prot_reg.findall(text)[0]
+                print protid
                 record = faaindex[protid]
                 #print record
                 s = ">%s\n%s\n"%(record.id,fasta.format(str(record.seq)))
@@ -209,11 +214,11 @@ if __name__=="__main__":
                                     'Mesorhizobium opportunistum WSM2075, complete genome')] 
                 seqs=['>CP002279.1',
                       'ACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAG\n'*100]
-                prots=['>gi|093|AFA46815.1|gb|',
+                prots=['>gi|093|gb|AFA46815.1|',
                        'TYVDVRRRTX'*2,
-                       '>gi|093|AFA46816.1|gb|',
+                       '>gi|093|gb|AFA46816.1|',
                        'TYVDVRRRTX'*10,
-                       '>gi|093|AFA46817.1|gb|',
+                       '>gi|093|gb|AFA46817.1|',
                        'TYVDVRRRTX'*20]
                       
                 self.gff = "test.gff"

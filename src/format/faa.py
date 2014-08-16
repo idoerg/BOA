@@ -22,15 +22,18 @@ class FAA(object):
         self.indexer = dict()
     def index(self):
         for record in SeqIO.parse(open(self.faafile,'r'),'fasta'):
-            print record
-            print record.id
-            print record.id.split('|')
-            gi,num,protid,dbtype,_ = record.id.split('|')
+            #print record
+            #print record.id
+            #print record.id.split('|')
+            gi,num,dbtype,protid,_ = record.id.split('|')
+            #print gi,num,dbtype,protid
             self.indexer[protid] = record
+        print "len=%d"%len(self.indexer)
     def dump(self,outfile):
-        cPickle.dump((self.indexer,self.faafile),open(outfile,'w'))
-    def load(self):
-        self.indexer,self.faafile = cPickle.load(open(outfile,'r'))
+        cPickle.dump((self.indexer,self.faafile),open(outfile,'wb'))
+    def load(self,outfile):
+        self.indexer,self.faafile = cPickle.load(open(outfile,'rb'))
     def __getitem__(self,protid):
         return self.indexer[protid]
     
+
