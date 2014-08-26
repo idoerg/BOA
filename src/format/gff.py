@@ -87,10 +87,12 @@ class GFF():
     
     """ Figures out which orfs overlap HMMER hits AND retreives orf from faa file
         Note: This assumes that coordinates are in genome coordinates
+        
+        Returns a list of sequence ids and their corresponding protein sequence
     """ 
-    def translate_orfs(self,hits,faaindex,outfile):
+    def translate_orfs(self,hits,faaindex):
         prot_reg = re.compile("Name=([A-Za-z0-9_]+.\d);")
-        outhandle = open(outfile,'w')
+        records = []
         for hit in hits:
             acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
             curOrg = fasta.getName(acc)
@@ -102,13 +104,12 @@ class GFF():
             if len(orfs)>0:
                 orf_st,orf_end,text = orfs[0]
                 protid = prot_reg.findall(text)[0]
-                print protid
+                
                 record = faaindex[protid]
                 #print record
-                s = ">%s\n%s\n"%(record.id,fasta.format(str(record.seq)))
-                outhandle.write(s)
-        outhandle.close()
-        
+                
+                records.append( (protid, str(record.seq)) )
+        return records
         
 def go(gff_files,fasta,fasta_index,output_file,createIndex):
     outhandle = open(output_file,'w')
@@ -173,7 +174,7 @@ if __name__=="__main__":
                 os.remove(self.outfasta)
                 os.remove(self.gff)
             def test1(self):
-                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,True,False)
+                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,True)
                 gff.parse() 
                 result = ''.join(open(self.outfasta,'r').readlines())
                 seqs = [str(s.seq) for s in SeqIO.parse(self.outfasta,"fasta")]
@@ -239,17 +240,16 @@ if __name__=="__main__":
                 #os.remove(self.out)
         
             def test(self):
-                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False,False)
+                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False)
                 faaindex = faa.FAA(self.faa)
                 faaindex.index()
                 
-                gff.translate_orfs(self.queries,faaindex,self.out)
-                hits = list(SeqIO.parse(open(self.out,'r'),"fasta")) 
-                self.assertGreater(len(hits),0)
-                #self.assertEquals(hits[0].id,"AFA46815.1") 
-                self.assertEquals(str(hits[0].seq),'TYVDVRRRTX'*10)
-                #self.assertEquals(hits[1].id,"AFA46816.1")
-                self.assertEquals(str(hits[1].seq),'TYVDVRRRTX'*20)
+                records = gff.translate_orfs(self.queries,faaindex)
+                ids,seqs = zip(*records)
+                
+                self.assertGreater(len(records),0)
+                self.assertEquals(ids[0],"AFA46815.1") 
+                self.assertEquals(str(seqs[0]),'TYVDVRRRTX'*2)
                 
                     
         class TestIndexTree(unittest.TestCase):
@@ -299,7 +299,7 @@ if __name__=="__main__":
                 os.remove(self.gff)
                 pass
             def test(self):
-                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False,False)
+                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False)
                 hits = gff.call_orfs(self.queries)
                 self.assertEquals(hits,
                                   [('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,1551,2000,

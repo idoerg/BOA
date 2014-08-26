@@ -206,10 +206,10 @@ class BLAST(object):
         outHandle = open(self.blastfile,'w')
         #cmd for blast
         #m = 7 if mode=='xml' else 8
-        #cmd="blastall -p %s -d %s -i %s -m %d -o %s -e %f -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
+        #cmd="blastall -p %s -d %s -i %s -m %d -o %s -e %lf -a %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
         #cmd for blast+
         m = 5 if mode=='xml' else 6
-        cmd="%s -db %s -query %s -outfmt %d -out %s -evalue %f -num_threads %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, self.evalue, num_threads)
+        cmd="%s -db %s -query %s -outfmt %d -out %s -evalue %s -num_threads %d"%(blast_cmd,self.protein_db,self.genomic_query,m, self.blastfile, str(self.evalue), num_threads)
         self.blastcmd = cmd
         proc = subprocess.Popen(cmd,shell=True)
         proc.wait()

@@ -34,12 +34,13 @@ if __name__=="__main__":
                         help='Input fasta file index')
     parser.add_argument('--faa', type=str, required=False,
                         help='Input fasta file for proteins')
-    parser.add_argument('--pickle', type=str, required=False,
+    parser.add_argument('--pickle', type=str, required=False,default=None,
                         help='Pickle file containing all clusters')
     parser.add_argument('--out', type=str, required=False,
-                        help='Output file for translated orfs')
+                        help='Output file for translated orfs')    
     args = parser.parse_args()
     queries = []
+    print "Started"
     if not os.path.exists("faa.pickle"):
         print "Creating pickle"
         faaindex = faa.FAA(args.faa)
@@ -51,9 +52,15 @@ if __name__=="__main__":
         print "Loading pickle"
         faaindex = faa.FAA(args.faa)
         faaindex.load("faa.pickle")
+
+    if args.pickle==None:
+        clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,
+                                                         functions=["toxin","transport"])
+        cPickle.dump(open(args.pickle,'wb'))
+    else:
+        clusters,_ = cPickle.load(open(args.pickle,'rb'))
         
     gff = gff.GFF(args.gff,fasta_file=args.fasta,fasta_index=args.faidx)                
-    clusters,predclusters = cPickle.load(open(args.pickle,'rb'))
     for cluster in clusters:
         for node in cluster:
             acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description = node.split('|')

@@ -175,6 +175,7 @@ class QuorumPipelineHandler(object):
             index=(index+1)%njobs
         #Close files
         for handle in split_bachandles: handle.close()
+        print "evalue",self.bac_evalue
         if self.formatdb: 
             blast_cmd = ' '.join([
                         """module load anaconda; module load blast;module load blast+;"""
@@ -184,7 +185,7 @@ class QuorumPipelineHandler(object):
                         """ --intergenes=%s          """,
                         """ --bacteriocins=%s   	 """,
                         """ --bacteriocin-radius=%d  """,
-                        """ --bac-evalue=%f 		 """,
+                        """ --bac-evalue=%s 		 """,
                         """ --num-threads=%d    	 """,
                         """ --intermediate=%s   	 """,
                         """ --output=%s     		 """,
@@ -200,7 +201,7 @@ class QuorumPipelineHandler(object):
                         """ --intergenes=%s          """,
                         """ --bacteriocins=%s   	 """,
                         """ --bacteriocin-radius=%d  """,
-                        """ --bac-evalue=%f 		 """,
+                        """ --bac-evalue=%s 		 """,
                         """ --num-threads=%d    	 """,
                         """ --intermediate=%s   	 """,
                         """ --output=%s     		 """,
@@ -216,7 +217,7 @@ class QuorumPipelineHandler(object):
                             self.intergenes,
                             split_bacfiles[i],
                             self.bacteriocin_radius,
-                            self.bac_evalue,
+                            str(self.bac_evalue),
                             self.numThreads,
                             self.intermediate,
                             out_fnames[i])
@@ -540,7 +541,7 @@ if __name__=="__main__":
         'Finds bacteriocins and context genes')
     parser.add_argument(\
         '--pipeline-section', type=str, required=False, default="all",
-        help='Section of the pipeline to run (all, preprocess, blast, context, hmmer,clique)')
+        help='Section of the pipeline to run (all, preprocess, blast, context, hmmer, clique)')
     parser.add_argument(\
         '--root-dir',type=str, required=False,
         help='Root directory')
@@ -604,6 +605,7 @@ if __name__=="__main__":
         help='Run unittests')
     args = parser.parse_args()
     print "Intermediate",args.intermediate
+    print "evalue",args.bac_evalue
     if not args.test:
         if args.functions==None:
             functions = ["toxin","modifier","immunity","transport","regulator"]
@@ -709,22 +711,22 @@ if __name__=="__main__":
                                          self.verbose                
                                         ) 
                 
-                #self.proc.preprocess()
+                self.proc.preprocess()
                 self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.proc.all_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_faidx) > 0)
                 
-                #self.proc.blast(njobs=10)
+                self.proc.blast(njobs=10)
                 
                 self.assertTrue(os.path.getsize(self.proc.blasted_fasta_bacteriocins) > 0)
                 self.assertTrue(os.path.getsize(self.proc.cand_context_genes_fasta) > 0)
                 
-                #self.proc.blastContextGenes(njobs=10)
+                self.proc.blastContextGenes(njobs=10)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
-                #self.proc.hmmerGenes(min_cluster=1,njobs=8)
+                self.proc.hmmerGenes(min_cluster=1,njobs=8)
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 
