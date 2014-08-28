@@ -24,19 +24,21 @@ class CliqueFilter():
         if fasta_index!="":
             self.faidx.load()
         self.radius = radius
-    
+    """ delete graph """
+    def delGraph(self):
+        del self.graph
     def createGraph(self,hits,backtrans=True):
-        print "Creating graph %d hits"%(len(hits))
         self.graph = nx.Graph()
         handle = open("graph_error.txt",'w')
         for i in xrange(len(hits)):
             for j in xrange(0,i):
-                #print i,j
                 hiti = hits[i]
                 hitj = hits[j]
+                
                 #acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
                 iname,ienv_st,ienv_end = hiti[0],int(hiti[5]),int(hiti[6])
                 jname,jenv_st,jenv_end = hitj[0],int(hitj[5]),int(hitj[6])
+                
                 # Translate the six-frame translated coordinates
                 # into nucleotide reference coordinates
                 if backtrans:
@@ -124,6 +126,7 @@ class CliqueFilter():
 
     """ Merge overlapping cliques together """
     def merge(self,clusters):
+        if len(clusters)==0: return []
         clique_intervals = IntervalTree()
         clusters = self.sort(clusters)
         newClusters = []
@@ -161,6 +164,7 @@ def findContextGeneClusters(hits,faidx,radius=50000,backtrans=True, functions = 
     for hit in hits:
         if prevGenome == None:      
             prevGenome = hit[-1]
+            buf.append(hit)
         elif prevGenome == hit[-1]: 
             buf.append(hit)
         else: 
@@ -171,15 +175,16 @@ def findContextGeneClusters(hits,faidx,radius=50000,backtrans=True, functions = 
             
             cfilter.createGraph(buf,backtrans)    
             
-            cliques = cfilter.filter(functions)
+            cliques = cfilter.filter(merge=True,keyfunctions=functions)
             print >>err_handle,'Cliques'
             print >>err_handle,"\n".join(map(str,cliques)),'\n'
             clusters+= cliques
             buf = [hit]
             prevGenome = hit[-1]
+            cfilter.delGraph()
     
     cfilter.createGraph(buf,backtrans)    
-    cliques = cfilter.filter(functions)
+    cliques = cfilter.filter(merge=True,keyfunctions=functions)
     print >>err_handle,'Cliques'
     print >>err_handle,"\n".join(map(str,cliques)),'\n'
     clusters+= cliques
@@ -513,7 +518,7 @@ if __name__=="__main__":
                             self.assertLessEqual(abs(midi-midj), 100000,"midi: %d midj: %d"%(midi,midj))
                 print "Clusters",len(clusters)
                 pass
-                
+                            
         unittest.main()
 
 

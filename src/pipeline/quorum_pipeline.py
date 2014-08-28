@@ -39,6 +39,7 @@ from mafft import MAFFT
 import gff
 import interval_filter
 import clique_filter
+import faa 
 
 class QuorumPipelineHandler(object):
     def __init__(self,
@@ -89,6 +90,8 @@ class QuorumPipelineHandler(object):
         self.all_faidx          ="%s/all.fai"%self.intermediate
         self.six_fasta          ="%s/all_trans.fna"%self.intermediate
         self.six_faidx          ="%s/all_trans.fai"%self.intermediate
+        self.faa                ="%s/all.faa"%self.intermediate
+        self.faaidx             ="%s/all.faaidx"%self.intermediate
         self.gff                ="%s/all.gff"%self.intermediate
         self.blasted_tab_bacteriocins = "%s/blasted_bacteriocins.txt"%self.intermediate
         self.blasted_fasta_bacteriocins = "%s/blasted_bacteriocins.fa"%self.intermediate
@@ -144,6 +147,7 @@ class QuorumPipelineHandler(object):
                  self.six_fasta,
                  self.six_faidx) 
         indexer = fasta.Indexer(self.all_fasta,self.all_faidx)
+        indexer.index()
         indexer.load()
         intergene.go(self.genome_dir,self.intergenes)
         annotation.go(self.genome_dir,self.annotated_genes,index_obj=indexer) 
@@ -156,6 +160,24 @@ class QuorumPipelineHandler(object):
                 absfile=os.path.join(root,fname)
                 if ext==".gff":
                     shutil.copyfileobj(open(absfile),outhandle)
+        outhandle.close()
+        
+        tmpfile = "tmp%d.faa"%(os.getpid())
+        outhandle = open(tmpfile,'w')
+        for root, subFolders, files in os.walk(self.genome_dir):
+            for fname in files:
+                genome_files = []
+                organism,ext = os.path.splitext(os.path.basename(fname))
+                absfile=os.path.join(root,fname)
+                if ext==".faa":
+                    shutil.copyfileobj(open(absfile),outhandle)
+        outhandle.close()
+        faa.reformat(tmpfile,self.faa)
+        os.remove(tmpfile)
+        
+        faaindex = fasta.Indexer(self.faa,self.faaidx)
+        faaindex.index()
+        
     """  Runs blast to identify bacteriocins and context genes"""
     def blast(self,njobs=1):
         print "Blasting"
@@ -356,7 +378,25 @@ class QuorumPipelineHandler(object):
             H.writeClusters(similarity=0.7,memory=3000)
             H.HMMspawn(msa=MAFFT,njobs=njobs)
             H.search(self.six_fasta,self.hmmer_class_out[i],njobs)
-        
+    
+    """ Writes clusters and their corresponding sequences"""
+    def writeClusters(self,clusters,gff_index,faaindex,outhandle):
+        clusternum=0
+        for cluster in clusters:
+            genes = []
+            for gene in cluster:
+                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=gene.split("|")
+                genes.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description))
+            orfs = gff_index.translate_orfs(genes,faaindex)
+            for orf in orfs:
+                id,seq = orf
+                acc,clrname,full_evalue,env_st,env_end,protid = id
+                function = clrname.split('.')[0]
+                outhandle.write(">accession=%s|function=%s|start=%s|end=%s|evalue=%s|protid=%s|cluster_%d\n%s\n"%
+                                (acc,function,env_st,env_end,str(full_evalue),protid,clusternum,
+                                 fasta.format(seq))) 
+            clusternum+=1
+
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
     def cliqueFilter(self,clique_radius=50000,functions = ["toxin","modifier","immunity","transport","regulator"]):
@@ -367,52 +407,52 @@ class QuorumPipelineHandler(object):
         immunity_hits  = hmmer.parse("%s/immunity.out"%self.intermediate)
         regulator_hits = hmmer.parse("%s/regulator.out"%self.intermediate)
         transport_hits = hmmer.parse("%s/transport.out"%self.intermediate)
-        
-        #genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
-        #toxin_hits     = genefile.call_orfs(toxin_hits    )
-        #modifier_hits  = genefile.call_orfs(modifier_hits )
-        #immunity_hits  = genefile.call_orfs(immunity_hits )
-        #regulator_hits = genefile.call_orfs(regulator_hits)
-        #transport_hits = genefile.call_orfs(transport_hits)
-        fasta_index = fasta.Indexer(self.six_fasta,self.six_faidx,window=1000)
-        fasta_index.index()
-        fasta_index.load()
-        toxin_hits     = fasta.call_orfs(fasta_index,toxin_hits    )
-        modifier_hits  = fasta.call_orfs(fasta_index,modifier_hits )
-        immunity_hits  = fasta.call_orfs(fasta_index,immunity_hits )
-        regulator_hits = fasta.call_orfs(fasta_index,regulator_hits)
-        transport_hits = fasta.call_orfs(fasta_index,transport_hits)
+                
+        genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
+        toxin_hits     = genefile.call_orfs(toxin_hits    )
+        modifier_hits  = genefile.call_orfs(modifier_hits )
+        immunity_hits  = genefile.call_orfs(immunity_hits )
+        regulator_hits = genefile.call_orfs(regulator_hits)
+        transport_hits = genefile.call_orfs(transport_hits)
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
-        
         #Find operons with at least a toxin and a transport
-        #all_hits = interval_filter.overlaps(all_hits,self.all_faidx,backtrans=False)
         all_hits = interval_filter.unique(all_hits)
-        fasta.write_orfs(fasta_index,all_hits,
-                         "%s/orf_hits.out"%(self.intermediate))
         # #Sort by start/end position and genome name
         all_hits=sorted(all_hits,key=lambda x: x[6])   
         all_hits=sorted(all_hits,key=lambda x: x[5])
         all_hits=sorted(all_hits,key=lambda x: x[0])
         all_hits=sorted(all_hits,key=lambda x: x[-1])
+        print "Size of All hits",sys.getsizeof(all_hits)
+        print "Size of genefile",sys.getsizeof(genefile)
+        del toxin_hits
+        del modifier_hits
+        del immunity_hits
+        del regulator_hits
+        del transport_hits
+        
         clusters = clique_filter.findContextGeneClusters(all_hits,self.six_faidx,
                                                          radius=clique_radius,
-                                                         backtrans=True,
+                                                         backtrans=False,
                                                          functions=["toxin","transport"])
+         
+        faaindex = fasta.Indexer(self.faa,self.faaidx)
+        faaindex.index()
+        faaindex.load()
+        
+        print "Size of FAA",sys.getsizeof(faaindex)
+        
         outhandle = open(self.operons_out,'w')
-        for cluster in clusters:
-            for gene in cluster:
-                outhandle.write("%s\n"%gene)
-            outhandle.write('----------\n')
+        self.writeClusters(clusters,genefile,faaindex,outhandle) 
+        outhandle.close()
         #Predict operons based on just context genes
         clusters = clique_filter.findContextGeneClusters(all_hits,self.six_faidx,
                                                          radius=clique_radius,
-                                                         backtrans=True,   
+                                                         backtrans=False,   
                                                          functions=["modifier","regulator","immunity","transport"])
+        
         outhandle = open(self.pred_operons_out,'w')
-        for cluster in clusters:
-            for gene in cluster:
-                outhandle.write("%s\n"%gene)
-            outhandle.write('----------\n')
+        self.writeClusters(clusters,genefile,faaindex,outhandle) 
+        outhandle.close()
             
         #=======================================================================
         # toxin_hits     = parse("%s/toxin.out"%self.intermediate)
@@ -558,7 +598,7 @@ if __name__=="__main__":
         '--bacteriocins', type=str, required=False,default=None,
         help='The bacteriocin proteins that are to be blasted')
     parser.add_argument(\
-        '--bacteriocin-radius', type=int, required=False, default=5000,
+        '--bacteriocin-radius', type=int, required=False, default=50000,
         help='The search radius around every specified bacteriocin')
     parser.add_argument(\
         '--similarity', type=float, required=False, default=0.7,
@@ -631,21 +671,21 @@ if __name__=="__main__":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)            
+            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)            
         elif args.pipeline_section=="blast":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            #proc.cliqueFilter(functions=args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)
         elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)
         elif args.pipeline_section=="clique":
-            proc.cliqueFilter(60000,args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,args.functions)
             pass
         #from time import sleep
         #sleep(100)

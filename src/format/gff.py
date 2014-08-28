@@ -30,7 +30,10 @@ class GFF():
         self.output_file = output_file
         self.inttrees = defaultdict(IntervalTree)
         self.indextree()
-    """Parses gff file and spits out a fasta file for all of the predicted orfs"""
+    """ Clean up """
+    def __del__(self):
+        del self.inttrees
+        """Parses gff file and spits out a fasta file for all of the predicted orfs"""
     def parse(self,outhandle=None):
         if outhandle==None:
             outhandle = open(self.output_file,'w')
@@ -103,12 +106,16 @@ class GFF():
             orfs = self.inttrees[(curOrg,curStrand)].find(hitSt,hitEnd)
             if len(orfs)>0:
                 orf_st,orf_end,text = orfs[0]
+                if prot_reg.findall(text)==[]:
+                    print "No protid in",text
+                    continue
                 protid = prot_reg.findall(text)[0]
                 
-                record = faaindex[protid]
+                seq = faaindex[protid]
                 #print record
+                seqinfo = map(str,[acc,clrname,full_evalue,env_st,env_end,protid])
                 
-                records.append( (protid, str(record.seq)) )
+                records.append( (seqinfo, str(seq)) ) 
         return records
         
 def go(gff_files,fasta,fasta_index,output_file,createIndex):
@@ -232,23 +239,30 @@ if __name__=="__main__":
                 open(self.faidx,'w').write('\n'.join(indexes))
                 self.out = "prot_out.fasta"
                 self.faa = "test.faa"
+                self.faaidx = "test.faaidx"
+                
                 open(self.faa,'w').write('\n'.join(prots))
             def tearDown(self):
                 os.remove(self.fasta)
                 os.remove(self.faidx)
                 os.remove(self.gff)
                 #os.remove(self.out)
-        
-            def test(self):
-                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False)
-                faaindex = faa.FAA(self.faa)
-                faaindex.index()
                 
+            def test(self):
+                tmpfile = "tmp%d.faa"%(os.getpid())
+                faa.reformat(self.faa,tmpfile)
+                os.rename(tmpfile,self.faa)
+                gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False)
+                faaindex = fasta.Indexer(self.faa,self.faaidx)
+                faaindex.index()
+                faaindex.load()
                 records = gff.translate_orfs(self.queries,faaindex)
                 ids,seqs = zip(*records)
                 
                 self.assertGreater(len(records),0)
-                self.assertEquals(ids[0],"AFA46815.1") 
+                self.assertEquals(ids[0],
+                                  ['CP002279.1_1', 'toxin.fa.cluster2.fa', '0', '125', '150', 'AFA46815.1'])
+                                   
                 self.assertEquals(str(seqs[0]),'TYVDVRRRTX'*2)
                 
                     
@@ -307,7 +321,6 @@ if __name__=="__main__":
                                    ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,3551,4000,
                                     'Mesorhizobium opportunistum WSM2075, complete genome')]
                                   )
-                
         unittest.main()
         
         

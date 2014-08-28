@@ -1,5 +1,6 @@
 """
 Data structure that stores faa entries
+TODO: use fasta index
 """
 
 import os,sys,site
@@ -16,6 +17,7 @@ import re
 from collections import defaultdict
 from bx.intervals import *
 import cPickle
+"""
 class FAA(object):
     def __init__(self,faafile):
         self.faafile = faafile
@@ -28,7 +30,7 @@ class FAA(object):
             gi,num,dbtype,protid,_ = record.id.split('|')
             #print gi,num,dbtype,protid
             self.indexer[protid] = record
-        print "len=%d"%len(self.indexer)
+        
     def dump(self,outfile):
         cPickle.dump((self.indexer,self.faafile),open(outfile,'wb'))
     def load(self,outfile):
@@ -36,4 +38,13 @@ class FAA(object):
     def __getitem__(self,protid):
         return self.indexer[protid]
     
-
+"""
+    
+def reformat(orgfaa,faafile):
+    outhandle = open(faafile,'w')
+    for record in SeqIO.parse(open(orgfaa,'r'),'fasta'):
+        gi,num,dbtype,protid,_ = record.id.split("|")
+        outhandle.write(">%s\n%s\n"%(protid,fasta.format(str(record.seq))))
+    outhandle.close()
+    
+    
