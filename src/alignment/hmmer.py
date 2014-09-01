@@ -155,11 +155,11 @@ class HMMER(object):
             
             
     """Performs HMMER using all clusters on infasta"""
-    def search(self,infasta,out,njobs=4):
+    def search(self,infasta,out,maxpower=False,njobs=4):
         procs = []
         i = 0
         for hmm in self.hmms:
-            proc = hmm.hmmsearch(infasta)
+            proc = hmm.hmmsearch(infasta,maxpower)
             self.tables.append(hmm.table)
             procs.append(proc)
             i+=1

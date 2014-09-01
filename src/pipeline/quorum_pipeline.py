@@ -377,25 +377,25 @@ class QuorumPipelineHandler(object):
             H = self.hmmers[i]
             H.writeClusters(similarity=0.7,memory=3000)
             H.HMMspawn(msa=MAFFT,njobs=njobs)
-            H.search(self.six_fasta,self.hmmer_class_out[i],njobs)
+            H.search(self.six_fasta,self.hmmer_class_out[i],maxpower=True,njobs=njobs)
     
     """ Writes clusters and their corresponding sequences"""
     def writeClusters(self,clusters,gff_index,faaindex,outhandle):
         clusternum=0
         for cluster in clusters:
-            genes = []
-            for gene in cluster:
-                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=gene.split("|")
-                genes.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description))
-            orfs = gff_index.translate_orfs(genes,faaindex)
-            for orf in orfs:
-                id,seq = orf
-                acc,clrname,full_evalue,env_st,env_end,protid = id
-                function = clrname.split('.')[0]
-                outhandle.write(">accession=%s|function=%s|start=%s|end=%s|evalue=%s|protid=%s|cluster_%d\n%s\n"%
-                                (acc,function,env_st,env_end,str(full_evalue),protid,clusternum,
-                                 fasta.format(seq))) 
-            clusternum+=1
+                genes = []
+                for gene in cluster:
+                    acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=gene.split("|")
+                    genes.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description))
+                orfs = gff_index.translate_orfs(genes,faaindex)
+                for orf in orfs:
+                    id,seq = orf
+                    acc,clrname,full_evalue,env_st,env_end,protid = id
+                    function = clrname.split('.')[0]
+                    outhandle.write(">accession=%s|function=%s|start=%s|end=%s|evalue=%s|protid=%s|cluster_%d\n%s\n"%
+                                    (acc,function,env_st,env_end,str(full_evalue),protid,clusternum,
+                                     fasta.format(seq))) 
+                clusternum+=1
 
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
@@ -407,7 +407,8 @@ class QuorumPipelineHandler(object):
         immunity_hits  = hmmer.parse("%s/immunity.out"%self.intermediate)
         regulator_hits = hmmer.parse("%s/regulator.out"%self.intermediate)
         transport_hits = hmmer.parse("%s/transport.out"%self.intermediate)
-                
+        
+        
         genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
         toxin_hits     = genefile.call_orfs(toxin_hits    )
         modifier_hits  = genefile.call_orfs(modifier_hits )
@@ -598,7 +599,7 @@ if __name__=="__main__":
         '--bacteriocins', type=str, required=False,default=None,
         help='The bacteriocin proteins that are to be blasted')
     parser.add_argument(\
-        '--bacteriocin-radius', type=int, required=False, default=50000,
+        '--bacteriocin-radius', type=int, required=False, default=5000,
         help='The search radius around every specified bacteriocin')
     parser.add_argument(\
         '--similarity', type=float, required=False, default=0.7,
@@ -671,21 +672,21 @@ if __name__=="__main__":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)            
+            proc.cliqueFilter(functions=args.functions)            
         elif args.pipeline_section=="blast":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)
+            proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)
+            #proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(args.bacteriocin_radius,functions=args.functions)
+            proc.cliqueFilter(functions=args.functions)
         elif args.pipeline_section=="clique":
-            proc.cliqueFilter(args.bacteriocin_radius,args.functions)
+            proc.cliqueFilter(60000,args.functions)
             pass
         #from time import sleep
         #sleep(100)
