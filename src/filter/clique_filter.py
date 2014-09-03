@@ -156,7 +156,7 @@ class CliqueFilter():
 """
 Locate all context gene clusters
 """
-def findContextGeneClusters(hits,faidx,radius=50000,backtrans=True, functions = ["toxin","modifier","immunity","transport","regulator"]):
+def findContextGeneClusters(hits,faidx="",radius=50000,backtrans=True, functions = ["toxin","modifier","immunity","transport","regulator"]):
     err_handle = open('error.log','w')
     prevGenome = None
     buf,clusters = [],[]

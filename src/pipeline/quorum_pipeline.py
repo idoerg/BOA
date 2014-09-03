@@ -377,25 +377,18 @@ class QuorumPipelineHandler(object):
             H = self.hmmers[i]
             H.writeClusters(similarity=0.7,memory=3000)
             H.HMMspawn(msa=MAFFT,njobs=njobs)
-            H.search(self.six_fasta,self.hmmer_class_out[i],maxpower=True,njobs=njobs)
+            H.search(self.faa,self.hmmer_class_out[i],maxpower=True,njobs=njobs)
     
     """ Writes clusters and their corresponding sequences"""
-    def writeClusters(self,clusters,gff_index,faaindex,outhandle):
+    def writeClusters(self,clusters,seq_dict,outhandle):
         clusternum=0
         for cluster in clusters:
-                genes = []
-                for gene in cluster:
-                    acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=gene.split("|")
-                    genes.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description))
-                orfs = gff_index.translate_orfs(genes,faaindex)
-                for orf in orfs:
-                    id,seq = orf
-                    acc,clrname,full_evalue,env_st,env_end,protid = id
-                    function = clrname.split('.')[0]
-                    outhandle.write(">accession=%s|function=%s|start=%s|end=%s|evalue=%s|protid=%s|cluster_%d\n%s\n"%
-                                    (acc,function,env_st,env_end,str(full_evalue),protid,clusternum,
-                                     fasta.format(seq))) 
-                clusternum+=1
+            for gene in cluster:
+                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=gene.split("|")
+                seq = seq_dict[(acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description)]
+                outhandle.write(">accession=%s|function=%s|start=%s|end=%s|score=%s|cluster_%d|%s\n%s\n"%
+                                (acc,function,env_st,env_end,str(full_evalue),clusternum,description,fasta.format(seq))) 
+            clusternum+=1
 
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
@@ -408,51 +401,64 @@ class QuorumPipelineHandler(object):
         regulator_hits = hmmer.parse("%s/regulator.out"%self.intermediate)
         transport_hits = hmmer.parse("%s/transport.out"%self.intermediate)
         
-        
+        faaindex = fasta.Indexer(self.faa,self.faaidx)
+        faaindex.index()
+        faaindex.load()
         genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
-        toxin_hits     = genefile.call_orfs(toxin_hits    )
-        modifier_hits  = genefile.call_orfs(modifier_hits )
-        immunity_hits  = genefile.call_orfs(immunity_hits )
-        regulator_hits = genefile.call_orfs(regulator_hits)
-        transport_hits = genefile.call_orfs(transport_hits)
+        genefile.indexdb()
+        toxin_hits     = genefile.call_orfs(toxin_hits    ,faaindex)
+        modifier_hits  = genefile.call_orfs(modifier_hits ,faaindex)
+        immunity_hits  = genefile.call_orfs(immunity_hits ,faaindex)
+        regulator_hits = genefile.call_orfs(regulator_hits,faaindex)
+        transport_hits = genefile.call_orfs(transport_hits,faaindex)
+        
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
-        #Find operons with at least a toxin and a transport
-        all_hits = interval_filter.unique(all_hits)
-        # #Sort by start/end position and genome name
-        all_hits=sorted(all_hits,key=lambda x: x[6])   
-        all_hits=sorted(all_hits,key=lambda x: x[5])
-        all_hits=sorted(all_hits,key=lambda x: x[0])
-        all_hits=sorted(all_hits,key=lambda x: x[-1])
-        print "Size of All hits",sys.getsizeof(all_hits)
-        print "Size of genefile",sys.getsizeof(genefile)
+        seq_dict = {x[0]:x[1] for x in all_hits}
+        del all_hits
+        
+        toxin_ids,toxin_seqs = zip(*toxin_hits)
+        modifier_ids,modifier_seqs = zip(*modifier_hits)
+        immunity_ids,immunity_seqs = zip(*immunity_hits)
+        regulator_ids,regulator_seqs = zip(*regulator_hits)
+        transport_ids,transport_seqs = zip(*transport_hits)
+        
         del toxin_hits
         del modifier_hits
         del immunity_hits
         del regulator_hits
         del transport_hits
         
-        clusters = clique_filter.findContextGeneClusters(all_hits,self.six_faidx,
+        all_ids = toxin_ids+modifier_ids+immunity_ids+regulator_ids+transport_ids
+        #Find operons with at least a toxin and a transport
+        all_ids = interval_filter.unique(all_ids)
+        # #Sort by start/end position and genome name
+        all_ids=sorted(all_ids,key=lambda x: x[6])   
+        all_ids=sorted(all_ids,key=lambda x: x[5])
+        all_ids=sorted(all_ids,key=lambda x: x[0])
+        all_ids=sorted(all_ids,key=lambda x: x[-1])
+        
+        del toxin_ids
+        del modifier_ids
+        del immunity_ids
+        del regulator_ids
+        del transport_ids
+        
+        clusters = clique_filter.findContextGeneClusters(all_ids,
                                                          radius=clique_radius,
                                                          backtrans=False,
                                                          functions=["toxin","transport"])
-         
-        faaindex = fasta.Indexer(self.faa,self.faaidx)
-        faaindex.index()
-        faaindex.load()
-        
-        print "Size of FAA",sys.getsizeof(faaindex)
         
         outhandle = open(self.operons_out,'w')
-        self.writeClusters(clusters,genefile,faaindex,outhandle) 
+        self.writeClusters(clusters,seq_dict,outhandle) 
         outhandle.close()
         #Predict operons based on just context genes
-        clusters = clique_filter.findContextGeneClusters(all_hits,self.six_faidx,
+        clusters = clique_filter.findContextGeneClusters(all_hits,
                                                          radius=clique_radius,
                                                          backtrans=False,   
                                                          functions=["modifier","regulator","immunity","transport"])
         
         outhandle = open(self.pred_operons_out,'w')
-        self.writeClusters(clusters,genefile,faaindex,outhandle) 
+        self.writeClusters(clusters,seq_dict,outhandle) 
         outhandle.close()
             
         #=======================================================================

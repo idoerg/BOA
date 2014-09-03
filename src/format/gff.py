@@ -18,9 +18,14 @@ import re
 from collections import defaultdict
 from bx.intervals import *
 
+prot_reg = re.compile("Name=([A-Za-z0-9_]+.\d);")
+
 class GFF():
-    def __init__(self,gff_file,output_file="",fasta_file="",fasta_index="",
-                 createIndex=False):
+    def __init__(self,gff_file,
+                 output_file="",fasta_file="",fasta_index="",
+                 createIndex=False,
+                 sixFrame=False):
+        self.sixFrame = sixFrame
         self.gff_file = gff_file
         self.fasta = fasta_file
         self.fasta_index = fasta_index
@@ -29,7 +34,8 @@ class GFF():
         self.indexer.load()
         self.output_file = output_file
         self.inttrees = defaultdict(IntervalTree)
-        self.indextree()
+        self.proteins = {}
+        #self.indextree()
     """ Clean up """
     def __del__(self):
         del self.inttrees
@@ -50,6 +56,7 @@ class GFF():
                 else:
                     sequence = self.indexer.reverse_fetch(species,st,end)
                 outhandle.write(">%s|%s|%d|%d|%s\n%s\n"%(species,text,st,end,strand,sequence))
+   
     """ Create an interval tree"""
     def indextree(self):
         
@@ -65,9 +72,41 @@ class GFF():
                     st,end = map(int,[st,end])
                     
                     self.inttrees[(species,strand)].add( st,end,
-                                                         (st,end,text) ) 
-        
+                                                         (st,end,text) )
+    """ Create dictionary indexed by protein id""" 
+    def indexdb(self):
+        self.proteins = {}
+        with open(self.gff_file,'r') as handle:
+            for ln in handle:
+                if ln[0] == '#': continue
+                ln = ln.rstrip()
+                toks = ln.split('\t')
+                species,_,type,st,end,_,strand,_,text = toks
+                if type!='CDS': continue
+                if prot_reg.findall(text)==[]:
+                    print "No protid in",text
+                    continue
+                protid = prot_reg.findall(text)[0]
+                self.proteins[protid] = (species,st,end,strand)
+                
+    
     """ Figures out which orfs overlap with HMMER hits """
+    def call_orfs(self,hits,faaindex):
+        records = []
+        for hit in hits:
+            protid,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+            if protid not in self.proteins:
+                print "%s is missing !"%protid
+            else:
+                species,st,end,strand = self.proteins[protid]
+                env_st,env_end = map(int,[st,end])
+                seq = faaindex[protid]
+                seqinfo = (species,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description)
+                records.append( (seqinfo, str(seq)) ) 
+        return records
+    
+    """
+    
     def call_orfs(self,hits):
         #Create interval tree from gff file
         
@@ -75,10 +114,13 @@ class GFF():
         
         for hit in hits:
             acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
-            curOrg = fasta.getName(acc)
-            hitSt,curStrand  = self.indexer.sixframe_to_nucleotide(acc,env_st)
-            hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
-            
+            if self.sixFrame:
+                curOrg = fasta.getName(acc)
+                hitSt,curStrand  = self.indexer.sixframe_to_nucleotide(acc,env_st)
+                hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
+            else:
+                curOrg = acc
+                
             orfs = self.inttrees[(curOrg,curStrand)].find(hitSt,hitEnd)
             
             if len(orfs)>0:
@@ -86,19 +128,23 @@ class GFF():
                 env_st,env_end = orf_st,orf_end
                 newHits.append((acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description))
         return newHits
-    
+    """
     
     """ Figures out which orfs overlap HMMER hits AND retreives orf from faa file
         Note: This assumes that coordinates are in genome coordinates
         
         Returns a list of sequence ids and their corresponding protein sequence
     """ 
+    """
     def translate_orfs(self,hits,faaindex):
-        prot_reg = re.compile("Name=([A-Za-z0-9_]+.\d);")
+        
         records = []
         for hit in hits:
             acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
-            curOrg = fasta.getName(acc)
+            if self.sixFrame:
+                curOrg = fasta.getName(acc)
+            else:
+                curOrg = acc
             #hitSt,curStrand  = self.indexer.sixframe_to_nucleotide(acc,env_st)
             #hitEnd,curStrand = self.indexer.sixframe_to_nucleotide(acc,env_end)
             hitSt,hitEnd = map(int,[env_st,env_end])
@@ -117,7 +163,7 @@ class GFF():
                 
                 records.append( (seqinfo, str(seq)) ) 
         return records
-        
+    """
 def go(gff_files,fasta,fasta_index,output_file,createIndex):
     outhandle = open(output_file,'w')
     for gff_file in gff_files:
@@ -182,6 +228,7 @@ if __name__=="__main__":
                 os.remove(self.gff)
             def test1(self):
                 gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,True)
+                gff.indextree()
                 gff.parse() 
                 result = ''.join(open(self.outfasta,'r').readlines())
                 seqs = [str(s.seq) for s in SeqIO.parse(self.outfasta,"fasta")]
@@ -190,7 +237,7 @@ if __name__=="__main__":
                 self.assertEquals(seqs[1],'CTACGTACGT'*5)
                 self.assertEquals(headers[0],'CP002987.1|ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00010|51|100|+')
                 self.assertEquals(headers[1],'CP002987.1|ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00011|51|100|-')
-        
+        """
         class TestTranslateOrfs(unittest.TestCase):
             def setUp(self):
                 indexes = [ '\t'.join(map(str,('CP002279.1_1',2294815, 185896721,60,61))),
@@ -253,6 +300,7 @@ if __name__=="__main__":
                 faa.reformat(self.faa,tmpfile)
                 os.rename(tmpfile,self.faa)
                 gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False)
+                gff.indextree()
                 faaindex = fasta.Indexer(self.faa,self.faaidx)
                 faaindex.index()
                 faaindex.load()
@@ -264,7 +312,7 @@ if __name__=="__main__":
                                   ['CP002279.1_1', 'toxin.fa.cluster2.fa', '0', '125', '150', 'AFA46815.1'])
                                    
                 self.assertEquals(str(seqs[0]),'TYVDVRRRTX'*2)
-                
+        """
                     
         class TestIndexTree(unittest.TestCase):
             def setUp(self):
@@ -285,15 +333,15 @@ if __name__=="__main__":
                 '\t'.join(map(str,['CP002279.1','Genbank\tgene',51,100,'.','+','.','ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00010'])),
                 '\t'.join(map(str,['CP002279.1','Genbank\tCDS',51,100,'.','+','0','ID=cds0;Name=AFA46815.1;Parent=gene0;Dbxref=NCBI_GP:AFA46815.1;'])),             
                 '\t'.join(map(str,['CP002279.1','Genbank\tgene',1551,2000,'.','+','.','ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00011'])),
-                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',1551,2000,'.','+','0','ID=cds0;Name=AFA46815.1;Parent=gene0;Dbxref=NCBI_GP:AFA46815.1;'])),             
+                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',1551,2000,'.','+','0','ID=cds0;Name=AFA46816.1;Parent=gene0;Dbxref=NCBI_GP:AFA46816.1;'])),             
                 '\t'.join(map(str,['CP002279.1','Genbank\tgene',3551,4000,'.','+','.','ID=gene0;Name=dnaA;gbkey=Gene;gene=dnaA;locus_tag=Awo_c00011'])),
-                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',3551,4000,'.','+','0','ID=cds0;Name=AFA46815.1;Parent=gene0;Dbxref=NCBI_GP:AFA46815.1;']))             
+                '\t'.join(map(str,['CP002279.1','Genbank\tCDS',3551,4000,'.','+','0','ID=cds0;Name=AFA46817.1;Parent=gene0;Dbxref=NCBI_GP:AFA46817.1;']))             
                 ])
-                self.queries   = [('CP002279.1_1','toxin.fa.cluster2.fa',0,0,1,125,150,
+                self.queries   = [('AFA46815.1','toxin.fa.cluster2.fa',0,0,1,55,150,
                                     'Mesorhizobium opportunistum WSM2075, complete genome'),
-                                   ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,570,600,
+                                   ('AFA46816.1','transport.fa.cluster2.fa',0,0,1,570,600,
                                     'Mesorhizobium opportunistum WSM2075, complete genome'),
-                                   ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,1220,1280,
+                                   ('AFA46817.1','transport.fa.cluster2.fa',0,0,1,1220,1280,
                                     'Mesorhizobium opportunistum WSM2075, complete genome')] 
                 seqs=['>CP002279.1',
                       'ACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAGACGTACGTAG\n'*100]
@@ -306,21 +354,42 @@ if __name__=="__main__":
                 print '\n'.join(indexes)
                 open(self.faidx,'w').write('\n'.join(indexes))
                 
-                pass
+                prots=['>gi|093|gb|AFA46815.1|',
+                       'TYVDVRRRTX'*2,
+                       '>gi|093|gb|AFA46816.1|',
+                       'TYVDVRRRTX'*10,
+                       '>gi|093|gb|AFA46817.1|',
+                       'TYVDVRRRTX'*20]
+                self.faa = "test.faa"
+                self.faaidx = "test.faaidx"
+                open(self.faa,'w').write('\n'.join(prots))
+                self.maxDiff=1000
             def tearDown(self):
                 os.remove(self.fasta)
                 os.remove(self.faidx)
                 os.remove(self.gff)
                 pass
             def test(self):
+                tmpfile = "tmp%d.faa"%(os.getpid())
+                faa.reformat(self.faa,tmpfile)
+                os.rename(tmpfile,self.faa)
+                faaindex = fasta.Indexer(self.faa,self.faaidx)
+                faaindex.index()
+                faaindex.load()
                 gff = GFF(self.gff,self.outfasta,self.fasta,self.faidx,False)
-                hits = gff.call_orfs(self.queries)
-                self.assertEquals(hits,
-                                  [('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,1551,2000,
+                #gff.indextree()
+                gff.indexdb()
+                hits = gff.call_orfs(self.queries,faaindex)
+                print hits
+                ids,seqs = zip(*hits)
+                correct_queries = [('CP002279.1','toxin.fa.cluster2.fa',0,0,1,51,100,
                                     'Mesorhizobium opportunistum WSM2075, complete genome'),
-                                   ('CP002279.1_1','transport.fa.cluster2.fa',0,0,1,3551,4000,
-                                    'Mesorhizobium opportunistum WSM2075, complete genome')]
-                                  )
+                                   ('CP002279.1','transport.fa.cluster2.fa',0,0,1,1551,2000,
+                                    'Mesorhizobium opportunistum WSM2075, complete genome'),
+                                   ('CP002279.1','transport.fa.cluster2.fa',0,0,1,3551,4000,
+                                    'Mesorhizobium opportunistum WSM2075, complete genome')] 
+                self.assertItemsEqual(ids,correct_queries)
+                                  
         unittest.main()
         
         
