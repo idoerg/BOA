@@ -101,7 +101,7 @@ class GFF():
                 species,st,end,strand = self.proteins[protid]
                 env_st,env_end = map(int,[st,end])
                 seq = faaindex[protid]
-                seqinfo = (species,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description)
+                seqinfo = (species,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description,strand,protid) 
                 records.append( (seqinfo, str(seq)) ) 
         return records
     
