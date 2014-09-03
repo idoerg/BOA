@@ -92,11 +92,11 @@ def unique(hits):
     hitset = set()
     newHits = []
     for hit in hits:
-        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit[:8]
         curOrg = fasta.getName(acc)
         if (env_st,env_end,curOrg) in hitset: continue
         hitset.add( (env_st,env_end,curOrg) )
-        newHits.append( (acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description) )
+        newHits.append( hit )
     return newHits
         
 """

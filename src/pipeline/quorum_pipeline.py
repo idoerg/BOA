@@ -384,10 +384,13 @@ class QuorumPipelineHandler(object):
         clusternum=0
         for cluster in clusters:
             for gene in cluster:
-                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=gene.split("|")
-                seq = seq_dict[(acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description)]
-                outhandle.write(">accession=%s|function=%s|start=%s|end=%s|score=%s|cluster_%d|%s\n%s\n"%
-                                (acc,function,env_st,env_end,str(full_evalue),clusternum,description,fasta.format(seq))) 
+                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description,strand,protid=gene.split("|")
+                hmm_st,hmm_end,env_st,env_end = map(int,[hmm_st,hmm_end,env_st,env_end])
+                full_evalue = float(full_evalue)
+                function = clrname.split('.')[0]
+                seq = seq_dict[(acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description,strand,protid)]
+                outhandle.write(">accession=%s|function=%s|start=%s|end=%s|strand=%s|score=%s|protein_id=%s|cluster_%d|%s\n%s\n"%
+                                (acc,function,env_st,env_end,strand,str(full_evalue),protid,clusternum,description,fasta.format(seq))) 
             clusternum+=1
 
     """ Finds operons by constructing graphs and finding cliques 
@@ -400,11 +403,10 @@ class QuorumPipelineHandler(object):
         immunity_hits  = hmmer.parse("%s/immunity.out"%self.intermediate)
         regulator_hits = hmmer.parse("%s/regulator.out"%self.intermediate)
         transport_hits = hmmer.parse("%s/transport.out"%self.intermediate)
-        
         faaindex = fasta.Indexer(self.faa,self.faaidx)
         faaindex.index()
         faaindex.load()
-        genefile = gff.GFF(gff_file=self.gff,fasta_index=self.six_faidx)
+        genefile = gff.GFF(self.gff,fasta_index=self.faaidx)
         genefile.indexdb()
         toxin_hits     = genefile.call_orfs(toxin_hits    ,faaindex)
         modifier_hits  = genefile.call_orfs(modifier_hits ,faaindex)
@@ -414,6 +416,7 @@ class QuorumPipelineHandler(object):
         
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
         seq_dict = {x[0]:x[1] for x in all_hits}
+   
         del all_hits
         
         toxin_ids,toxin_seqs = zip(*toxin_hits)
@@ -435,28 +438,29 @@ class QuorumPipelineHandler(object):
         all_ids=sorted(all_ids,key=lambda x: x[6])   
         all_ids=sorted(all_ids,key=lambda x: x[5])
         all_ids=sorted(all_ids,key=lambda x: x[0])
-        all_ids=sorted(all_ids,key=lambda x: x[-1])
+        #all_ids=sorted(all_ids,key=lambda x: x[-3])
         
         del toxin_ids
         del modifier_ids
         del immunity_ids
         del regulator_ids
         del transport_ids
-        
+        print "all ids",len(all_ids)
+        print '\n'.join(map(str,all_ids[:10]))
         clusters = clique_filter.findContextGeneClusters(all_ids,
                                                          radius=clique_radius,
                                                          backtrans=False,
                                                          functions=["toxin","transport"])
-        
+        print "Clusters: ",len(clusters)
         outhandle = open(self.operons_out,'w')
         self.writeClusters(clusters,seq_dict,outhandle) 
         outhandle.close()
         #Predict operons based on just context genes
-        clusters = clique_filter.findContextGeneClusters(all_hits,
+        clusters = clique_filter.findContextGeneClusters(all_ids,
                                                          radius=clique_radius,
                                                          backtrans=False,   
                                                          functions=["modifier","regulator","immunity","transport"])
-        
+        print "Clusters: ",len(clusters)
         outhandle = open(self.pred_operons_out,'w')
         self.writeClusters(clusters,seq_dict,outhandle) 
         outhandle.close()
@@ -758,22 +762,22 @@ if __name__=="__main__":
                                          self.verbose                
                                         ) 
                 
-                self.proc.preprocess()
+                #self.proc.preprocess()
                 self.assertTrue(os.path.getsize(self.annotated_genes) > 0)
                 self.assertTrue(os.path.getsize(self.intergenes) > 0)
                 self.assertTrue(os.path.getsize(self.proc.all_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_faidx) > 0)
                 
-                self.proc.blast(njobs=10)
+                #self.proc.blast(njobs=16)
                 
                 self.assertTrue(os.path.getsize(self.proc.blasted_fasta_bacteriocins) > 0)
                 self.assertTrue(os.path.getsize(self.proc.cand_context_genes_fasta) > 0)
                 
-                self.proc.blastContextGenes(njobs=10)
+                #self.proc.blastContextGenes(njobs=16)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
-                self.proc.hmmerGenes(min_cluster=1,njobs=8)
+                #self.proc.hmmerGenes(min_cluster=1,njobs=16)
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 

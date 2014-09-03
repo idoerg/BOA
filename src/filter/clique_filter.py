@@ -29,17 +29,18 @@ class CliqueFilter():
         del self.graph
     def createGraph(self,hits,backtrans=True):
         self.graph = nx.Graph()
-        handle = open("graph_error.txt",'w')
+        handle = open("graph_error.txt",'a')
         for i in xrange(len(hits)):
+            handle.write("%s\n"%str(hits[i]))
             for j in xrange(0,i):
                 hiti = hits[i]
                 hitj = hits[j]
                 ispecies,iclrname,ifull_evalue,ihmm_st,ihmm_end,ienv_st,ienv_end,idescription,istrand,iprotid = hiti
-                jspecies,jclrname,jfull_evalue,jhmm_st,jhmm_end,jenv_st,jenv_end,jdescription,jstrand,jprotid = hitj
+                jspecies,jclrname,jfull_evalue,jhmm_st,jhmm_end,jenv_st,jenv_end,jdescription,jstrand,jprotid = hitj                
                 ienv_st,ienv_end,jenv_st,jenv_end = map(int,[ienv_st,ienv_end,jenv_st,jenv_end])
                 midi = (ienv_st+ienv_end)/2
                 midj = (jenv_st+jenv_end)/2                
-                if abs(midi-midj)<self.radius and istrand==jstrand:                    
+                if abs(midi-midj)<self.radius and istrand==jstrand:
                     #Record genome coordinates of operons
                     nodei = "|".join(map(str,hiti))
                     nodej = "|".join(map(str,hitj))                    
@@ -141,9 +142,9 @@ def findContextGeneClusters(hits,faidx="",radius=50000,backtrans=True, functions
     cfilter = CliqueFilter(faidx,radius)
     for hit in hits:
         if prevGenome == None:      
-            prevGenome = hit[-1]
+            prevGenome = hit[0]
             buf.append(hit)
-        elif prevGenome == hit[-1]: 
+        elif prevGenome == hit[0]: 
             buf.append(hit)
         else: 
             
@@ -158,7 +159,7 @@ def findContextGeneClusters(hits,faidx="",radius=50000,backtrans=True, functions
             print >>err_handle,"\n".join(map(str,cliques)),'\n'
             clusters+= cliques
             buf = [hit]
-            prevGenome = hit[-1]
+            prevGenome = hit[0]
             cfilter.delGraph()
     
     cfilter.createGraph(buf,backtrans)    
