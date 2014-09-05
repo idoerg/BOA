@@ -39,6 +39,7 @@ from mafft import MAFFT
 import gff
 import interval_filter
 import clique_filter
+import threshold_filter
 import faa 
 
 class QuorumPipelineHandler(object):
@@ -395,7 +396,7 @@ class QuorumPipelineHandler(object):
 
     """ Finds operons by constructing graphs and finding cliques 
     TODO: Move these parameters to main pipeline handler object"""
-    def cliqueFilter(self,clique_radius=50000,functions = ["toxin","modifier","immunity","transport","regulator"]):
+    def cliqueFilter(self,clique_radius=50000,threshold=62,functions = ["toxin","modifier","immunity","transport","regulator"]):
         print "Clique filtering","Looking for cliques with",functions
         
         toxin_hits     = hmmer.parse("%s/toxin.out"%self.intermediate)
@@ -413,7 +414,13 @@ class QuorumPipelineHandler(object):
         immunity_hits  = genefile.call_orfs(immunity_hits ,faaindex)
         regulator_hits = genefile.call_orfs(regulator_hits,faaindex)
         transport_hits = genefile.call_orfs(transport_hits,faaindex)
-        
+
+        toxin_hits = threshold_filter.filter(toxin_hits,threshold)
+        modifier_hits = threshold_filter.filter(modifier_hits,threshold)
+        immunity_hits = threshold_filter.filter(immunity_hits,threshold)
+        regulator_hits = threshold_filter.filter(regulator_hits,threshold)
+        transport_hits = threshold_filter.filter(transport_hits,threshold)
+
         all_hits = toxin_hits+modifier_hits+immunity_hits+regulator_hits+transport_hits
         seq_dict = {x[0]:x[1] for x in all_hits}
    
@@ -432,7 +439,6 @@ class QuorumPipelineHandler(object):
         del transport_hits
         
         all_ids = toxin_ids+modifier_ids+immunity_ids+regulator_ids+transport_ids
-        #Find operons with at least a toxin and a transport
         all_ids = interval_filter.unique(all_ids)
         # #Sort by start/end position and genome name
         all_ids=sorted(all_ids,key=lambda x: x[6])   
@@ -447,6 +453,7 @@ class QuorumPipelineHandler(object):
         del transport_ids
         print "all ids",len(all_ids)
         print '\n'.join(map(str,all_ids[:10]))
+        #Find operons with at least a toxin and a transport
         clusters = clique_filter.findContextGeneClusters(all_ids,
                                                          radius=clique_radius,
                                                          backtrans=False,
@@ -615,6 +622,9 @@ if __name__=="__main__":
         '--similarity', type=float, required=False, default=0.7,
         help='Clustering similarity')    
     parser.add_argument(\
+        '--threshold', type=float, required=False, default=62.0,
+        help='Score threshold to filter out HMMER hits')    
+    parser.add_argument(\
         '--cluster-size', type=int, required=False, default=10,
         help='Filters all clusters below this threshold')    
     parser.add_argument(\
@@ -682,21 +692,21 @@ if __name__=="__main__":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)            
+            proc.cliqueFilter(args.bacteriocin_radius,args.threshold,functions=args.functions)            
         elif args.pipeline_section=="blast":
             proc.blast(njobs=args.num_jobs)
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,args.threshold,functions=args.functions)
         elif args.pipeline_section=="context":
             proc.blastContextGenes(njobs=args.num_jobs)
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            #proc.cliqueFilter(functions=args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,args.threshold,functions=args.functions)
         elif args.pipeline_section=="hmmer":
             proc.hmmerGenes(args.cluster_size,args.num_jobs)
-            proc.cliqueFilter(functions=args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,args.threshold,functions=args.functions)
         elif args.pipeline_section=="clique":
-            proc.cliqueFilter(60000,args.functions)
+            proc.cliqueFilter(args.bacteriocin_radius,args.threshold,args.functions)
             pass
         #from time import sleep
         #sleep(100)
@@ -714,7 +724,7 @@ if __name__=="__main__":
                 self.six_frame_genome = "%s/example/all_orfs.fna"%self.root
                 self.six_frame_genome_index = "%s/example/all_orfs.fai"%self.root
                 
-                self.bacteriocins = "%s/bagel.fa"%self.bacdir
+                self.bacteriocins = "%s/all_bacteriocins.fa"%self.bacdir
                 self.intergenes = "test_intergenes.fa"
                 self.annotated_genes = "test_genes.fa"
                 self.textdb = "%s/db/bacteria_database"%(self.root)
@@ -728,9 +738,9 @@ if __name__=="__main__":
                 self.training_labels = "%s/data/training/training_proteins.txt"%self.root
                 if not os.path.exists(self.intermediate):
                     os.mkdir(self.intermediate)
-                self.bac_evalue = 0.000001
+                self.bac_evalue = 0.0001
                 self.formatdb = True
-                self.bacteriocin_radius = 50000
+                self.bacteriocin_radius = 25000
                 self.verbose = True
                 self.keep_tmp = False
                 self.similarity = 0.65
@@ -769,21 +779,21 @@ if __name__=="__main__":
                 self.assertTrue(os.path.getsize(self.proc.six_fasta) > 0)
                 self.assertTrue(os.path.getsize(self.proc.six_faidx) > 0)
                 
-                #self.proc.blast(njobs=16)
+                self.proc.blast(njobs=16)
                 
                 self.assertTrue(os.path.getsize(self.proc.blasted_fasta_bacteriocins) > 0)
                 self.assertTrue(os.path.getsize(self.proc.cand_context_genes_fasta) > 0)
                 
-                #self.proc.blastContextGenes(njobs=16)
+                self.proc.blastContextGenes(njobs=16)
                 self.assertTrue(os.path.getsize( self.proc.blast_context_out ) > 0)
                 
-                #self.proc.hmmerGenes(min_cluster=1,njobs=16)
+                self.proc.hmmerGenes(min_cluster=1,njobs=16)
                 for fname in self.proc.class_files:
                     self.assertTrue(os.path.getsize(fname)>0)
                 
-                self.proc.cliqueFilter(clique_radius=100000)
+                self.proc.cliqueFilter(clique_radius=self.bacteriocin_radius,threshold=50)
                 self.assertTrue(os.path.getsize(self.proc.operons_out)>0)
-                self.assertTrue(os.path.getsize(self.proc.pred_operons_out)>0)
+                #self.assertTrue(os.path.getsize(self.proc.pred_operons_out)>0)
         unittest.main()       
         
         
