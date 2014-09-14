@@ -94,30 +94,52 @@ class iTOL():
             os.remove(self.alignFile)
             
     """ Extract 16S rnas """
+#     def getRRNAs(self):
+#         rrnas = []
+#         seen = set()
+#         rrna_dict = SeqIO.to_dict(SeqIO.parse(open(self.allrrna,'r'), "fasta"))
+#         with open(self.operonFile,'r') as handle:
+#             for ln in handle:
+#                 if ln[0]=="-": continue
+#                 ln = ln.rstrip()
+#                 toks = ln.split('|')
+#                 acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
+#                 description = formatName(description)
+#                 accession = acc.split('.')[0]
+#                 if accession in rrna_dict:
+#                     name = description.split(',')[0]
+#                     name = formatName(name)
+#                     if name not in seen:
+#                         record = rrna_dict[accession]
+#                         record.id = name
+#                         rrnas.append(record)
+#                         seen.add(name)
+#                 else:
+#                     print "Accession %s is missing"%accession
+#         SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
+#    
+    acc_reg = re.compile("accession=(\S+)|")
     def getRRNAs(self):
         rrnas = []
         seen = set()
         rrna_dict = SeqIO.to_dict(SeqIO.parse(open(self.allrrna,'r'), "fasta"))
-        with open(self.operonFile,'r') as handle:
-            for ln in handle:
-                if ln[0]=="-": continue
-                ln = ln.rstrip()
-                toks = ln.split('|')
-                acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=toks
-                description = formatName(description)
-                accession = acc.split('.')[0]
-                if accession in rrna_dict:
-                    name = description.split(',')[0]
-                    name = formatName(name)
-                    if name not in seen:
-                        record = rrna_dict[accession]
-                        record.id = name
-                        rrnas.append(record)
-                        seen.add(name)
-                else:
-                    print "Accession %s is missing"%accession
-        SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
-    
+        for record in SeqIO.parse(open(self.operonFile,'r'),'fasta'):
+            ">accession=AE003852.1|function=transport|start=651445|end=652440|strand=-|score=69.8|protein_id=AAF93782.1|cluster_0|-"
+            acc = acc_reg.findall(record.id)[0]
+            description = formatName(description)
+            accession = acc.split('.')[0]
+            if accession in rrna_dict:
+                name = description.split(',')[0]
+                name = formatName(name)
+                if name not in seen:
+                    record = rrna_dict[accession]
+                    record.id = name
+                    rrnas.append(record)
+                    seen.add(name)
+            else:
+                print "Accession %s is missing"%accession
+
+        pass
     """ Build fast tree """
     def buildTree(self,module=subprocess,TREE=UnAlignedRaxml,MSA=Muscle,iters=4,threads=8,hours=12):
         ft = TREE(self.rrnaFile,self.treeFile)
