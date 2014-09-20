@@ -224,6 +224,21 @@ def parse(hmmerout):
                 #Ignore HMMER dumbass parsing exceptions
                 continue
     return entries
+
+def parse_scores(hmmerout):
+    scores = []
+    with open(hmmerout,'r') as handle:
+        for ln in handle:
+            if ln[0]=="#": continue
+            ln = ln.rstrip()
+            toks = re.split("\s+",ln)
+            try:
+                score = float(toks[6])
+                scores.append(score)
+            except Exception as e:
+                    continue
+    return scores
+    
 def hmmerstr(hits):
     all_hits = []
     for hit in hits:

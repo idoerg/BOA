@@ -3,6 +3,37 @@ from Bio import SeqIO, SeqFeature
 from Bio.SeqRecord import SeqRecord
 import argparse
 
+
+class AccessionToSpecies(object):
+    def __init__(self,tableFile):
+        self.tableFile = tableFile
+        self.accessions = dict()
+        self.buildTable()
+    def buildTable(self):
+        with open(self.tableFile,'r') as handle:
+            for ln in handle:
+                ln = ln.rstrip()
+                if ln[0]=="#": continue
+                toks = ln.split('\t')
+                accID,seqType = toks[0],toks[1]
+                species = '_'.join(toks[2:])
+                self.accessions[accID] = (seqType,species)
+    def lookUp(self,accID):
+           return self.accessions[accID]
+       
+
+"""
+Convert accession ids to GI numbers
+"""
+class AccessionGI(object):
+    def __init__(self,input_file):
+        pass
+"""
+Convert GI numbers to accession ids
+"""
+class GIAccession(object):
+    def __init__(self,input_file):
+        pass
 """
 Convert accession ids to green gene ids
 """
@@ -21,12 +52,8 @@ class AccessionGG(object):
                 #print gg,db,acc
                 self.ggtable[(db,acc)] = gg
     def lookupGenbank(self,acc):
-        try:
-            return self.ggtable[("Genbank",acc)]
-        except:
-            print "Accession ID %s not found in table"%acc
-            return None
-            #raise
+        return self.ggtable[("Genbank",acc)]
+
 
 """
 Convert accession ids to green gene ids

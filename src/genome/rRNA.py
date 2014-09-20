@@ -19,7 +19,6 @@ def parse16SRNA(organism,genbank_file,out):
             if feature.type == 'rRNA':
                 try: 
                     
-                    
                     product = feature.qualifiers["product"][0]
                     if product.lower()=='16s ribosomal rna' and organism not in seq_set:
                         st,end,strand = loc_reg.findall(str(feature.location))[0]
