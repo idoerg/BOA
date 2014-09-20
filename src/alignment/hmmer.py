@@ -44,6 +44,7 @@ class HMM(object):
         self.table = "%s/%s.table"%(directory,basename) #results from hmmsearch
         self.logs = ["%s/%s_hmmbuild.log"%(directory,basename),
                      "%s/%s_hmmsearch.log"%(directory,basename)]
+
         self.threads = threads
     """Clean up useless files"""        
     def cleanUp(self):
@@ -79,15 +80,21 @@ class HMM(object):
         return proc
     """Perform multiple alignment with Muscle on a single cluster"""
     def multipleAlignment(self,module=subprocess,msa=MAFFT,maxiters=20):
-        cw = msa(self.clusterfa,self.sto,module)
-        self.clustal = cw
-        if msa==Muscle:
-            proc = cw.run(fasta=True,maxiters=maxiters)
+        if self.seqcount(self.clusterfa)==1:
+            self.sto = self.clusterfa
+            return None
         else:
-            proc = cw.run(fasta=True,maxiters=maxiters,threads=self.threads)
-        #cw.outputSTO()
-        return cw
-        
+            cw = msa(self.clusterfa,self.sto,module)
+            self.clustal = cw
+            if msa==Muscle:
+                proc = cw.run(fasta=True,maxiters=maxiters)
+            else:
+                proc = cw.run(fasta=True,maxiters=maxiters,threads=self.threads)
+            #cw.outputSTO()
+            return cw
+    def seqcount(self,fname):
+        seqs = list(SeqIO.parse(open(fname,'r'),'fasta'))
+        return len(seqs)
 """Performs clustering and runs HMMER on every cluster"""
 class HMMER(object):
     def __init__(self,fasta="",
@@ -134,7 +141,8 @@ class HMMER(object):
             self.hmms.append(hmm)
         for hmm in self.hmms:
             proc = hmm.multipleAlignment(msa=msa,maxiters=maxiters)
-            procs.append(proc)
+            if proc!=None:
+                procs.append(proc)
             i+=1
             if i==njobs: #make sure jobs don't overload
                 self.wait(procs,fasta=True)
@@ -154,11 +162,11 @@ class HMMER(object):
             
             
     """Performs HMMER using all clusters on infasta"""
-    def search(self,infasta,out,njobs=4):
+    def search(self,infasta,out,maxpower=False,njobs=4):
         procs = []
         i = 0
         for hmm in self.hmms:
-            proc = hmm.hmmsearch(infasta)
+            proc = hmm.hmmsearch(infasta,maxpower)
             self.tables.append(hmm.table)
             procs.append(proc)
             i+=1
@@ -231,14 +239,12 @@ def parse_scores(hmmerout):
         for ln in handle:
             if ln[0]=="#": continue
             ln = ln.rstrip()
-            toks = re.split("\s+",ln)
-            try:
-                score = float(toks[6])
-                scores.append(score)
-            except Exception as e:
-                    continue
+            toks  = re.split("\s+",ln)
+            score = float(toks[8])
+            name = toks[2]
+            scores.append((name,score))
     return scores
-    
+
 def hmmerstr(hits):
     all_hits = []
     for hit in hits:

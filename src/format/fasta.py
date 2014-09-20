@@ -170,9 +170,14 @@ class Indexer():
         #assert 'X' not in orf,"startCodon=%d start=%d fw[i+1]=%d stopCodon=%d bk[i-1]=%d end=%d %s"%(
         #                       startCodon, start, indices[fw+1], stopCodon, indices[bk-1], end,orf)     
         return orf,orf_start,orf_end
-    
+    def __getitem__(self,defn):
+        
+        seqLen,byteOffset,lineLen,byteLen=self.faidx[defn]
+        return self.fetch(defn,1,seqLen)
     """ Retrieve a sequence based on fasta index """
     def fetch(self, defn, start, end):
+        if len(self.faidx)==0:
+            print "Empty table ..."
         assert type(1)==type(start)
         assert type(1)==type(end)
         self.fasta_handle = open(self.fasta,'r')
@@ -258,6 +263,9 @@ def strand(frame):
         return '-'
     else:
         raise Exception
+def getStrand(seqname):
+    return strand(getFrame(seqname))
+
 """ Fetch orfs from hmmer hits
 Careful about faidx window size """
 def call_orfs(indexer,hits):
@@ -378,6 +386,15 @@ if __name__=="__main__":
                 self.assertEquals(pos,16)
                 pos,_ = indexer.sixframe_to_nucleotide("testseq40_5", 5)
                 self.assertEquals(pos,2686)
+            def testGet(self):
+                indexer = Indexer(self.fasta,self.fastaidx)
+                indexer.index()
+                indexer.load()
+                self.assertEquals('AGCTACT',indexer["testseq10_1"])
+                self.assertEquals('AGCTAGCT',indexer["testseq10_2"])
+                self.assertEquals('AAGCTAGCT',indexer["testseq40_2"])
+                self.assertEquals('AAGCTAGCT'*100,indexer["testseq40_5"])
+                
         class TestFasta(unittest.TestCase):
             def setUp(self):
                 entries = ['>testseq1',
@@ -422,6 +439,7 @@ if __name__=="__main__":
                                   "AGCAG",
                                   "CA"])
                                   )
+        """
         class TestOrf(unittest.TestCase):
             def setUp(self):
                 entries = ['>testseq1',
@@ -471,7 +489,7 @@ if __name__=="__main__":
                                                'APWWTTCGTTTTPPWHVRQ']) )
                 seq2 = indexer.fetch("testseq2",st,end)
                 self.assertEquals(seq,seq2)
-            
+        """
         class TestTranslate(unittest.TestCase):
             def setUp(self):
               self.frames = ["MAIVMGRX",

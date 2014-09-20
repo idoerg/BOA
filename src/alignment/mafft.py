@@ -23,10 +23,10 @@ class MAFFT(multiplealignment.MultipleAlignment):
     def run(self,fasta=False,maxiters=4,threads=8):
         
         if fasta:
-            cline = "mafft --maxiterate %d --thread %d %s > %s"%(maxiters,threads,self.input,self.output)
+            cline = "fftns --thread %d %s > %s"%(threads,self.input,self.output)
             out = self.output
         else:
-            cline = "mafft --maxiterate %d --thread %d --clustalout %s > %s"%(maxiters,threads,self.input,self.aln)
+            cline = "fftns --thread %d --clustalout %s > %s"%(threads,self.input,self.aln)
             out = self.aln
         print cline
         

@@ -10,7 +10,7 @@ from Bio.SeqRecord import SeqRecord
 
 loc_reg = re.compile("(\d+):>?(\d+)\S\((\S)\)")
 
-def parse16SRNA(organism,genbank_file,out):
+def parse16SRNA(acc,taxa,genbank_file,out):
     seq_set = set()
     try:
         seq_record = SeqIO.read(open(genbank_file), "genbank")  
@@ -20,26 +20,26 @@ def parse16SRNA(organism,genbank_file,out):
                 try: 
                     
                     product = feature.qualifiers["product"][0]
-                    if product.lower()=='16s ribosomal rna' and organism not in seq_set:
+                    if product.lower()=='16s ribosomal rna' and acc not in seq_set:
                         st,end,strand = loc_reg.findall(str(feature.location))[0]
                         st,end = int(st),int(end)
                         if strand=="+":
                             seq = seq_record.seq
                             seq = seq[st:end]
                             if len(seq)>0:
-                                out.write(">%s\n%s\n"%(organism,str(seq)))
-                                seq_set.add(organism)
+                                out.write(">%s\t%s\n%s\n"%(acc,taxa,str(seq)))
+                                seq_set.add(acc)
                         else:
                             seq = seq_record.reverse_complement().seq
                             seq = seq[st:end]
                             print st,end
                             if len(seq)>0:
-                                out.write(">%s\n%s\n"%(organism,str(seq)))
-                                seq_set.add(organism)
+                                out.write(">%s\t%s\n%s\n"%(acc,taxa,str(seq)))
+                                seq_set.add(acc)
                 except KeyError as k:                    
                     continue
     except Exception as e:
-        print "Exception at",organism,genbank_file,e
+        print "Exception at",acc,taxa,genbank_file,e
 
 
 def go(rootdir,out):
@@ -47,10 +47,15 @@ def go(rootdir,out):
     for root, subFolders, files in os.walk(rootdir):
         for fname in files:
             genome_files = []
-            organism,ext = os.path.splitext(os.path.basename(fname))
+            acc,ext = os.path.splitext(os.path.basename(fname))
+            absfile=os.path.join(root,fname)
+            directory = os.path.dirname(absfile)
+            taxa = os.path.basename(directory)
             if ext==".gbk":
-                absfile=os.path.join(root,fname)
-                parse16SRNA(organism,absfile,outHandle)
+                print acc
+                print taxa
+                print absfile
+                parse16SRNA(acc,taxa,absfile,outHandle)
     pass
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=\

@@ -83,12 +83,13 @@ if __name__=="__main__":
         all_hits=sorted(all_hits,key=lambda x: x[0])  
         cPickle.dump(all_hits,open("test.pickle",'wb'))
         print "Sorted"   
+        
     """
     #Find operons with at least a toxin and a transport
     print "All hits",len(all_hits)
     all_hits = interval_filter.overlaps(all_hits,faidx)
-    all_hits = interval_filter.unique(all_hits)
-    clusters = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,
+    all_hits = interval_filter.unique(clusters)
+    all_hits = clique_filter.findContextGeneClusters(all_hits,faidx,backtrans=False,
                                                      functions=["toxin","transport"])
     outhandle = open('%s/operons.txt'%(folder),'w')
     for cluster in clusters:

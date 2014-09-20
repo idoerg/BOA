@@ -227,10 +227,10 @@ if __name__=="__main__":
         '--bacteriocin-radius', type=int, required=False, default=5000,
         help='The search radius around every specified bacteriocin')
     parser.add_argument(\
-        '--gene-evalue', type=float, required=False, default=0.00001,
+        '--gene-evalue', type=float, required=False, default=10e-5,
         help='The evalue for gene hits')
     parser.add_argument(\
-        '--bac-evalue', type=float, required=False, default=0.00001,
+        '--bac-evalue', type=float, required=False, default=10e-5,
         help='The evalue for bacteriocin hits')
     #parser.add_argument(\
     #    '--num-threads', type=int, required=False, default=1,
@@ -258,6 +258,7 @@ if __name__=="__main__":
     args = parser.parse_args()
     #outHandle.write("bacteriocin\tbacteriocin_location\torganism\tgene\tbacterciocin_sequence\n")
     if not args.test:
+        print "evalue",args.bac_evalue
         bacteriocinsOut = open("%s.bacteriocins.txt"%(args.output),'w')
         #filteredOut = open("%s_filtered.txt"%(args.output),'w')
         annotationsOut  = open("%s.annotated.txt"%(args.output),'w')

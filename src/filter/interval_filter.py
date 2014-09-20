@@ -92,17 +92,17 @@ def unique(hits):
     hitset = set()
     newHits = []
     for hit in hits:
-        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit[:8]
         curOrg = fasta.getName(acc)
         if (env_st,env_end,curOrg) in hitset: continue
         hitset.add( (env_st,env_end,curOrg) )
-        newHits.append( (acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description) )
+        newHits.append( hit )
     return newHits
         
 """
 Collapses hmmer hits using Interval trees
 """
-def overlaps(hits,fasta_index,backtrans=True):
+def overlaps(hits,fasta_index,backtrans=False):
     tree = IntervalTree()
     faidx = fasta.Indexer('',fasta_index)
     faidx.load()
@@ -111,7 +111,7 @@ def overlaps(hits,fasta_index,backtrans=True):
     newHits = []
     #print "Before",len(hits)
     for hit in hits:
-        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit
+        acc,clrname,full_evalue,hmm_st,hmm_end,env_st,env_end,description=hit[:8]
         curOrg = fasta.getName(acc)
         if backtrans:
             hitSt,curStrand  = faidx.sixframe_to_nucleotide(acc,env_st)
