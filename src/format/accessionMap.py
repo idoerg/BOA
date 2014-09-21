@@ -27,13 +27,41 @@ Convert accession ids to GI numbers
 """
 class AccessionGI(object):
     def __init__(self,input_file):
-        pass
+        self.input = input_file
+        self.ggtable = dict()
+        self.buildTable()
+    def buildTable(self):
+        with open(self.input,'r') as handle:
+            for ln in handle:
+                if ln[0]=='#': continue
+                ln = ln.rstrip()
+                toks = ln.split('\t')
+                gi,acc = toks #green genes, database type, accession
+                #print gg,db,acc
+                self.ggtable[acc] = gi
+    def lookupGI(self,acc):
+        return self.ggtable[acc]
+
 """
 Convert GI numbers to accession ids
 """
 class GIAccession(object):
     def __init__(self,input_file):
-        pass
+        self.input = input_file
+        self.ggtable = dict()
+        self.buildTable()
+    def buildTable(self):
+        with open(self.input,'r') as handle:
+            for ln in handle:
+                if ln[0]=='#': continue
+                ln = ln.rstrip()
+                toks = ln.split('\t')
+                gi,acc = toks 
+                #print gg,db,acc
+                self.ggtable[gi] = acc
+    def lookupAccession(self,acc):
+        return self.ggtable[acc]
+
 """
 Convert accession ids to green gene ids
 """
