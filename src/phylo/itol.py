@@ -23,11 +23,12 @@ from raxml import *
 from collections import *
 from muscle import Muscle
 from mafft import MAFFT
-
+from collections import defaultdict
 acc_reg = re.compile("accession=(\S+).\d+|")
 func_reg = re.compile("function=(\S+)|")
-loc_reg = re.compile("start=(\d+)|end=(\d+)")    
-cluster_reg = re.compile("(cluster_\d+)")
+start_reg = re.compile("start=(\d+)")
+end_reg = re.compile("end=(\d+)")
+
 def formatName(name):
     name = name.replace("'",'')
     name = name.replace("\"",'')
@@ -135,7 +136,8 @@ class iTOL():
             if accession in self.rrna_dict:
                 record = self.rrna_dict[accession]
                 acc,taxa = record.description.split("\t")
-                record.id = formatName(taxa)
+                #record.id = formatName(taxa)
+                record.id = taxa
                 if taxa not in seen:
                     rrnas.append(record)
                     seen.add(taxa)
@@ -143,7 +145,7 @@ class iTOL():
                 print "Accession %s is missing"%accession
         SeqIO.write(rrnas, open(self.rrnaFile,'w'), "fasta")
         
-    """ Build fast tree """
+    """ Build phylogenetic tree """
     def buildTree(self,module=subprocess,TREE=UnAlignedRaxml,MSA=Muscle,iters=4,threads=8,hours=12):
         ft = TREE(self.rrnaFile,self.treeFile)
         ft.align(module=module,MSA=MSA,iters=iters,threads=threads,hours=hours) #Run multiple sequence alignment and spit out aligned fasta file
@@ -179,33 +181,105 @@ class iTOL():
                     buf.append(ln)
         outhandle.close()
         
-    """ Spit out iTOL file for operon distribution """        
-    def operonDistribution(self,itolout):
+    """ Spit out iTOL file for functions distribution """        
+    def functionDistribution(self,itolout):
         outhandle = open(itolout,'w')
         outhandle.write("LABELS\timmunity\tmodifier\tregulator\ttoxin\ttransport\n")
         outhandle.write("COLORS\t#0000ff\t#00ff00\t#ff0000\t#ff00ff\t#ff8c00\n")
         seen = set()    
-        prevCluster,curCluster = None,None
-        func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
+        func_counts = defaultdict(Counter)
         for record in SeqIO.parse(open(self.operonFile,'r'),'fasta'):
-            acc = acc_reg.findall(record.id)[0]
-            curCluster = cluster_reg.findall(record.id)[0]
-            taxa = self.rrna_dict[acc]
-            env_st,env_end = map(int,loc_reg.findall(record.id)[0])
+            acc = acc_reg.findall(record.id.split("|")[0])[0]
+            acc = acc.split(".")[0]
+            curCluster = record.id.split("|")[7]
+            #if acc not in self.rrna_dict:
+            #    print "Missing accession",acc,record.id
+            #    continue
+            #taxa_record = self.rrna_dict[acc]
+            env_st  = start_reg.findall(record.id)[0]
+            env_end = end_reg.findall(record.id)[0]
+            #taxa = taxa_record.description.split("\t")[1]
+            function = func_reg.findall(record.id.split("|")[1])[0]
+            taxa = acc
             if (taxa,env_st,env_end) in seen: continue
-            seen.add(taxa,env_st,env_end)
-            if prevCluster == None:
-                prev = taxa
-            elif curCluster!=prevCluster:
-                functions = func_counts.items()
-                functions = sorted(functions,key=lambda x:x[0])
-                functions,counts = zip(*functions)
-                outhandle.write("%s\t%s\n"%(prevCluster,'\t'.join(map(str,counts))))
-                func_counts = Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
-                prevCluster = curCluster
-            function = clrname.split('.')[0]
-            func_counts[function]+=1
+            if taxa not in func_counts:
+                func_counts[taxa]=Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
+            func_counts[taxa][function] += 1
+        for k,cnts in func_counts.items():
+            functions = cnts.items()
+            functions = sorted(functions,key=lambda x:x[0])
+            functions,counts = zip(*functions)
+            outhandle.write("%s\t%s\n"%(k,'\t'.join(map(str,counts))))
+        outhandle.close()
+
+    """ Spit out iTOL file for operon distribution """        
+    def operonDistribution(self,itolout):
+        outhandle = open(itolout,'w')
+        outhandle.write("LABELS\tOperons\n")
+        outhandle.write("COLORS\t#0000ff\n")
+        operon_counts = defaultdict(set)
+        for record in SeqIO.parse(open(self.operonFile,'r'),'fasta'):
+            acc = acc_reg.findall(record.id.split("|")[0])[0]
+            curCluster = record.id.split("|")[7]
+            acc = acc.split(".")[0]
+            taxa = acc
+            #if acc not in self.rrna_dict:
+            #    print "Missing accession",acc,record.id
+            #    continue
+            #taxa_record = self.rrna_dict[acc]
+            env_st  = start_reg.findall(record.id)[0]
+            env_end = end_reg.findall(record.id)[0]
+            #taxa = taxa_record.description.split("\t")[1]
+            cluster = record.id.split("|")[7]
+            operon_counts[taxa].add(cluster)
+        for k,cnts in operon_counts.items():
+            outhandle.write("%s\t%d\n"%(k,len(operon_counts[k])))
+        outhandle.close()
+
+    """ Spit out graphlan file for functions distribution """        
+    def functionRings(self,itolout):
+        outhandle = open(itolout,'w')
+        #outhandle.write("LABELS\timmunity\tmodifier\tregulator\ttoxin\ttransport\n")
+        #outhandle.write("COLORS\t#0000ff\t#00ff00\t#ff0000\t#ff00ff\t#ff8c00\n")
+        seen = set()
+        colors = {"immunity":"#0000ff","modifier":"#00ff00","regulator":"#ff0000","toxin":"#ff00ff","transport":"#ff8c00"}
+        func_counts = defaultdict(Counter)
+        operon_counts = defaultdict(set)
+        for record in SeqIO.parse(open(self.operonFile,'r'),'fasta'):
+            acc = acc_reg.findall(record.id.split("|")[0])[0]
+            acc = acc.split(".")[0]
+            curCluster = record.id.split("|")[7]
+            #if acc not in self.rrna_dict:
+            #    print "Missing accession",acc,record.id
+            #    continue
+            #taxa_record = self.rrna_dict[acc]
+            env_st  = start_reg.findall(record.id)[0]
+            env_end = end_reg.findall(record.id)[0]
+            #taxa = taxa_record.description.split("\t")[1]
+            function = func_reg.findall(record.id.split("|")[1])[0]
+            taxa = acc
+            if (taxa,env_st,env_end) in seen: continue
+            if taxa not in func_counts:
+                func_counts[taxa]=Counter({'immunity':0,'modifier':0,'regulator':0,'toxin':0,'transport':0,})
+            func_counts[taxa][function] += 1
+            cluster = record.id.split("|")[7]
+            operon_counts[taxa].add(cluster)
             
+        for k,cnts in func_counts.items():
+            functions = cnts.items()
+            functions = sorted(functions,key=lambda x:x[0])
+            #functions,counts = zip(*functions)
+            level=1
+            for function,counts in functions:
+                outhandle.write("%s\tring_height\t%d\t%lf\n"%(k,level,counts/10.0))
+                outhandle.write("%s\tring_color\t%d\t%s\n"%(k,level,colors[function]))
+                level+=1
+            outhandle.write("%s\tring_height\t%d\t%lf\n"%(k,level,len(operon_counts[k])/10.0))
+
+            #outhandle.write("%s\t%s\n"%(k,'\t'.join(map(str,counts))))
+            accs = [k]*5
+            
+        outhandle.close()
         
 if __name__=="__main__":
     import unittest

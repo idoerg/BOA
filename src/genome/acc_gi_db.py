@@ -11,7 +11,7 @@ def parse(organism,genbank_file,out):
         seq_record = SeqIO.read(open(genbank_file), "genbank")
         gi = seq_record.annotations['gi']
         acc = seq_record.id
-        out.write(">%s\t%s\n"%(gi,acc)
+        out.write("%s\t%s\n"%(gi,acc))
     except Exception as e:
         print "Exception at",organism,genbank_file,e
 

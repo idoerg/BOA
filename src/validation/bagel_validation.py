@@ -1,12 +1,12 @@
 
 import os,site,sys
 from collections import *
-from bx.intervals import *
+# from bx.intervals import *
 import re
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for directory_name in os.listdir(base_path):
     site.addsitedir(os.path.join(base_path, directory_name))
-from annotated_genes import AnnotationTree
+# from annotated_genes import AnnotationTree
 
     
 
